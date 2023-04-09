@@ -1,0 +1,160 @@
+---
+initial_lilit_escape: '@:$'
+---
+
+# The 1-Bit Bongo
+
+A 1-Bit bongo is an infra-instrument [@bowers2005nime_infra-instruments]
+conceived as a proof of concept and test platform for a modular digital
+lutherie toolbox based on C++ reflection, inspired by Jean-Michael's
+[Avendish](http://github.com/celerier/avendish) library
+[@celerier2022icmc_rage-against-the-glue], and applied to both embedded
+firmware and common creative coding environments used by digital luthiers, such
+as Pure Data, that are usually run on a laptop computer.
+
+The intended design of the instrument is a single button, e.g. the spacebar key
+on a typical computer keyboard, mapped to a 1-bit synthesis algorithm
+[@troise2020thesis; @troise2020_1-bit]. The design is sufficiently constrained
+(or if you prefer, sufficiently simplistic) that its parts can be implemented
+rapidly on a variety of platforms without much effort, but not so contrived
+that those parts would be completely useless for other DMIs. As such, the 1-Bit
+bongo is also intended as a first step towards implementing more featureful
+digital musical instruments.
+
+For this discussion, we will largely focus on realizing a 1-bit bongo using the
+ESP32 platform. We will then generalize some of the signal models we develop to
+run in Pure Data. Finally, we will port the ESP32 bongo to a different
+microcontroller platform. In the process, we will see how C++ reflection can
+help us to minimize repetition of effort and reduce how much binding code it is
+necessary to write.
+
+# Bit Banger
+
+Perhaps the simplest possible realization of a 1-bit bongo maps the button
+directly to the output sound, typically producing electronic clicks when the
+state of the button changes. In principle, if the player had superhuman
+virtuosity, and the button had an idealistic analog response, then any sound
+could be performed through a loudspeaker by performing a high frequency pulse
+width modulation signal, such as would be produced from a class-D amplifier.
+Although this could be easily realized as a purely analog system, with a
+voltag connected through the button directly to the speaker, we will start
+with a digital implementation on ESP32 so that we can reuse parts of it in
+later steps.
+
+First, we need to read the state of the button from a GPIO input pin. Then, we
+will write that state to GPIO output pin. GPIO reference documentation for the
+current version of the ESP integrated development framework (ESP-IDF) is found
+[here](https://docs.espressif.com/projects/esp-idf/en/v5.0.1/esp32/api-reference/peripherals/gpio.html).
+The relevant public domain example code is found 
+[here](https://github.com/espressif/esp-idf/blob/v5.0.1/examples/peripherals/gpio/generic_gpio/main/gpio_example_main.c).
+
+## Hardware Setup
+
+Let's assume we have a normally open button connected to pulled-up-GPIO pin 4
+on one side and electrical ground on the other, and a piezo buzzer or
+loudspeaker connected to GPIO pin 18 on one side and ground on the other,
+roughly following the pin assignments in the example code. We'll define compile
+time constants near the beginning of the file to refer to the pin assignments.
+
+```c++
+// $:@
+// @='define pin numbers'
+constexpr gpio_num_t input_pin  = GPIO_NUM_4;
+constexpr gpio_num_t output_pin = GPIO_NUM_18;
+// @/
+```
+
+Before we can read or write the pins, we need to configure them. Again
+following the example code, we can do this by passing a configuration structure
+to the appropriate API function.
+
+```c++
+// @='configure pins'
+// https://docs.espressif.com/projects/esp-idf/en/v5.0.1/esp32/api-reference/peripherals/gpio.html#_CPPv413gpio_config_t
+gpio_config_t input_cfg =
+{
+    .pin_bit_mask = 1ULL<<input_pin,
+    .mode = GPIO_MODE_INPUT,
+    .pull_up_en = GPIO_PULLUP_ENABLE,
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE,
+};
+
+gpio_config_t output_cfg =
+{
+    .pin_bit_mask = 1ULL<<output_pin,
+    .mode = GPIO_MODE_OUTPUT,
+    .pull_up_en = GPIO_PULLUP_DISABLE,
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE,
+};
+
+gpio_config(&input_cfg);
+gpio_config(&output_cfg);
+// @/
+```
+
+## Mapping
+
+Reading and writing GPIO pins are both accomplished with API calls, meaning the mapping
+here is quite trivial. We want to avoid a click when we power up the device, so since
+the button is pulled-up by default, we need to invert its reading, giving us a 0 when
+the button is not pressed, and a 1 when the button is pressed.
+
+```c++
+// @='read button write speaker'
+gpio_set_level(output_pin, 1^gpio_get_level(input_pin));
+// @/
+```
+
+## Build Automation
+
+The ESP-IDF uses a modular component library built using CMake for its builds. To
+compile our code, we need a few boilerplate CMake files and a particular directory
+structure. These can be generated with the `idf.py` tool included with the framework:
+
+```sh
+# generate boilerplate project files
+mkdir -p narrative
+cd narrative
+idf.py bit-banger
+```
+
+This gives us a handful of CMakeLists.txt files, and an empty main. We leave the
+top level CMakeLists.txt unchanged:
+
+```cmake
+# @#'narrative/bit-banger/CMakeLists.txt'
+cmake_minimum_required(VERSION 3.16)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(bit-banger)
+# @/
+```
+
+But we will modify the CMakeLists.txt in the main directory to use our C++ main file:
+
+```cmake
+# @#'narrative/bit-banger/main/CMakeLists.txt'
+idf_component_register(SRCS "bit-banger.cpp"
+                    INCLUDE_DIRS ".")
+# @/
+```
+
+## Summary
+
+```c++
+// @#'narrative/bit-banger/main/bit-banger.cpp'
+#include "driver/gpio.h"
+
+@{define pin numbers}
+
+extern "C" void app_main(void)
+{
+    @{configure pins}
+    for(;;)
+    {
+        @{read button write speaker}
+    }
+}
+// @/
+```
