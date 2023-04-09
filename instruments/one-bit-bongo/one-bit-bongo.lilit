@@ -23,10 +23,11 @@ digital musical instruments.
 
 For this discussion, we will largely focus on realizing a 1-bit bongo using the
 ESP32 platform. We will then generalize some of the signal models we develop to
-run in Pure Data. Finally, we will port the ESP32 bongo to a different
-microcontroller platform. In the process, we will see how C++ reflection can
-help us to minimize repetition of effort and reduce how much binding code it is
-necessary to write.
+run in Pure Data, which acts as a proxy for the rich ecosystem of sound and
+music computing tools commonly employed. Finally, we will port the ESP32 bongo
+to a different microcontroller platform. In the process, we will see how C++
+reflection can help us to minimize repetition of effort and reduce how much
+binding code it is necessary to write.
 
 # Bit Banger
 
@@ -103,7 +104,8 @@ the button is not pressed, and a 1 when the button is pressed.
 
 ```c++
 // @='read button write speaker'
-gpio_set_level(output_pin, 1^gpio_get_level(input_pin));
+auto button_state = 1^gpio_get_level(input_pin);
+gpio_set_level(output_pin, button_state);
 // @/
 ```
 
@@ -142,6 +144,8 @@ idf_component_register(SRCS "bit-banger.cpp"
 
 ## Summary
 
+The final implementation is very simple.
+
 ```c++
 // @#'narrative/bit-banger/main/bit-banger.cpp'
 #include "driver/gpio.h"
@@ -158,3 +162,35 @@ extern "C" void app_main(void)
 }
 // @/
 ```
+
+# One-Button Controller
+
+For the sake of discussion, let's say that we are satisfied with the hardware
+functionality of our device, and wish to explore other mappings to sound. We
+might want to make use of a more convient and familiar tool on our laptop,
+specifically Pure Data for the sake of our discussion, to facilitate rapid
+prototyping and exploration. It would also be convient to allow our
+collaborators to use the device as a controller in their own custom
+applications.
+
+The simplest approach might be to print a 0 or 1 to the serial console, and
+parse that in the intended prototyping environment. This is particularly simple
+on ESP32, since the development framework provides a standard output that
+writes to the serial UART, without requiring any setup or boilerplate.
+
+```c++
+// @='write serial'
+printf(button_state ? "1" : "0");
+// @/
+```
+
+Unfortunately, many commonly used tools, including Pure Data, have no
+convenient built in way of reading data from a serial device. A third party
+external could be used, but this poses mild barriers to our exposition here.
+Instead, the path of least resistance is likely to use a network protocol
+to send the data, and receive it with Pure Data's built in `[netreceive]`
+object.
+
+## Network Setup
+
+
