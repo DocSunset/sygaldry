@@ -27,7 +27,10 @@ run in Pure Data, which acts as a proxy for the rich ecosystem of sound and
 music computing tools commonly employed. Finally, we will port the ESP32 bongo
 to a different microcontroller platform. In the process, we will see how C++
 reflection can help us to minimize repetition of effort and reduce how much
-binding code it is necessary to write.
+binding code it is necessary to write. Throughout the discussion that follows,
+we will imagine that you are building the bongo for yourself and your artistic
+collaborators. We will follow along the process of making the device, gradually
+adding features, encountering problems, and hopefully resolving them.
 
 # Bit Banger
 
@@ -171,26 +174,476 @@ might want to make use of a more convient and familiar tool on our laptop,
 specifically Pure Data for the sake of our discussion, to facilitate rapid
 prototyping and exploration. It would also be convient to allow our
 collaborators to use the device as a controller in their own custom
-applications.
+applications. A single button can be unexpectedly useful. It can be used to
+step through a series of cues during a performance, or to trigger various
+events. Live looping applications can also be realized with a single button.
 
-The simplest approach might be to print a 0 or 1 to the serial console, and
-parse that in the intended prototyping environment. This is particularly simple
-on ESP32, since the development framework provides a standard output that
-writes to the serial UART, without requiring any setup or boilerplate.
+The simplest approach to get the button's state into Pure Data might be to
+print a 0 or 1 to the serial console, and parse that in the intended
+prototyping environment. This is particularly simple on ESP32, since the
+development framework provides a standard output that writes to the serial
+UART, without requiring any setup or boilerplate. We only send the state out
+when it changes so that we can easily detect state transitions downstream, and
+to save bandwidth that we might need later.
 
 ```c++
-// @='write serial'
-printf(button_state ? "1" : "0");
+// @='naively write button state'
+if (button_state_changed) putc(button_state, stdio);
 // @/
 ```
 
-Unfortunately, many commonly used tools, including Pure Data, have no
-convenient built in way of reading data from a serial device. A third party
-external could be used, but this poses mild barriers to our exposition here.
-Instead, the path of least resistance is likely to use a network protocol
-to send the data, and receive it with Pure Data's built in `[netreceive]`
-object.
+While many commonly used tools, including Pure Data, have no convenient built
+in way of reading data from a serial device, let's suppose that we are willing
+to use a third party external such as `[comport]`. Now we can receive our button
+state in Pure Data with a simple patch.
 
-## Network Setup
+## Mapping
+
+Over the course of our exploration, there are a number of mappings we might
+converge on that commonly arise in the course of working with buttons.
+
+It is useful in many circumstances to detect button state transitions, such as
+the rising edge when the button state is changed to `1`, and the falling edge
+when the button is released. Each transition may be used to trigger different
+behaviors. This mapping is indeed so basic and essential that it is necessary
+to implement many other typical button gesture models.
+
+It may be useful in our mappings to differentiate when the button is pressed
+down and held, compared to when it is pressed and then quickly released. This
+could be used, for example, to momentarily enable a function while holding the
+button, or to persistently toggle the function on or off. In a live looper this
+could be used with recording or overdub functions.
+
+It may be useful to differentiate between a single tap and two or more taps in
+quick succession. One tap might trigger a certain event, while two taps trigger
+a different event, and three another. One button is transformed into an arbitrary
+number of discrete triggers, limited only by how quickly you can tap.
+
+These kinds of mappings might initially be prototyped in Pure Data, but eventually
+there are a variety of reasons why it might be advantageous to port them to the
+firmware of the controller. For instance, it might be more convenient for your
+collaborators to access the outputs of these mappings without having to run your
+Pure Data patch. Such firmware implementations follow.
+
+### Edge Detection
+
+Detecting state transitions is straightforward, based on comparing the current
+state of the button with the previous state.
+
+```c++
+// @='detect edges'
+static auto previous = button_state;
+bool rising_edge = false;
+bool falling_edge = false;
+if (previous != button_state)
+{
+    previous = button_state;
+    rising_edge = button_state;
+    falling_edge = not button_state;
+}
+bool any_edge = rising_edge || falling_edge;
+// @/
+```
+
+### Tap/Hold
+
+The goal of this mapping is to allow a state to be either momentarily activated
+by holding down the button, or persistently toggled by tapping the button.
+First it is necessary to differentiate taps from holds. We will consider a
+gesture as a tap if the button is released within a certain time of the rising
+edge. Otherwise, we will consider it a hold.
+
+```c++
+// @='tap vs hold'
+static double max_tap_duration = 250000;
+
+static int64_t tap_or_hold_start_time = 0;
+bool holding = false;
+bool tapped = false;
+bool held = false;
+if (rising_edge) tap_or_hold_start_time = esp_timer_get_time();
+else (button_state || falling_edge)
+{
+    double duration = (double)esp_timer_get_time() - (double)tap_or_hold_start_time;
+    if (duration > max_tap_duration) holding = true;
+    if (falling_edge)
+    {
+        tapped = not holding;
+        held = holding;
+        holding = false;
+    }
+}
+
+if (falling_edge)
+{
+    else held = true;
+}
+// @/
+```
+
+One approach to the momentary/latching logic is to favor a low state. The
+particular mapping is one I first implemented to control the sound recording
+state in the mubone. In this approach, the state always raises on the button's
+rising edge, so that a tap or a hold will instantly raise the state. On the
+falling edge of a tap, nothing happens. On the falling edge of a hold, the
+state is lowered. If the state is latched high by a tap, on the next tap or
+hold, the state will always be lowered on the falling edge. This mapping's main
+convenience is that the state can always be cleared with a hold, no matter what
+the current state.
+
+```c++
+// @='momentary/latching 1'
+static bool momentary1 = false;
+static bool momentary1_falling = false;
+
+if (rising_edge)
+{
+    if (momentary1) momentary1_falling = true;
+    else momentary1 = true;
+}
+else if (falling_edge && (momentary1_falling || held))
+{
+    momentary1 = momentary1_falling = false;
+}
+// @/
+```
+
+Another approach always toggles the state on a rising edge and on the falling
+edge of a hold. In this case, taps toggle and latch the state, and holds always
+momentarily toggle the state. The implementation is simpler, but the user must
+keep track of the current state.
+
+```c++
+// @='momentary/latching 2'
+static bool momentary2 = false;
+if (rising_edge || (falling_edge && held)) momentary2 = not momentary2;
+// @/
+```
+
+Both approaches may be useful depending on the application, so both may be
+implemented and made accessible to the user.
+
+### Tap Dance
+
+The term "tap dance" used to refer to assigning multiple distinct functions to
+one button depending on how many times it has been tapped originates with the
+open source [QMK firmware](https://github.com/qmk/qmk_firmware/pull/451) for
+mechanical keyboards; we use this terminology be cause it is both descriptive
+and delightful, although the following implementation makes no reference to QMK
+firmware. We will count up taps that occur within a certain period of
+eachother, allowing an arbitrary number of taps to be employed for different
+purposes. Assuming a 32-bit integer is not large enough to count the number of
+taps required, it is left to the user to implement a phase unrolling algorithm
+to keep track of a higher quantity.
+
+```c++
+// @='tap dance'
+static double max_tap_period = 500000;
+static bool tapping = false;
+static int64_t last_tap_start_time = 0;
+static uint32_t taps = 0;
+if (tapping)
+{
+    double duration = (double)esp_timer_get_time() - (double)last_tap_start_time;
+    if (duration > max_tap_period)
+    tapping = false;
+}
+
+if (rising_edge)
+{
+    if (tapping) ++taps;
+    else
+    {
+        last_tap_start_time = esp_timer_get_time();
+        tapping = true;
+        ++taps;
+    }
+}
+// @/
+```
+
+# Problems in the Implementation of DMIs
+
+Having now developed our one-button controller to a sufficiently featureful
+state, we begin to encounter the first major issue in our implementation. Our
+firmware now performs some gesture modelling and generates over a dozen useful
+signals from the button, including rising and falling edge transitions, taps
+and holds, latching and momentary state behaviors, and a count of successive
+taps. The firmware also has a couple of configurable state variables, the
+maximum tap duration and the maximum successive-tap period, that it would be
+advantageous to allow to be easily modified at run-time. The problems being to
+emerge as we expose these inputs and outputs to the user or try to port our
+instrument to a different platform.
+
+## The Problem of Protocols
+
+Now that we have derived some more useful data from the button, we may wish to
+communicate the button state and signals derived from it to a laptop for
+further mapping and sound synthesis. As a first attempt, we might simply print
+each signal to the serial console, prepended with a descriptive name:
+
+```c++
+// @='just print everything'
+printf("rising_edge: %d\n", rising_edge);
+printf("falling_edge: %d\n", falling_edge);
+// etc. ...
+// @/
+```
+
+While perhaps tenable for such a simple design, having to manually name each
+parameter begins to become a large maintenance burden when dealing with
+applications that have a larger number of inputs and outputs, especially when
+more than one communication protocol is employed. For example, while this
+approach only requires us to write 16 lines of code now, if we later want to
+add OSC output, libmapper, MIDI, or any other representations,
+the amount of effort is multiplied by each wrapper around our endpoints.
+Adding more signals increases the product. We have $N*M$ implementation
+effort, for $N$ signals and $M$ bindings. Each binding may require repeating
+the name of the signal, the place in memory where it is located, metadata
+about the signal such as its range of values, etc. If any of these things
+need to change, or we want to add new signals, updating all of the bindings
+becomes a significant burden.
+
+The T-Stick exemplifies this issue. At the time of writing. Approximately 340
+out of 835 lines of code (40%) of the main implementation file are devoted to
+repetitive marshalling of metadata and signal values through bindings to
+libmapper and OSC protocols. Most signals are referred to at least 5 times,
+spread out over the entire implementation of the firmware. Not only is it
+difficult to reason about how to declare a new signal, even with an intimate
+understanding of all of the bindings, how the data needs to be pushed around,
+etc., it is still an error prone, frustrating, and unpleasant burden to do so.
+
+## The Problem of Portability
+
+Another issue arises if we wish to port our mappings to a different platform.
+For example, we may wish to test if the mapping significantly influence the
+action-sound latency of the device; perhaps by moving the mappings back out
+of the firmware, we can increase the rate at which the button's state is
+measured. Or we may wish to port the design to a different computing platform;
+perhaps we want to port the code to Bela so that we can run the new synthesis
+algorithms we've been developing in a fully self-contained device, or perhaps
+we wish to switch to a different MCU that provides USB connectivity for using
+MIDI or HID protocols.
+
+In any case, we will unavoidably need to reimplement strongly hardware-dependent
+parts of the code, such as reading the button from a GPIO pin. But other parts
+of the design, such as the gesture models, should be reasonably portable.
+However, some complexity arises particularly when porting the gesture models
+to run in high level environments like Pure Data and Max/MSP. These environments
+all have their own unique APIs for C/C++ extensions. In general, it is necessary
+to declare each signal at runtime, with repetitive boilerplate that differs
+depending on each API.
+
+# Rage Against the Glue
+
+Both of these issues are instances of the same problem, addressed by
+Jean-Michael Celerier's [Avendish](http://github.com/celerier/avendish)
+library, and more broadly, by an approach leveraging C++ reflection features
+and compile-time code execution described in Celerier's 2022 paper "Rage
+Against the Glue: Beyond Run-Time Media Frameworks with Modern C++"
+[@celerier2022icmc_rage-against-the-glue].
+
+Let's explore how this can be employed for the one-button controller.
+
+## Reflectable Button Mappings
+
+First, it is necessary to refactor our button gesture model so that the input
+and output signals can be iterated over and inspected at compile time. In
+particular, compile time iteration over the members of a C++ type requires, at
+the time of writing, that the type be an aggregate, e.g. a `struct` without
+abstract bases or virtual member functions.
+
+Here is a possible realization. Inputs and outputs have been converted to
+structures containing their value, with their metadata as compile-time
+constants. The main processing method is identical to above, with variable
+names appropriately changed to access the structure-endpoints.
+
+```c++
+// @='button-gestures first attempt'
+struct ButtonGestureModel
+{
+    struct inputs_t {
+        struct process_time_t {
+            static consteval auto name() { return "Time"; }
+            int64_t value;
+        } process_time;
+
+        struct button_state_t {
+            static consteval auto name() { return "Button State"; }
+            bool value;
+        } button_state;
+
+        struct max_tap_duration_t {
+            static consteval auto name() { return "Max Tap Duration"; }
+            static consteval auto unit() { return "microseconds"; }
+            struct range_t {
+                static int64_t min = 1000;
+                static int64_t max = 1000000;
+                static int64_t init = 250000;
+            } range;
+            int64_t value;
+        } max_tap_duration;
+
+        struct max_tap_dance_period_t {
+            static consteval auto name() { return "Max Tap Dance Period"; }
+            static consteval auto unit() { return "microseconds"; }
+            struct range_t {
+                static int64_t min = 2000;
+                static int64_t max = 2000000;
+                static int64_t init = 500000;
+            } range;
+            int64_t value;
+        } max_tap_dance_period;
+    } inputs;
+
+    struct outputs_t {
+        struct rising_edge_t {
+            static consteval auto name() { return "Rising Edge"; }
+            bool value;
+        } rising_edge;
+
+        struct falling_edge_t {
+            static consteval auto name() { return "Falling Edge"; }
+            bool value;
+        } falling_edge;
+
+        struct any_edge_t {
+            static consteval auto name() { return "Any Edge"; }
+            bool value;
+        } any_edge;
+
+        struct tapped_t {
+            static consteval auto name() { return "Tapped"; }
+            bool value;
+        } tapped;
+
+        struct holding_t {
+            static consteval auto name() { return "Holding"; }
+            bool value;
+        } holding;
+
+        struct held_t {
+            static consteval auto name() { return "Held"; }
+            bool value;
+        } held;
+
+        struct latch1_t {
+            static consteval auto name() { return "Latch 1"; }
+            bool value;
+        } latch1;
+
+        struct latch2_t {
+            static consteval auto name() { return "Latch 2"; }
+            bool value;
+        } latch2;
+
+        struct tapping_t {
+            static consteval auto name() { return "Tapping"; }
+            bool value;
+        } tapping;
+
+        struct taps_t {
+            static consteval auto name() { return "Tap Count"; }
+            uint32_t value;
+        } taps;
+
+    } outputs;
+
+    bool previous_button_state;
+    int64_t tap_or_hold_start_time;
+    bool momentary1_falling;
+    int64_t last_tap_start_time;
+
+    void operator()
+    {
+        if (previous_button_state != inputs.button_state.value)
+        {
+            previous_button_state = inputs.button_state.value;
+            outputs.rising_edge.value = inputs.button_state.value;
+            outputs.falling_edge.value = not inputs.button_state.value;
+        }
+        outputs.any_edge.value = outputs.rising_edge.value || outputs.falling_edge.value;
+
+        if (outputs.rising_edge.value) tap_or_hold_start_time = inputs.process_time;
+        else (button_state || falling_edge)
+        {
+            double duration = (double)inputs.process_time - (double)tap_or_hold_start_time;
+            if (duration > inputs.max_tap_duration.value) outputs.holding.value = true;
+            if (falling_edge)
+            {
+                outputs.tapped.value = not outputs.holding.value;
+                outputs.held.value = outputs.holding.value;
+                outputs.holding.value = false;
+            }
+        }
+
+        if (outputs.falling_edge.value)
+        {
+            else outputs.held.value = true;
+        }
+
+        if (outputs.rising_edge.value)
+        {
+            if (outputs.momentary1.value) momentary1_falling = true;
+            else outputs.momentary1.value = true;
+        }
+        else if (outputs.falling_edge.value && (momentary1_falling || outputs.held.value))
+        {
+            outputs.momentary1.value = momentary1_falling = false;
+        }
+
+        if (outputs.rising_edge.value || (outputs.falling_edge.value && outputs.held.value)) outputs.momentary2.value = not outputs.momentary2.value;
+
+        static uint32_t taps = 0;
+        if (outputs.tapping.value)
+        {
+            double duration = (double)inputs.process_time - (double)last_tap_start_time;
+            if (duration > inputs.max_tap_period.value)
+            outputs.tapping.value = false;
+        }
+
+        if (outputs.rising_edge.value)
+        {
+            if (outputs.tapping.value) ++outputs.taps.value;
+            else
+            {
+                last_tap_start_time = inputs.process_time;
+                outputs.tapping.value = true;
+                ++outputs.taps.value;
+            }
+        }
+    }
+};
+// @/
+```
+
+## Serial Output
+
+While a bit verbose, by converting the endpoints of the model to compile-time enumerable aggregates,
+we can now automatically generate bindings for our simplistic serial protocol:
+
+```c++
+// @='automatically just print everything'
+template<typename... Processors> void print_everything(Processors... ps);
+template<> void print_everything() {};
+template<typename Processor, typename... Processors>
+void print_everything(Processor processor, Processors... ps)
+{
+    auto print_one_thing = [](auto endpoint)
+    {
+        printf("%s: %d", endpoint.name(), endpoint.value);
+    };
+    if constexpr (has_outputs<processor>) boost::pfr::for_each_field(processor.outputs, print_one_thing);
+}
+// @/
+```
+
+Conveniently, we no longer need to mention any of the output endpoints in order to output them.
+As long as they conform to the expected port format (i.e. a structure with a `name` method and
+a `value` member), the binding automatically adapts. If we want to add new signals, or modify
+existing ones, such as changing their names, then we can do so without having to modify the
+protocol binding.
+
+## Pure Data Binding
 
 
