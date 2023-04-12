@@ -194,8 +194,9 @@ if (button_state_changed) putc(button_state, stdio);
 
 While many commonly used tools, including Pure Data, have no convenient built
 in way of reading data from a serial device, let's suppose that we are willing
-to use a third party external such as `[comport]`. Now we can receive our button
-state in Pure Data with a simple patch.
+to use a third party external such as `[comport]`, and parse the serial output
+as necessary. Now we can receive our button state in Pure Data with a simple
+patch.
 
 ## Mapping
 
@@ -223,15 +224,15 @@ These kinds of mappings might initially be prototyped in Pure Data, but eventual
 there are a variety of reasons why it might be advantageous to port them to the
 firmware of the controller. For instance, it might be more convenient for your
 collaborators to access the outputs of these mappings without having to run your
-Pure Data patch. Such firmware implementations follow.
+Pure Data patch.
 
-### Edge Detection
-
-Detecting state transitions is straightforward, based on comparing the current
-state of the button with the previous state.
+For the sake of keeping the example simple at this point, let's suppose that we
+only need to implement edge detection. Detecting state transitions is
+straightforward, based on comparing the current state of the button with the
+previous state.
 
 ```c++
-// @='detect edges'
+// @='initial edge detector'
 static auto previous = button_state;
 bool rising_edge = false;
 bool falling_edge = false;
@@ -245,135 +246,13 @@ bool any_edge = rising_edge || falling_edge;
 // @/
 ```
 
-### Tap/Hold
-
-The goal of this mapping is to allow a state to be either momentarily activated
-by holding down the button, or persistently toggled by tapping the button.
-First it is necessary to differentiate taps from holds. We will consider a
-gesture as a tap if the button is released within a certain time of the rising
-edge. Otherwise, we will consider it a hold.
-
-```c++
-// @='tap vs hold'
-static double max_tap_duration = 250000;
-
-static int64_t tap_or_hold_start_time = 0;
-bool holding = false;
-bool tapped = false;
-bool held = false;
-if (rising_edge) tap_or_hold_start_time = esp_timer_get_time();
-else (button_state || falling_edge)
-{
-    double duration = (double)esp_timer_get_time() - (double)tap_or_hold_start_time;
-    if (duration > max_tap_duration) holding = true;
-    if (falling_edge)
-    {
-        tapped = not holding;
-        held = holding;
-        holding = false;
-    }
-}
-
-if (falling_edge)
-{
-    else held = true;
-}
-// @/
-```
-
-One approach to the momentary/latching logic is to favor a low state. The
-particular mapping is one I first implemented to control the sound recording
-state in the mubone. In this approach, the state always raises on the button's
-rising edge, so that a tap or a hold will instantly raise the state. On the
-falling edge of a tap, nothing happens. On the falling edge of a hold, the
-state is lowered. If the state is latched high by a tap, on the next tap or
-hold, the state will always be lowered on the falling edge. This mapping's main
-convenience is that the state can always be cleared with a hold, no matter what
-the current state.
-
-```c++
-// @='momentary/latching 1'
-static bool momentary1 = false;
-static bool momentary1_falling = false;
-
-if (rising_edge)
-{
-    if (momentary1) momentary1_falling = true;
-    else momentary1 = true;
-}
-else if (falling_edge && (momentary1_falling || held))
-{
-    momentary1 = momentary1_falling = false;
-}
-// @/
-```
-
-Another approach always toggles the state on a rising edge and on the falling
-edge of a hold. In this case, taps toggle and latch the state, and holds always
-momentarily toggle the state. The implementation is simpler, but the user must
-keep track of the current state.
-
-```c++
-// @='momentary/latching 2'
-static bool momentary2 = false;
-if (rising_edge || (falling_edge && held)) momentary2 = not momentary2;
-// @/
-```
-
-Both approaches may be useful depending on the application, so both may be
-implemented and made accessible to the user.
-
-### Tap Dance
-
-The term "tap dance" used to refer to assigning multiple distinct functions to
-one button depending on how many times it has been tapped originates with the
-open source [QMK firmware](https://github.com/qmk/qmk_firmware/pull/451) for
-mechanical keyboards; we use this terminology be cause it is both descriptive
-and delightful, although the following implementation makes no reference to QMK
-firmware. We will count up taps that occur within a certain period of
-eachother, allowing an arbitrary number of taps to be employed for different
-purposes. Assuming a 32-bit integer is not large enough to count the number of
-taps required, it is left to the user to implement a phase unrolling algorithm
-to keep track of a higher quantity.
-
-```c++
-// @='tap dance'
-static double max_tap_period = 500000;
-static bool tapping = false;
-static int64_t last_tap_start_time = 0;
-static uint32_t taps = 0;
-if (tapping)
-{
-    double duration = (double)esp_timer_get_time() - (double)last_tap_start_time;
-    if (duration > max_tap_period)
-    tapping = false;
-}
-
-if (rising_edge)
-{
-    if (tapping) ++taps;
-    else
-    {
-        last_tap_start_time = esp_timer_get_time();
-        tapping = true;
-        ++taps;
-    }
-}
-// @/
-```
-
-# Problems in the Implementation of DMIs
+## Problems in the Implementation of DMIs
 
 Having now developed our one-button controller to a sufficiently featureful
-state, we begin to encounter the first major issue in our implementation. Our
-firmware now performs some gesture modelling and generates over a dozen useful
-signals from the button, including rising and falling edge transitions, taps
-and holds, latching and momentary state behaviors, and a count of successive
-taps. The firmware also has a couple of configurable state variables, the
-maximum tap duration and the maximum successive-tap period, that it would be
-advantageous to allow to be easily modified at run-time. The problems being to
-emerge as we expose these inputs and outputs to the user or try to port our
-instrument to a different platform.
+state, we begin to encounter some of the issues facing the implementation of
+DMIs. Our firmware now performs some gesture modelling and generates a few
+useful signals from the button. The problems being to emerge as we expose these
+outputs to the user or try to port our instrument to a different platform.
 
 ## The Problem of Protocols
 
@@ -386,7 +265,7 @@ each signal to the serial console, prepended with a descriptive name:
 // @='just print everything'
 printf("rising_edge: %d\n", rising_edge);
 printf("falling_edge: %d\n", falling_edge);
-// etc. ...
+printf("any_edge: %d\n", any_edge);
 // @/
 ```
 
@@ -394,45 +273,47 @@ While perhaps tenable for such a simple design, having to manually name each
 parameter begins to become a large maintenance burden when dealing with
 applications that have a larger number of inputs and outputs, especially when
 more than one communication protocol is employed. For example, while this
-approach only requires us to write 16 lines of code now, if we later want to
-add OSC output, libmapper, MIDI, or any other representations,
-the amount of effort is multiplied by each wrapper around our endpoints.
-Adding more signals increases the product. We have $N*M$ implementation
-effort, for $N$ signals and $M$ bindings. Each binding may require repeating
-the name of the signal, the place in memory where it is located, metadata
-about the signal such as its range of values, etc. If any of these things
-need to change, or we want to add new signals, updating all of the bindings
-becomes a significant burden.
+approach only requires us to write three lines of code for now, if we later
+want to add OSC output, libmapper, MIDI, or any other representations, the
+amount of effort is multiplied by each wrapper around our endpoints. Adding
+more signals increases the product. We have $N*M$ implementation effort, for
+$N$ signals and $M$ bindings. Each binding may require repeating the name of
+the signal, the place in memory where it is located, metadata about the signal
+such as its range of values, etc. If any of these things need to change, or we
+want to add new signals, updating all of the bindings becomes a significant
+burden.
 
 The T-Stick exemplifies this issue. At the time of writing. Approximately 340
 out of 835 lines of code (40%) of the main implementation file are devoted to
 repetitive marshalling of metadata and signal values through bindings to
 libmapper and OSC protocols. Most signals are referred to at least 5 times,
 spread out over the entire implementation of the firmware. Not only is it
-difficult to reason about how to declare a new signal, even with an intimate
-understanding of all of the bindings, how the data needs to be pushed around,
-etc., it is still an error prone, frustrating, and unpleasant burden to do so.
+difficult to reason about how to declare a new signal, even after figuring it
+out and with an intimate understanding of all of the bindings, how the data
+needs to be pushed around, etc., it is still an error prone, frustrating, and
+unpleasant burden to extend the firmware with additional signals.
 
 ## The Problem of Portability
 
-Another issue arises if we wish to port our mappings to a different platform.
-For example, we may wish to test if the mapping significantly influence the
-action-sound latency of the device; perhaps by moving the mappings back out
-of the firmware, we can increase the rate at which the button's state is
-measured. Or we may wish to port the design to a different computing platform;
-perhaps we want to port the code to Bela so that we can run the new synthesis
-algorithms we've been developing in a fully self-contained device, or perhaps
-we wish to switch to a different MCU that provides USB connectivity for using
-MIDI or HID protocols.
+Another issue arises if we wish to port our gesture model to a different
+platform. For example, we may wish to test if the mapping significantly
+influences the action-sound latency of the device; perhaps by moving the
+mapping back out of the firmware, we can increase the rate at which the
+button's state is measured. Or we may wish to transfer the design to a
+different computing platform; perhaps we want to port the code to Bela so that
+we can run the new synthesis algorithms we've been developing in a fully
+self-contained device, or perhaps we wish to switch to a different MCU that
+provides USB connectivity for using MIDI or HID protocols.
 
 In any case, we will unavoidably need to reimplement strongly hardware-dependent
 parts of the code, such as reading the button from a GPIO pin. But other parts
-of the design, such as the gesture models, should be reasonably portable.
-However, some complexity arises particularly when porting the gesture models
+of the design, such as the gesture model, should be reasonably portable.
+However, some complexity arises particularly when porting the gesture model
 to run in high level environments like Pure Data and Max/MSP. These environments
 all have their own unique APIs for C/C++ extensions. In general, it is necessary
 to declare each signal at runtime, with repetitive boilerplate that differs
-depending on each API.
+depending on each API. Each additional API we wish to target multiplies
+the amount of code we must write and maintain.
 
 # Rage Against the Glue
 
@@ -445,55 +326,28 @@ Against the Glue: Beyond Run-Time Media Frameworks with Modern C++"
 
 Let's explore how this can be employed for the one-button controller.
 
-## Reflectable Button Mappings
+## Reflect-able Button Mapping
 
-First, it is necessary to refactor our button gesture model so that the input
-and output signals can be iterated over and inspected at compile time. In
-particular, compile time iteration over the members of a C++ type requires, at
-the time of writing, that the type be an aggregate, e.g. a `struct` without
-abstract bases or virtual member functions.
+First, it is necessary to refactor our button gesture model so that output
+signals can be iterated over and inspected at compile time. In particular,
+compile time iteration over the members of a C++ type requires, at the time of
+writing, that the type be an aggregate, e.g. a `struct` without abstract bases
+or virtual member functions.
 
-Here is a possible realization. Inputs and outputs have been converted to
+Here is a possible realization. The outputs have been converted to
 structures containing their value, with their metadata as compile-time
 constants. The main processing method is identical to above, with variable
 names appropriately changed to access the structure-endpoints.
 
 ```c++
 // @='button-gestures first attempt'
-struct ButtonGestureModel
+struct ButtonEdgeDetector
 {
     struct inputs_t {
-        struct process_time_t {
-            static consteval auto name() { return "Time"; }
-            int64_t value;
-        } process_time;
-
         struct button_state_t {
             static consteval auto name() { return "Button State"; }
             bool value;
         } button_state;
-
-        struct max_tap_duration_t {
-            static consteval auto name() { return "Max Tap Duration"; }
-            static consteval auto unit() { return "microseconds"; }
-            struct range_t {
-                static int64_t min = 1000;
-                static int64_t max = 1000000;
-                static int64_t init = 250000;
-            } range;
-            int64_t value;
-        } max_tap_duration;
-
-        struct max_tap_dance_period_t {
-            static consteval auto name() { return "Max Tap Dance Period"; }
-            static consteval auto unit() { return "microseconds"; }
-            struct range_t {
-                static int64_t min = 2000;
-                static int64_t max = 2000000;
-                static int64_t init = 500000;
-            } range;
-            int64_t value;
-        } max_tap_dance_period;
     } inputs;
 
     struct outputs_t {
@@ -511,48 +365,9 @@ struct ButtonGestureModel
             static consteval auto name() { return "Any Edge"; }
             bool value;
         } any_edge;
-
-        struct tapped_t {
-            static consteval auto name() { return "Tapped"; }
-            bool value;
-        } tapped;
-
-        struct holding_t {
-            static consteval auto name() { return "Holding"; }
-            bool value;
-        } holding;
-
-        struct held_t {
-            static consteval auto name() { return "Held"; }
-            bool value;
-        } held;
-
-        struct latch1_t {
-            static consteval auto name() { return "Latch 1"; }
-            bool value;
-        } latch1;
-
-        struct latch2_t {
-            static consteval auto name() { return "Latch 2"; }
-            bool value;
-        } latch2;
-
-        struct tapping_t {
-            static consteval auto name() { return "Tapping"; }
-            bool value;
-        } tapping;
-
-        struct taps_t {
-            static consteval auto name() { return "Tap Count"; }
-            uint32_t value;
-        } taps;
-
     } outputs;
 
     bool previous_button_state;
-    int64_t tap_or_hold_start_time;
-    bool momentary1_falling;
-    int64_t last_tap_start_time;
 
     void operator()
     {
@@ -563,55 +378,6 @@ struct ButtonGestureModel
             outputs.falling_edge.value = not inputs.button_state.value;
         }
         outputs.any_edge.value = outputs.rising_edge.value || outputs.falling_edge.value;
-
-        if (outputs.rising_edge.value) tap_or_hold_start_time = inputs.process_time;
-        else (button_state || falling_edge)
-        {
-            double duration = (double)inputs.process_time - (double)tap_or_hold_start_time;
-            if (duration > inputs.max_tap_duration.value) outputs.holding.value = true;
-            if (falling_edge)
-            {
-                outputs.tapped.value = not outputs.holding.value;
-                outputs.held.value = outputs.holding.value;
-                outputs.holding.value = false;
-            }
-        }
-
-        if (outputs.falling_edge.value)
-        {
-            else outputs.held.value = true;
-        }
-
-        if (outputs.rising_edge.value)
-        {
-            if (outputs.momentary1.value) momentary1_falling = true;
-            else outputs.momentary1.value = true;
-        }
-        else if (outputs.falling_edge.value && (momentary1_falling || outputs.held.value))
-        {
-            outputs.momentary1.value = momentary1_falling = false;
-        }
-
-        if (outputs.rising_edge.value || (outputs.falling_edge.value && outputs.held.value)) outputs.momentary2.value = not outputs.momentary2.value;
-
-        static uint32_t taps = 0;
-        if (outputs.tapping.value)
-        {
-            double duration = (double)inputs.process_time - (double)last_tap_start_time;
-            if (duration > inputs.max_tap_period.value)
-            outputs.tapping.value = false;
-        }
-
-        if (outputs.rising_edge.value)
-        {
-            if (outputs.tapping.value) ++outputs.taps.value;
-            else
-            {
-                last_tap_start_time = inputs.process_time;
-                outputs.tapping.value = true;
-                ++outputs.taps.value;
-            }
-        }
     }
 };
 // @/
@@ -619,8 +385,9 @@ struct ButtonGestureModel
 
 ## Serial Output
 
-While a bit verbose, by converting the endpoints of the model to compile-time enumerable aggregates,
-we can now automatically generate bindings for our simplistic serial protocol:
+While a bit verbose, by converting the endpoints of the model to compile-time
+enumerable aggregates, we can now automatically generate bindings for our
+simplistic serial protocol:
 
 ```c++
 // @='automatically just print everything'
@@ -629,21 +396,167 @@ template<> void print_everything() {};
 template<typename Processor, typename... Processors>
 void print_everything(Processor processor, Processors... ps)
 {
-    auto print_one_thing = [](auto endpoint)
-    {
+    auto print_one_thing = [](auto endpoint) {
         printf("%s: %d", endpoint.name(), endpoint.value);
     };
-    if constexpr (has_outputs<processor>) boost::pfr::for_each_field(processor.outputs, print_one_thing);
+    if constexpr (has_outputs<processor>)
+        boost::pfr::for_each_field(processor.outputs, print_one_thing);
 }
 // @/
 ```
 
-Conveniently, we no longer need to mention any of the output endpoints in order to output them.
-As long as they conform to the expected port format (i.e. a structure with a `name` method and
-a `value` member), the binding automatically adapts. If we want to add new signals, or modify
-existing ones, such as changing their names, then we can do so without having to modify the
-protocol binding.
+Conveniently, we no longer need to mention any of the output endpoints in order
+to output them. As long as they conform to the expected port format (i.e. a
+structure with a `name` method and a `value` member), the binding automatically
+adapts. If we want to add new ports, or modify existing ones, such as changing
+their names, then we can do so without having to modify the protocol binding.
+Although the implementation of this automatic binding requires more code than
+trivially printing every signal when there are only three signals, the
+automatic binding's code-size remains constant, whereas the trivial manual
+binding will grow proportionate with the number of signals in the application.
+If we continue to add new gesture models for the button, such as latching
+software switches or a tap counter, or if we add intermediate mappings related
+to sound synthesis, the manual binding will quickly outgrow the automatic one,
+and start to become a burden on development and maintenance.
+
+## Pure Data Port
+
+As another illustration of the benefits of this approach, let's consider a port
+of our simple gesture model to run as a Pure Data external. A trivial port of
+the model directly might look something like the following:
+
+```c++
+// @#'narrative/pd-edge-detector-port/edge_detect.c'
+#include "m_pd.h"
+
+static t_class *edge_detect_class;
+
+typedef struct _edge_detect {
+    t_object x_obj;
+    int previous_button_state;
+    t_outlet *any_edge, *falling_edge, *rising_edge;
+} t_edge_detect;
+
+void edge_detect_float_method(t_edge_detect *ed, t_floatarg f)
+{
+    int rising_edge = 0;
+    int falling_edge = 0;
+    int any_edge;
+    int button_state = f != 0;
+
+    if (ed->previous_button_state != button_state)
+    {
+        ed->previous_button_state = button_state;
+        rising_edge = button_state;
+        falling_edge = button_state == 0;
+    }
+    any_edge = rising_edge || falling_edge;
+
+    if (rising_edge) outlet_float(ed->rising_edge, 1);
+    else outlet_float(ed->rising_edge, 0);
+
+    if (falling_edge) outlet_float(ed->falling_edge, 1);
+    else outlet_float(ed->falling_edge, 0);
+
+    if (any_edge) outlet_float(ed->any_edge, 1);
+    else outlet_float(ed->any_edge, 0);
+}
+
+void *edge_detect_new(t_symbol *s, int argc, t_atom *argv)
+{
+    t_edge_detect *ed = (t_edge_detect *)pd_new(edge_detect_class);
+
+    ed->previous_button_state = atom_getfloatarg(0, argc, argv) != 0;
+
+    ed->any_edge = outlet_new(&ed->x_obj, &s_float);
+    ed->falling_edge = outlet_new(&ed->x_obj, &s_float);
+    ed->rising_edge = outlet_new(&ed->x_obj, &s_float);
+
+    return (void *)ed;
+}
+
+void edge_detect_setup(void)
+{
+    edge_detect_class = class_new(gensym("edge_detect"),
+        (t_newmethod)edge_detect_new,
+        0, sizeof(t_edge_detect),
+        CLASS_DEFAULT,
+        A_GIMME, 0);
+
+    class_addfloat(edge_detect_class, (t_method)edge_detect_float_method);
+}
+// @/
+```
+
+This can be compiled, leveraging pd-lib-builder, using the following Makefile:
+
+```sh
+# @#'narrative/pd-edge-detector-port/Makefile'
+lib.name = edge_detect
+class.sources = edge_detect.c
+include pd-lib-builder/Makefile.pdlibbuilder
+# @/
+```
+
+Notice that only about seven lines of code are spent on the actual algorithm,
+while the rest is essentially boilerplate that grows in size linearly in the
+number of inputs and outputs of the algorithm. For each output, an outlet must
+be allocated and later updated. For each input, a creation argument may specify
+its initial state, an input method must be defined and added to the object.
 
 ## Pure Data Binding
 
+Strictly speaking, all that is necessary to introduce a Pd external to the
+runtime is for there to be a C function `void library_name_setup(void)` in the
+dynamically linked library `library_name` that registers the external by
+calling `class_new`. For the external to be useful, a constructor should be
+registered during the call to `class_new`, and methods should be attached to
+the inlets of the class using the `t_class` pointer returned by `class_new`.
+The external's constructor should create a new object instance of the class by
+calling `pd_new`, handle creation arguments, and create inlets and outlets.
+Then all that's left is to process input data appropriately and send messages
+and signals out.
 
+Now here's a binding directly leveraging the reflect-able implementation above.
+
+```c++
+// @#'narrative/pd-edge-detector-port/automatic-binding.h
+#include "m_pd.h"
+
+template<typename Processor>
+struct t_processor
+{
+    t_obj x_obj;
+    Processor processor;
+};
+
+template<typename Processor>
+struct PdBinding
+{
+    static t_class *processor_class;
+    PdBinding()
+    {
+        using processor = t_processor<Processor>;
+
+        constexpr auto processor_new = +[]() {};
+        constexpr auto processor_free = +[]() {};
+        constexpr auto processor_anything_method = +[]() {};
+
+        processor_class = class_new(gensym(processor::c_name()),
+            (t_newmethod)processor_new,
+            (t_method)processor_free, sizeof(t_edge_detect),
+            CLASS_DEFAULT,
+            A_GIMME, 0);
+
+        class_addanything(processor_class, (t_method)processor_anything_method);
+    }
+};
+
+#define MAKE_PD_BINDING(LIBNAME, PROCESSOR) \
+extern "C" void LIBNAME##_setup(void) \
+{ \
+    static const PureDataBinding<PROCESSOR> processor_class{}; \
+    binding.class_new(); \
+}
+// @/
+```
