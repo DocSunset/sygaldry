@@ -523,6 +523,21 @@ Now here's a binding directly leveraging the reflect-able implementation above.
 // @#'narrative/pd-edge-detector-port/automatic-binding.h
 #include "m_pd.h"
 
+template<typename MaybePort>
+consteval bool is_a_port(MaybePort mp)
+{
+    if constexpr (requires mp.name())
+    {
+        if constexpr (requires mp.value)
+    }
+}
+
+template<typename PortStruct>
+consteval size_t number_of_ports(PortStruct port_struct)
+{
+
+}
+
 template<typename Processor>
 struct t_processor
 {
