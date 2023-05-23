@@ -1,0 +1,75 @@
+# The Build System
+
+# CMake
+
+CMake is currently used as the default project build system, currently mainly
+employed to build test code. However, certain hardware platforms require (or
+heavily incentivise) use of particular build systems; these are used where
+appropriate.
+
+# Literate Sources
+
+Literate programming is employed throuhgout the project. The literate sources
+are considered authoritative, and are used to generate most other source files,
+including CMakeLists.txt files. The following POSIX shell script is provided to
+generate all machine sources from the *.litlit literate source files
+
+Where there is code to compile, or anything remotely interesting,
+CMakeLists.txt files are generated from literate source code in the same
+directory. When the CMakeLists.txt is trivially simple (e.g. simply including
+subdirectories), it is hardcoded without comment.
+
+# Testing Framework
+
+Catch2 is used for unit testing. 
+
+```cmake
+# @='Fetch Catch2'
+Include(FetchContent)
+
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.0.1 # or a later release
+)
+
+FetchContent_MakeAvailable(Catch2)
+# @/
+
+# @='Include automatic test registration'
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
+# @/
+```
+
+See [the Catch2 CMake integration documentation](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#top) for more detail.
+
+# Language Standard
+
+We require C++20 without extensions.
+
+```cmake
+# @='Set language standard'
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+set(CMAKE_CXX_EXTENSIONS Off)
+# @/
+```
+
+# Summary
+
+```cmake
+# @#'CMakeLists.txt'
+cmake_minimum_required(VERSION 3.26)
+project(Sygaldry)
+
+@{Set language standard}
+
+@{Fetch Catch2}
+
+@{Include automatic test registration}
+
+add_subdirectory(utilities)
+# @/
+```
