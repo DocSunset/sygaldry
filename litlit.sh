@@ -1,2 +1,2 @@
 # generate machine sources from literate source code
-find -iname '*.litlit' | tee | parallel 'echo {}; cd {//}; litlit {/}'
+find -iname '*.litlit' | parallel 'echo {}; cd {//}; litlit {/}'

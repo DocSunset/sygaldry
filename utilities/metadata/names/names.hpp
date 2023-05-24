@@ -38,7 +38,7 @@ struct respeller
         return ret;
     }(NamedType::name());
 
-    respeller(NamedType x) {}
+    respeller(NamedType) {}
     constexpr operator const char *() { return value.data(); }
 };
 

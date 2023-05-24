@@ -637,7 +637,7 @@ The constructor handles creation arguments and creates an outlet:
 ```c++
 // @='processor new'
 template<typename Processor>
-void * processor_new(t_symbol *s, int argc, t_atom *argv)
+void * processor_new(t_symbol, int argc, t_atom *argv)
 {
     t_processor<Processor> *obj = (t_processor<Processor> *)pd_new(processor_class<Processor>);
 
@@ -716,7 +716,7 @@ input port's values:
 
 ```c++
 // @='parse args'
-size_t i = 0;
+int i = 0;
 boost::pfr::for_each_field(obj->processor.inputs, [&](auto& ep)
 {
     if (i >= argc) return;

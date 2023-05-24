@@ -18,7 +18,6 @@ struct t_processor
 template<typename Endpoint>
 void set_value_from_float(Endpoint& ep, t_float f)
 {
-    post("%s, %d", ep.name(), ep.value);
     if constexpr (std::is_same_v<decltype(ep.value), bool>)
     {
         ep.value = f != 0.0f;
@@ -27,7 +26,6 @@ void set_value_from_float(Endpoint& ep, t_float f)
     {
         ep.value = f;
     }
-    post("%s, %d", ep.name(), ep.value);
 }
 
 template<typename Processor, typename Input>
@@ -55,15 +53,14 @@ void bang_method(t_processor<Processor> *obj)
 };
 
 template<typename Processor>
-void * processor_new(t_symbol *s, int argc, t_atom *argv)
+void * processor_new(t_symbol, int argc, t_atom *argv)
 {
     t_processor<Processor> *obj = (t_processor<Processor> *)pd_new(processor_class<Processor>);
 
-    size_t i = 0;
+    int i = 0;
     boost::pfr::for_each_field(obj->processor.inputs, [&](auto& ep)
     {
         if (i >= argc) return;
-        post("%s, %f", ep.name(), atom_getfloatarg(i, argc, argv));
         set_value_from_float(ep, atom_getfloatarg(i, argc, argv));
         ++i;
     });
