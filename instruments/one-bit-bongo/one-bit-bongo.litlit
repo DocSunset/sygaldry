@@ -1,16 +1,7 @@
----
-initial_lilit_escape: '@:$'
----
-
 # The 1-Bit Bongo
 
 A 1-Bit bongo is an infra-instrument [@bowers2005nime_infra-instruments]
-conceived as a proof of concept and test platform for a modular digital
-lutherie toolbox based on C++ reflection, inspired by Jean-Michael's
-[Avendish](http://github.com/celerier/avendish) library
-[@celerier2022icmc_rage-against-the-glue], and applied to both embedded
-firmware and common creative coding environments used by digital luthiers, such
-as Pure Data, that are usually run on a laptop computer.
+conceived as a proof of concept and test platform for Sygaldry.
 
 The intended design of the instrument is a single button, e.g. the spacebar key
 on a typical computer keyboard, mapped to a 1-bit synthesis algorithm
@@ -26,11 +17,12 @@ ESP32 platform. We will then generalize some of the signal models we develop to
 run in Pure Data, which acts as a proxy for the rich ecosystem of sound and
 music computing tools commonly employed. Finally, we will port the ESP32 bongo
 to a different microcontroller platform. In the process, we will see how C++
-reflection can help us to minimize repetition of effort and reduce how much
-binding code it is necessary to write. Throughout the discussion that follows,
-we will imagine that you are building the bongo for yourself and your artistic
-collaborators. We will follow along the process of making the device, gradually
-adding features, encountering problems, and hopefully resolving them.
+reflection can help us to minimize repetition of effort, improve software
+modularity and testability, and reduce how much binding code it is necessary to
+write. Throughout the discussion that follows, we will imagine that we are
+building the bongo for ourselves and our artistic collaborators. We will follow
+along the process of making the device, gradually adding features, encountering
+problems, and hopefully resolving them.
 
 # Bit Banger
 
@@ -61,7 +53,6 @@ roughly following the pin assignments in the example code. We'll define compile
 time constants near the beginning of the file to refer to the pin assignments.
 
 ```c++
-// $:@
 // @='define pin numbers'
 constexpr gpio_num_t input_pin  = GPIO_NUM_4;
 constexpr gpio_num_t output_pin = GPIO_NUM_18;
@@ -112,11 +103,12 @@ gpio_set_level(output_pin, button_state);
 // @/
 ```
 
-## Build Automation
+## Build System
 
-The ESP-IDF uses a modular component library built using CMake for its builds. To
-compile our code, we need a few boilerplate CMake files and a particular directory
-structure. These can be generated with the `idf.py` tool included with the framework:
+The ESP-IDF uses a modular component library built using CMake for its builds.
+To compile our code, we need a few boilerplate CMake files and a particular
+directory structure. These can be generated with the `idf.py` tool included
+with the ESP-IDF:
 
 ```sh
 # generate boilerplate project files
@@ -125,8 +117,8 @@ cd narrative
 idf.py bit-banger
 ```
 
-This gives us a handful of CMakeLists.txt files, and an empty main. We leave the
-top level CMakeLists.txt unchanged:
+This gives us a handful of CMakeLists.txt files, and an empty main. We leave
+the top level CMakeLists.txt unchanged:
 
 ```cmake
 # @#'narrative/bit-banger/CMakeLists.txt'
@@ -136,7 +128,8 @@ project(bit-banger)
 # @/
 ```
 
-But we will modify the CMakeLists.txt in the main directory to use our C++ main file:
+But we will modify the CMakeLists.txt in the main directory to use our C++ main
+file:
 
 ```cmake
 # @#'narrative/bit-banger/main/CMakeLists.txt'
@@ -171,7 +164,7 @@ extern "C" void app_main(void)
 For the sake of discussion, let's say that we are satisfied with the hardware
 functionality of our device, and wish to explore other mappings to sound. We
 might want to make use of a more convient and familiar tool on our laptop,
-specifically Pure Data for the sake of our discussion, to facilitate rapid
+let's say Pure Data for the sake of our discussion, to facilitate rapid
 prototyping and exploration. It would also be convient to allow our
 collaborators to use the device as a controller in their own custom
 applications. A single button can be unexpectedly useful. It can be used to
@@ -227,9 +220,10 @@ collaborators to access the outputs of these mappings without having to run your
 Pure Data patch.
 
 For the sake of keeping the example simple at this point, let's suppose that we
-only need to implement edge detection. Detecting state transitions is
-straightforward, based on comparing the current state of the button with the
-previous state.
+find edge detection especially useful, and wish to move this part of the
+mapping into the firmware so that our collaborators can use it without having
+to run our Pure Data patch. Detecting state transitions is straightforward,
+based on comparing the current state of the button with the previous state.
 
 ```c++
 // @='initial edge detector'
@@ -288,20 +282,20 @@ out of 835 lines of code (40%) of the main implementation file are devoted to
 repetitive marshalling of metadata and signal values through bindings to
 libmapper and OSC protocols. Most signals are referred to at least 5 times,
 spread out over the entire implementation of the firmware. Not only is it
-difficult to reason about how to declare a new signal, even after figuring it
-out and with an intimate understanding of all of the bindings, how the data
-needs to be pushed around, etc., it is still an error prone, frustrating, and
-unpleasant burden to extend the firmware with additional signals.
+difficult to reason about how to declare a new signal, even with an intimate
+understanding of all of the bindings, how the data needs to be pushed around,
+etc., it is still an error prone, frustrating, and unpleasant burden to extend
+the firmware with additional signals.
 
 ## The Problem of Portability
 
 Another issue arises if we wish to port our gesture model to a different
 platform. For example, we may wish to test if the mapping significantly
 influences the action-sound latency of the device; perhaps by moving the
-mapping back out of the firmware, we can increase the rate at which the
-button's state is measured. Or we may wish to transfer the design to a
-different computing platform; perhaps we want to port the code to Bela so that
-we can run the new synthesis algorithms we've been developing in a fully
+mapping back out of the firmware e.g. into Pure Data, we can increase the rate
+at which the button's state is measured. Or we may wish to transfer the design
+to a different computing platform; perhaps we want to port the code to Bela so
+that we can run the new synthesis algorithms we've been developing in a fully
 self-contained device, or perhaps we wish to switch to a different MCU that
 provides USB connectivity for using MIDI or HID protocols.
 
@@ -340,44 +334,56 @@ constants. The main processing method is identical to above, with variable
 names appropriately changed to access the structure-endpoints.
 
 ```c++
-// @='button-gestures first attempt'
-struct ButtonEdgeDetector
+// @#'narrative/first_button_gesture_model/button_gesture_model.hpp'
+#pragma once
+
+struct ButtonGestureModel
 {
+    static consteval auto name() { return "Button Gesture Model"; }
+
     struct inputs_t {
         struct button_state_t {
-            static consteval auto name() { return "Button State"; }
+            static consteval auto name() { return "button state"; }
             bool value;
         } button_state;
     } inputs;
 
     struct outputs_t {
         struct rising_edge_t {
-            static consteval auto name() { return "Rising Edge"; }
+            static consteval auto name() { return "rising edge"; }
             bool value;
         } rising_edge;
 
         struct falling_edge_t {
-            static consteval auto name() { return "Falling Edge"; }
+            static consteval auto name() { return "falling edge"; }
             bool value;
         } falling_edge;
 
         struct any_edge_t {
-            static consteval auto name() { return "Any Edge"; }
+            static consteval auto name() { return "any edge"; }
             bool value;
         } any_edge;
+
+        struct debounced_state_t {
+            static consteval auto name() { return "debounced state"; }
+            bool value;
+        } debounced_state;
     } outputs;
 
-    bool previous_button_state;
-
-    void operator()
+    void operator()()
     {
-        if (previous_button_state != inputs.button_state.value)
+        if (outputs.debounced_state.value != inputs.button_state.value)
         {
-            previous_button_state = inputs.button_state.value;
+            outputs.debounced_state.value = inputs.button_state.value;
             outputs.rising_edge.value = inputs.button_state.value;
             outputs.falling_edge.value = not inputs.button_state.value;
+            outputs.any_edge.value = true;
         }
-        outputs.any_edge.value = outputs.rising_edge.value || outputs.falling_edge.value;
+        else
+        {
+            outputs.rising_edge.value = outputs.falling_edge.value
+                                      = outputs.any_edge.value = false;
+        }
     }
 };
 // @/
@@ -397,12 +403,56 @@ template<typename Processor, typename... Processors>
 void print_everything(Processor processor, Processors... ps)
 {
     auto print_one_thing = [](auto endpoint) {
-        printf("%s: %d", endpoint.name(), endpoint.value);
+        if constexpr (requires {endpoint.name();} )
+        {
+            if constexpr (requires {endpoint.value;})
+                printf("    %s: %d\n", endpoint.name(), endpoint.value);
+            else
+            {
+                printf("%s\n", endpoint.name());
+            }
+
+        }
     };
-    if constexpr (has_outputs<processor>)
-        boost::pfr::for_each_field(processor.outputs, print_one_thing);
+    boost::pfr::for_each_field(processor.inputs, print_one_thing);
+    boost::pfr::for_each_field(processor.outputs, print_one_thing);
 }
 // @/
+```
+
+Which can be tentatively validated offline by this brief listing:
+
+```c++
+// @#'narrative/just_print/main.cpp'
+#include <boost/pfr.hpp>
+#include "../first_button_gesture_model/button_gesture_model.hpp"
+@{automatically just print everything}
+
+int main()
+{
+    ButtonGestureModel bgm{};
+    print_everything(bgm);
+    bgm.inputs.button_state.value = true;
+    bgm();
+    print_everything(bgm);
+    bgm();
+    print_everything(bgm);
+    bgm.inputs.button_state.value = false;
+    bgm();
+    print_everything(bgm);
+}
+// @/
+```
+
+```cmake
+# @#'narrative/just_print/CMakeLists.txt'
+add_executable(one-bit-bongo-just-print main.cpp)
+add_test(NAME one-bit-bongo-just-print COMMAND one-bit-bongo-just-print)
+# @/
+
+# @#'CMakeLists.txt'
+add_subdirectory(narrative/just_print)
+# @/
 ```
 
 Conveniently, we no longer need to mention any of the output endpoints in order
@@ -503,75 +553,261 @@ while the rest is essentially boilerplate that grows in size linearly in the
 number of inputs and outputs of the algorithm. For each output, an outlet must
 be allocated and later updated. For each input, a creation argument may specify
 its initial state, an input method must be defined and added to the object.
+For each new mapping algorithm, a similar amount of new boilerplate must be
+written.
 
 ## Pure Data Binding
 
-Strictly speaking, all that is necessary to introduce a Pd external to the
-runtime is for there to be a C function `void library_name_setup(void)` in the
-dynamically linked library `library_name` that registers the external by
-calling `class_new`. For the external to be useful, a constructor should be
-registered during the call to `class_new`, and methods should be attached to
-the inlets of the class using the `t_class` pointer returned by `class_new`.
-The external's constructor should create a new object instance of the class by
-calling `pd_new`, handle creation arguments, and create inlets and outlets.
-Then all that's left is to process input data appropriately and send messages
-and signals out.
-
-Now here's a binding directly leveraging the reflect-able implementation above.
+How does an automatic binding compare in terms of size and complexity? Strictly
+speaking, all that is necessary to introduce a Pd external to the runtime is
+for there to be a C function `void LIBNAME_setup(void)` in the dynamically
+linked library `LIBNAME` that registers the external by calling `class_new`. We
+have to use a macro to generate this C function because of the requirement for
+the library name to be part of the function name:
 
 ```c++
-// @#'narrative/pd-edge-detector-port/automatic-binding.h
-#include "m_pd.h"
-
-template<typename MaybePort>
-consteval bool is_a_port(MaybePort mp)
-{
-    if constexpr (requires mp.name())
-    {
-        if constexpr (requires mp.value)
-    }
-}
-
-template<typename PortStruct>
-consteval size_t number_of_ports(PortStruct port_struct)
-{
-
-}
-
-template<typename Processor>
-struct t_processor
-{
-    t_obj x_obj;
-    Processor processor;
-};
-
-template<typename Processor>
-struct PdBinding
-{
-    static t_class *processor_class;
-    PdBinding()
-    {
-        using processor = t_processor<Processor>;
-
-        constexpr auto processor_new = +[]() {};
-        constexpr auto processor_free = +[]() {};
-        constexpr auto processor_anything_method = +[]() {};
-
-        processor_class = class_new(gensym(processor::c_name()),
-            (t_newmethod)processor_new,
-            (t_method)processor_free, sizeof(t_edge_detect),
-            CLASS_DEFAULT,
-            A_GIMME, 0);
-
-        class_addanything(processor_class, (t_method)processor_anything_method);
-    }
-};
-
-#define MAKE_PD_BINDING(LIBNAME, PROCESSOR) \
+// @='setup macro'
+#define MAKE_PD_BINDING(LIBNAME, Processor) \
 extern "C" void LIBNAME##_setup(void) \
 { \
-    static const PureDataBinding<PROCESSOR> processor_class{}; \
-    binding.class_new(); \
+    processor_setup_internal<Processor>(); \
 }
 // @/
 ```
+
+Similar to the following line from our manual port--
+
+```c++
+static t_class *edge_detect_class;
+```
+
+--our automatic binding works with a template variable parameterized by the
+processor class:
+
+```c++
+// @='static t_class pointer'
+template<typename Processor>
+static t_class *processor_class;
+// @/
+```
+
+And whereas the manual port defines a struct `t_edge_detect` that carries
+object state, for the automatic binding we make a template struct, once again
+parameterized on the processor type:
+
+```c++
+// @='define t_processor template'
+template<typename Processor>
+struct t_processor
+{
+    t_object x_obj;
+    t_atom output;
+    Processor processor;
+};
+// @/
+```
+
+The processor's own state is assumed to be contained in its own struct, which
+is instantiated as part of `t_processor`. The rest of the struct contains
+state data specific to the Pd binding.
+
+The internal setup function creates the class, assigning to the static class
+pointer for the given processor, and registering the size, constructor, and
+methods with the class:
+
+```c++
+// @='processor setup internal'
+template<typename Processor>
+void processor_setup_internal()
+{
+    using utilities::metadata::names::lower_snake_case_v;
+    processor_class<Processor> = class_new(gensym(lower_snake_case_v<Processor>),
+        (t_newmethod)processor_new<Processor>,
+        0, sizeof(t_processor<Processor>),
+        CLASS_DEFAULT,
+        A_GIMME, 0);
+
+    @{add methods}
+}
+// @/
+```
+
+The constructor handles creation arguments and creates an outlet:
+
+```c++
+// @='processor new'
+template<typename Processor>
+void * processor_new(t_symbol *s, int argc, t_atom *argv)
+{
+    t_processor<Processor> *obj = (t_processor<Processor> *)pd_new(processor_class<Processor>);
+
+    @{parse args}
+
+    outlet_new(&obj->x_obj, 0);
+    return (void *)obj;
+}
+// @/
+```
+
+For now, one inlet and one outlet are used for all input and output ports, respectively. This
+simplifies the binding somewhat at the cost of possibly providing a less idiomatic Pd object
+
+The methods associated with the inlet simply set the associated port value. A `bang` method
+is added which triggers the execution of the processor's function call operator and causes
+its outputs to be serialized as messages from the outlet.
+
+```c++
+// @='add methods'
+using utilities::metadata::names::lower_kebab_case;
+boost::pfr::for_each_field(Processor{}.inputs, [](auto endpoint)
+{
+    class_addmethod(processor_class<Processor>,
+                    (t_method)setter_method<Processor, decltype(endpoint)>,
+                    gensym(lower_kebab_case(endpoint)),
+                    A_FLOAT, 0);
+});
+class_addbang(processor_class<Processor>, bang_method<Processor>);
+// @/
+
+// @='setter method'
+template<typename Endpoint>
+void set_value_from_float(Endpoint& ep, t_float f)
+{
+    if constexpr (std::is_same_v<decltype(ep.value), bool>)
+    {
+        ep.value = f != 0.0f;
+    }
+    else if constexpr (std::is_floating_point_v<decltype(ep.value)> || std::is_integral_v<decltype(ep.value)>)
+    {
+        ep.value = f;
+    }
+}
+
+template<typename Processor, typename Input>
+void setter_method(t_processor<Processor> *obj, t_float f)
+{
+    boost::pfr::for_each_field(obj->processor.inputs, [&f](auto& ep)
+    {
+        if constexpr (std::is_same_v<Input, std::remove_cvref_t<decltype(ep)>>)
+        {
+            set_value_from_float(ep, f);
+        }
+    });
+}
+// @/
+
+// @='bang method'
+template<typename Processor>
+void bang_method(t_processor<Processor> *obj)
+{
+    using utilities::metadata::names::lower_kebab_case;
+    obj->processor();
+    boost::pfr::for_each_field(obj->processor.outputs, [&](auto endpoint)
+    {
+        SETFLOAT(&obj->output, static_cast<t_float>(endpoint.value));
+        outlet_anything(obj->x_obj.ob_outlet, gensym(lower_kebab_case(endpoint)), 1, &obj->output);
+    });
+};
+// @/
+```
+
+Similar to the input methods, the creation arguments merely initialize the
+input port's values:
+
+```c++
+// @='parse args'
+size_t i = 0;
+boost::pfr::for_each_field(obj->processor.inputs, [&](auto& ep)
+{
+    if (i >= argc) return;
+    set_value_from_float(ep, atom_getfloatarg(i, argc, argv));
+    ++i;
+});
+obj->processor();
+// @/
+```
+
+In summary:
+
+```c++
+// @#'narrative/automatic-pd-edge-detector-port/pd_binding.hpp'
+#include <type_traits>
+#include "m_pd.h"
+#include <boost/pfr.hpp>
+#include "utilities/metadata/names/names.hpp"
+
+@{number of outlets}
+
+@{static t_class pointer}
+
+@{define t_processor template}
+
+@{setter method}
+
+@{bang method}
+
+@{processor new}
+
+@{processor setup internal}
+
+@{setup macro}
+// @/
+
+// @#'narrative/automatic-pd-edge-detector-port/button_gesture_model.cpp'
+#include "pd_binding.hpp"
+#include "../first_button_gesture_model/button_gesture_model.hpp"
+
+MAKE_PD_BINDING(button_gesture_model, ButtonGestureModel);
+// @/
+```
+
+```sh
+# @#'narrative/automatic-pd-edge-detector-port/Makefile'
+lib.name = button_gesture_model
+class.sources = button_gesture_model.cpp
+cflags = -std=c++20 -I'../first_button_gesture_model' -I'./pfr/include' -I '../../../../' -I'../../../../dependencies/pfr/include'
+include pd-lib-builder/Makefile.pdlibbuilder
+# @/
+
+```
+
+```c++
+// @#'narrative/automatic-pd-edge-detector-port/tests.cpp'
+#include <catch2/catch_test_macros.hpp>
+#include "pd_binding.hpp"
+#include "../first_button_gesture_model/button_gesture_model.hpp"
+
+@{first pd binding tests}
+// @/
+```
+
+```cmake
+# @#'narrative/automatic-pd-edge-detector-port/CMakeLists.txt'
+add_executable(one-bit-bongo-first-pd-port tests.cpp)
+target_link_libraries(one-bit-bongo-first-pd-port PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(one-bit-bongo-first-pd-port)
+# @/
+
+# @+'CMakeLists.txt'
+add_subdirectory(narrative/automatic-pd-edge-detector-port/)
+# @/
+```
+
+The implementation of this automatic Pd binding is about twice as many lines of
+code as the trivial port. Much of this can be attributed to the more verbose
+coding style required, involving template metaprogramming, `constexpr`
+branches, and generally more generic writing. But even at this trivial level,
+the benefits of this generic approach are already apparent during development.
+As well as being considerably more amenable to change, as described above with
+respect to the trivial text output binding, it should be noted that this Pure
+Data binding needn't grow in size as the processors it binds increase in
+quantity and complexity. Although the binding could be improved to work with
+different sorts of ports designed based on different assumptions or have
+different value types (e.g. vectors, matrices, optional monads, callback
+function, etc.), insofar as the currently supported port format is sufficient,
+an arbitrarily complex processor with hundreds of inputs would not require a
+single additional line of code to be written in the binding. This should make
+it clear how much effort is potentially saved through this approach.
+The size and complexity of the binding code depends only on the details of
+the target environment and the scope of the data representations the binding
+is meant to be compatible with.
