@@ -30,7 +30,7 @@ struct respeller
     {
         auto mapping = compose<Mappings...>{}; // construct the composition of mappings
         std::array<char, N> ret{};
-        for (int i = 0; i < N; ++i)
+        for (size_t i = 0; i < N; ++i)
         {
             char c = s[i];
             ret[i] = mapping(c); // apply the mapping
