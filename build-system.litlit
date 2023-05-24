@@ -11,8 +11,15 @@ appropriate.
 
 Literate programming is employed throuhgout the project. The literate sources
 are considered authoritative, and are used to generate most other source files,
-including CMakeLists.txt files. The following POSIX shell script is provided to
-generate all machine sources from the *.litlit literate source files
+including CMakeLists.txt files. The following line of shell script can
+regenerate all machine sources from the litlit literate source files:
+
+```sh
+# @#'litlit.sh'
+# generate machine sources from literate source code
+find -iname '*.litlit' | parallel 'echo {}; cd {//}; litlit {/}'
+# @/
+```
 
 Where there is code to compile, or anything remotely interesting,
 CMakeLists.txt files are generated from literate source code in the same
@@ -30,7 +37,7 @@ Include(FetchContent)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.0.1 # or a later release
+  GIT_TAG        v3.3.2 # or a later release
 )
 
 FetchContent_MakeAvailable(Catch2)
@@ -57,6 +64,15 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # @/
 ```
 
+# Libraries
+
+```cmake
+# @='Include libraries'
+include_directories(dependencies/pfr/include)
+include_directories(./)
+# @/
+```
+
 # Summary
 
 ```cmake
@@ -70,6 +86,10 @@ project(Sygaldry)
 
 @{Include automatic test registration}
 
+@{Include libraries}
+
 add_subdirectory(utilities)
+add_subdirectory(bindings)
+add_subdirectory(instruments)
 # @/
 ```
