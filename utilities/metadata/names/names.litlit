@@ -73,7 +73,7 @@ mapping to the name of the processor, which gives us the following implementatio
 ```c++
 // @='snake case struct'
 template<typename NamedType>
-struct _snake_case
+struct snake_case
 {
     static constexpr size_t N = length(NamedType::name());
     static constexpr std::array<char, N> value = [](const char * s)
@@ -86,30 +86,59 @@ struct _snake_case
         }
         return ret;
     }(NamedType::name());
+
+    @{respeller sugar}
 };
 // @/
 ```
 
-We can then access the string data as a `constexpr const char *` through a
-template variable with the named processor as a type parameter. So to get the
-name of a process with type `example_t`, we can write `snake_case<example_t>`,
-which is a `constexpr const char *` template variable.
+To avoid having to write `_snake_case<example_t>::value.data()` to get at the
+string, we can provide a constructor and conversion operator so that a function-like
+syntax can be used:
+
+```c++
+// @='snake case sugar'
+_snake_case(NamedType x) {}
+constexpr operator const char *() { return value.data(); }
+// @/
+```
+
+This way, given a value of `NamedType` we can access its snake case name like this:
+
+```c++
+// @+'tests'
+TEST_CASE("Snake Case Function-like Access")
+{
+    struct example_t
+    {
+        static consteval const char * name() {return "snake case example";}
+    } x;
+
+    REQUIRE(string(snake_case(x)) == string("snake_case_example"));
+}
+// @/
+```
+
+In case we don't have a value of `NamedType` and don't want to construct one
+(although doing so shouldn't actually do anything at runtime), we can also
+provide a template variable that gets the string, providing an alternative
+method of accessing the string:
 
 ```c++
 // @='snake case template variable'
 template<typename NamedType>
-constexpr const char * snake_case = _snake_case<NamedType>::value.data();
+constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
 // @/
 
 // @+'tests'
-TEST_CASE("Snake Case")
+TEST_CASE("Snake Case Template Variable Access")
 {
     struct example_t
     {
         static consteval const char * name() {return "snake case example";}
     };
 
-    REQUIRE(string(snake_case<example_t>) == string("snake_case_example"));
+    REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
 }
 // @/
 ```
@@ -126,7 +155,7 @@ consteval auto length(const char * s)
 {
     size_t ret = 0;
     while (s[ret] != 0) ret++;
-    return ret;
+    return ret + 1;
 }
 // @/
 ```
@@ -159,7 +188,7 @@ template<char_mapping mapping> struct compose<mapping>
 
 template<char_mapping mapping, char_mapping... mappings> struct compose<mapping, mappings...>
 {
-    constexpr char operator()(char c) { return compose<mappings...>(mapping(c)); }
+    constexpr char operator()(char c) { return compose<mappings...>{}(mapping(c)); }
 };
 // @/
 ```
@@ -170,10 +199,10 @@ mappings.
 
 ```diff
 < template<typename NamedType>
-< struct _snake_case
+< struct snake_case
 ---
 > template<typename NamedType, char_mapping... Mappings>
-> struct _respeller
+> struct respeller
 ```
 
 The composition of these mappings is then constructed before the for loop.
@@ -191,19 +220,47 @@ of mappings is used.
 > ret[i] = mapping(c); // apply the mapping
 ```
 
-Snake and kebab case are then easily defined in terms of their simple mappings:
+Snake and kebab case are then easily defined in terms of their simple mappings,
+as are basic transformations to or from capital letters:
 
 ```c++
 // @='mappings'
 constexpr char snake(char c) {return c == ' ' ? '_' : c;}
 constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
+constexpr char lower(char c)
+{
+    if ('A' <= c && c <= 'Z') return c+('a'-'A');
+    return c;
+}
+constexpr char upper(char c)
+{
+    if ('a' <= c && c <= 'z') return c-('a'-'A');
+    return c;
+}
+// @/
+
+// @='template aliases'
+template<typename NamedType> using snake_case = respeller<NamedType, snake>;
+template<typename NamedType> using upper_snake_case = respeller<NamedType, snake, upper>;
+template<typename NamedType> using lower_snake_case = respeller<NamedType, snake, lower>;
+template<typename NamedType> using kebab_case = respeller<NamedType, kebab>;
+template<typename NamedType> using upper_kebab_case = respeller<NamedType, kebab, upper>;
+template<typename NamedType> using lower_kebab_case = respeller<NamedType, kebab, lower>;
 // @/
 
 // @='template variables'
 template<typename NamedType>
-constexpr const char * snake_case = _detail::respeller<NamedType, _detail::snake>::value.data();
+constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
 template<typename NamedType>
-constexpr const char * kebab_case = _detail::respeller<NamedType, _detail::kebab>::value.data();
+constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * kebab_case_v = kebab_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
 // @/
 ```
 
@@ -214,9 +271,19 @@ TEST_CASE("Kebab Case")
     struct example_t
     {
         static consteval const char * name() {return "kebab case example";}
-    };
+    } x;
 
-    REQUIRE(string(kebab_case<example_t>) == string("kebab-case-example"));
+    CHECK(string(kebab_case(x)) == string("kebab-case-example"));
+    CHECK(string(kebab_case_v<example_t>) == string("kebab-case-example"));
+}
+TEST_CASE("Upper/lower")
+{
+    struct example_t
+    {
+        static consteval const char * name() {return "A Basic Example";}
+    } x;
+    CHECK(string(upper_snake_case(x)) == string("A_BASIC_EXAMPLE"));
+    CHECK(string(lower_kebab_case(x)) == string("a-basic-example"));
 }
 // @/
 ```
@@ -242,6 +309,9 @@ struct respeller
         }
         return ret;
     }(NamedType::name());
+
+    respeller(NamedType x) {}
+    constexpr operator const char *() { return value.data(); }
 };
 
 // @/
@@ -260,7 +330,7 @@ where matches are located. Such extensions should be added if these features
 become necessary.
 
 It remains as future work to implement compile-time generation of OSC address
-strings.
+strings and capitalization mappings.
 
 # Summary
 
@@ -271,12 +341,10 @@ strings.
 namespace utilities::metadata::names
 {
 
-namespace _detail
-{
 @{string length function}
 @{mapping composition respeller}
 @{mappings}
-}
+@{template aliases}
 @{template variables}
 
 }
@@ -291,8 +359,6 @@ namespace _detail
 #include "names.hpp"
 #include <string>
 #include <array>
-
-@{example processor with explicit spellings}
 
 using std::string;
 using namespace utilities::metadata::names;

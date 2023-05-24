@@ -3,13 +3,11 @@
 namespace utilities::metadata::names
 {
 
-namespace _detail
-{
 consteval auto length(const char * s)
 {
     size_t ret = 0;
     while (s[ret] != 0) ret++;
-    return ret;
+    return ret + 1;
 }
 typedef char (*char_mapping)(char);
 template<char_mapping...mappings> struct compose;
@@ -21,7 +19,7 @@ template<char_mapping mapping> struct compose<mapping>
 
 template<char_mapping mapping, char_mapping... mappings> struct compose<mapping, mappings...>
 {
-    constexpr char operator()(char c) { return compose<mappings...>(mapping(c)); }
+    constexpr char operator()(char c) { return compose<mappings...>{}(mapping(c)); }
 };
 
 template<typename NamedType, char_mapping... Mappings>
@@ -39,14 +37,40 @@ struct respeller
         }
         return ret;
     }(NamedType::name());
+
+    respeller(NamedType x) {}
+    constexpr operator const char *() { return value.data(); }
 };
 
 constexpr char snake(char c) {return c == ' ' ? '_' : c;}
 constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
+constexpr char lower(char c)
+{
+    if ('A' <= c && c <= 'Z') return c+('a'-'A');
+    return c;
 }
+constexpr char upper(char c)
+{
+    if ('a' <= c && c <= 'z') return c-('a'-'A');
+    return c;
+}
+template<typename NamedType> using snake_case = respeller<NamedType, snake>;
+template<typename NamedType> using upper_snake_case = respeller<NamedType, snake, upper>;
+template<typename NamedType> using lower_snake_case = respeller<NamedType, snake, lower>;
+template<typename NamedType> using kebab_case = respeller<NamedType, kebab>;
+template<typename NamedType> using upper_kebab_case = respeller<NamedType, kebab, upper>;
+template<typename NamedType> using lower_kebab_case = respeller<NamedType, kebab, lower>;
 template<typename NamedType>
-constexpr const char * snake_case = _detail::respeller<NamedType, _detail::snake>::value.data();
+constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
 template<typename NamedType>
-constexpr const char * kebab_case = _detail::respeller<NamedType, _detail::kebab>::value.data();
+constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * kebab_case_v = kebab_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+template<typename NamedType>
+constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
 
 }
