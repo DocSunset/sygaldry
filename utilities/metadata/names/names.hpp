@@ -4,11 +4,12 @@
 namespace utilities::metadata::names
 {
 
-consteval auto length(const char * s)
+template<typename Device>
+consteval auto name_length()
 {
     size_t ret = 0;
-    while (s[ret] != 0) ret++;
-    return ret + 1;
+    while (Device::name()[ret] != 0) ret++;
+    return ret;
 }
 typedef char (*char_mapping)(char);
 template<char_mapping...mappings> struct compose;
@@ -26,7 +27,7 @@ template<char_mapping mapping, char_mapping... mappings> struct compose<mapping,
 template<typename NamedType, char_mapping... Mappings>
 struct respeller
 {
-    static constexpr size_t N = length(NamedType::name());
+    static constexpr size_t N = name_length<NamedType>() + 1; // + 1 for null terminator
     static constexpr std::array<char, N> value = [](const char * s)
     {
         auto mapping = compose<Mappings...>{}; // construct the composition of mappings
