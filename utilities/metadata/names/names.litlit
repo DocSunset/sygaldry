@@ -10,7 +10,8 @@ style binding or as a Pure Data externail, it might be more convenient and
 idiomatic to spell them "simple-lowpass" and "cutoff-frequency". In other
 contexts, different spellings might be required.
 
-To support all these use cases, one approach is for the author of the processor to specify different spellings for alternative applications. For example, the
+To support all these use cases, one approach is for the author of the processor
+to specify different spellings for alternative applications. For example, the
 name of the processor might be specified in this way:
 
 ```c++
@@ -336,6 +337,7 @@ strings and capitalization mappings.
 
 ```c++
 // @#'names.hpp'
+#pragma once
 #include <array>
 
 namespace utilities::metadata::names
