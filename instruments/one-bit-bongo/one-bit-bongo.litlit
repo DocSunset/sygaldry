@@ -476,7 +476,7 @@ of our simple gesture model to run as a Pure Data external. A trivial port of
 the model directly might look something like the following:
 
 ```c++
-// @#'narrative/pd-edge-detector-port/edge_detect.c'
+// @#'narrative/trivial-pd-edge-detector-port/edge_detect.c'
 #include "m_pd.h"
 
 static t_class *edge_detect_class;
@@ -541,7 +541,7 @@ void edge_detect_setup(void)
 This can be compiled, leveraging pd-lib-builder, using the following Makefile:
 
 ```sh
-# @#'narrative/pd-edge-detector-port/Makefile'
+# @#'narrative/trivial-pd-edge-detector-port/Makefile'
 lib.name = edge_detect
 class.sources = edge_detect.c
 include pd-lib-builder/Makefile.pdlibbuilder

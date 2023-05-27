@@ -36,10 +36,13 @@ void edge_detect_float_method(t_edge_detect *ed, t_floatarg f)
 void *edge_detect_new(t_symbol *s, int argc, t_atom *argv)
 {
     t_edge_detect *ed = (t_edge_detect *)pd_new(edge_detect_class);
+
     ed->previous_button_state = atom_getfloatarg(0, argc, argv) != 0;
+
     ed->any_edge = outlet_new(&ed->x_obj, &s_float);
     ed->falling_edge = outlet_new(&ed->x_obj, &s_float);
     ed->rising_edge = outlet_new(&ed->x_obj, &s_float);
+
     return (void *)ed;
 }
 
