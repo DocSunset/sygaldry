@@ -87,6 +87,8 @@ help
 
 ## Command API
 
+### Commands as Shell Programs
+
 For maximum portability, it seems likely that a character-by-character approach
 will provide the easiest adaptability to different environments. The most obvious
 approach to me is to accumulate characters until a full line of input is collected
@@ -134,6 +136,8 @@ can't reasonably assume that there are any common OS facilities available, like
 `printf` or `std::cout`, which would normally be included by a shell program's
 source code and linked to a static library on the system.
 
+### Printing Through Ports
+
 With respect to our main target environment (i.e. firmware) and its
 constraints, our CLI commands might more reasonably adopt an interface that
 acknowledges the requirements we're trying to address. We only need our CLI
@@ -162,66 +166,118 @@ struct CliCommand
             static consteval auto name() { return "standard text output"; }
             const char * value;
         } stdout;
-
-        struct return_code_t
-        {
-            static consteval auto name() { return "return code"; }
-            int value;
-        } retcode;
     } outputs;
 
     void main(int argc, char ** argv); // return code is now an output port
 };
 ```
 
-The main limitation of this approach is that only one `char *` or `int`
-can be output for every call to `main`, or `process`, or whatever the
-device's main execution method is called. As this isn't really a problem
-in the context of our CLI, we'll suppose that it may not be a problem
-for devices, and carry on this this strategy for now.
+The main problem with this approach is that the memory for string-type outputs
+needs to be managed somehow, even though in principle there should be no real
+need to store whole messages. In an embedded context, bytes can most likely
+be sent more or less as needed, and buffering should in any case be handled by
+the serial interface's drivers, not the device sending the message. In an
+environment with an operating system, the OS should handle buffering of messages.
+In general, the device is not well suited to deal with this concern.
+
+One approach might be to side step the memory management issue by generating the
+messages at compile time. While this might work well enough in case of a device
+running on a PC, where program memory is abundant, the resulting duplication
+of strings is likely not tolerable in many embedded systems. For instance, if the
+message for the `list` command were statically generated at compile time, it
+would result in the duplication of the names of every device bound to the CLI.
+This kind of duplication would very likely add up quickly until it starts to
+crowd out more important functionality.
+
+### Printing Through Feature Injection
+
+What is needed is a way to pass in a function that can accept a string and
+immediately print it or buffer it for printing with the appropriate driver. In
+the current version of [Avendish](github.com/celtera/avendish) at the time of
+writing, this is accomplished through a dependency injection mechanism where
+the device in need of logging functionality accepts a template parameter that
+provides a logger. This seems like possibly the only reasonable approach.
+Effectively, the only way to explicitly pass the thread of execution from one
+place to another is through a function call. So here are some of the options
+
+- the device author includes the function(s) for printing
+- the device user subclasses the device and overrides the printing method(s)
+- the device accepts a callback function pointer or pointer to class that is called on for printing
+- the printing function or class is passed as a template parameter
+
+In all cases, the device author and binding author are forced to agree on a
+convention for the printing calls. There's no getting around that. In the first
+case, the hardware specific printer is determined at link time; we would prefer
+to make this choice explicit in source code. In the second case, an abundance
+of near-identical subclassing is likely to abound, as the binding author
+subclasses every device to work with every feature that needs to be
+injected--quadratic glue code in other words, and we are not willing to accept
+that. A class pointer could work; the device author would include an abstract
+base class, and then the binding author can provide subclasses for each
+hardware specific driver. There's no glue code, but this approach inextricably
+links the device implementation to that abstract base, which becomes pulled in
+as an explicit physical dependency of the device. This is a level of
+frameworkization that we would prefer to avoid. A function callback could work,
+except it would require the device author to match all material for printing to
+one function call signature, e.g. `void (*print)(char * str)`. This means that
+the responsibility for converting any data that needs to be printed into a
+`char * str` falls on the device author. We would prefer for them to be able to
+focus on writing their device without having to think about string formatting
+conversions.
+
+All that's left (unless I've forgotten something) is the template parameter.
+This is only very slightly better than a pointer to a class. In both cases, the
+device author admits a dependency on the call signature requirements of the
+printer. The template parameter option has these main advantages: the
+dependency is implicit, meaning that it is simpler for binding authors to meet
+the requirements without modifying the device's implementation, and the device
+and binding implementations aren't required to share any source code; the
+injection of the feature imposes no runtime cost, since the full signature of
+the printer and device are both known at compile time, so there's no
+indirection through a base class; compile time injection also enables stronger
+type checking, and potentially allows the binding author to enable optimization
+through compile-time programming and template metaprogramming, if applicable.
+The cost is likely in compilation time, since the device code has to be
+recompiled for every different printer. However, in this context that cost is
+negligible, since we're already committed to recompiling our devices for each
+new binding.
+
+The design of the printer is sufficiently involved that it is addressed in
+its own directory.
+
+### Commands API
 
 So we have moved from considering our CLI commands as general purpose shell
 programs, to restricting that view to see them as mere text outputters, to once
 again broadening our view to see them as general purpose
-reflectable-aggregate-type devices with textual output ports. One last
-restriction of our perspective should do to bring our CLI commands' conceptual
-modelling in line with their requirements, which is to require them to act as
-bindings over devices:
+reflectable-aggregate-type devices with textual output ports, to recognizing
+that text output requires feature injection, preferably through a template
+parameter, to avoid glue code, forcing explicit dependencies on the device, and
+added runtime costs. This leads to the following plan for the commands' general
+interface, borrowing the conceptual design of the logger feature injection scheme
+from Avendish:
 
 ```c++
-template<typename ... Devices>
+template<typename Config, typename ... Devices>
 struct CliCommand
 {
-    // ...
+    static consteval auto name() { return "Example Command"; }
+
+    [[no_unique_address]] typename Config::basic_logger_type log; 
 
     int main(int argc, char ** argv, std::tuple<Devices...>& devices);
 };
 ```
 
-Our CLI is then constructed from a list of `CliCommand`s and devices,
-perhaps roughly resembling the following::
+Our CLI is then constructed from a list of structs similar to `CliCommand` and
+a list of devices, perhaps roughly resembling the following:
 
 ```c++
-template<typename ... Commands, typename ... Devices>
+template<typename Config, typename ... Commands, typename ... Devices>
 class CLI
 {
     std::shared_ptr<std::tuple<Devices...>> devices;
     CLI(std::shared_ptr<std::tuple<Devices...>> devs) : devices{devs} {};
-
-    struct outputs_t
-    {
-        struct stdout_t
-        {
-            static consteval auto name() { return "standard text output"; }
-            const char * value;
-        } stdout;
-
-        struct return_code_t
-        {
-            static consteval auto name() { return "return code"; }
-            int value;
-        } retcode;
-    } outputs;
 
     int argc;
     char * argv[MAX_ARGS];
