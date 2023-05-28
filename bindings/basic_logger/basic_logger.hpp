@@ -12,7 +12,7 @@ struct BasicLogger
 {
     [[no_unique_address]] putter put;
 
-    template<typename T> void print(T x)
+    template<typename T> void _print(T x)
     {
         std::string_view string_message;
         if constexpr (std::is_arithmetic_v<T>)
@@ -52,6 +52,17 @@ struct BasicLogger
         for (char c : string_message)
             put(c);
     };
+
+    template<typename ... Ts> void print(Ts... x)
+    {
+        (_print(x), ...);
+    }
+
+    template<typename ... Ts> void println(Ts... x)
+    {
+        print(x...);
+        print("\n");
+    }
 };
 
 }

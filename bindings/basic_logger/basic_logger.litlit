@@ -64,13 +64,24 @@ struct BasicLogger
 {
     [[no_unique_address]] putter put;
 
-    template<typename T> void print(T x)
+    template<typename T> void _print(T x)
     {
         @{convert message to a string}
 
         for (char c : string_message)
             put(c);
     };
+
+    template<typename ... Ts> void print(Ts... x)
+    {
+        (_print(x), ...);
+    }
+
+    template<typename ... Ts> void println(Ts... x)
+    {
+        print(x...);
+        print("\n");
+    }
 };
 // @/
 ```
@@ -78,7 +89,12 @@ struct BasicLogger
 With tests developed with the help of chatGPT:
 
 ```c++
-// @+'tests'
+// @#'test_putter.hpp'
+#pragma once
+
+namespace bindings::basic_logger
+{
+
 struct TestPutter
 {
     std::stringstream ss;
@@ -88,31 +104,51 @@ struct TestPutter
     }
 };
 
+}
+// @/
+
+// @#'tests.cpp'
+#include <catch2/catch_test_macros.hpp>
+
+#include "basic_logger.hpp"
+#include "test_putter.hpp"
+#include <iostream>
+#include <sstream>
+#include <string>
+
+using namespace bindings::basic_logger;
 
 TEST_CASE("BasicLogger print") {
     BasicLogger<TestPutter> logger;
 
-    SECTION("Printing integers") {
+    SECTION("Printing integers")
+    {
         logger.print(42);
         REQUIRE(logger.put.ss.str() == "42");
-        logger.print(-123);
-        REQUIRE(logger.put.ss.str() == "42-123");
     }
 
-    SECTION("Printing floating-point numbers") {
-        logger.print(3.14159);
-        REQUIRE(logger.put.ss.str() == "3.14159");
-
+    SECTION("Printing floating-point numbers")
+    {
         logger.print(-2.71828);
-        REQUIRE(logger.put.ss.str() == "3.14159-2.71828");
+        REQUIRE(logger.put.ss.str() == "-2.71828");
     }
 
-    SECTION("Printing strings") {
-        logger.print("Hello, ");
-        REQUIRE(logger.put.ss.str() == "Hello, ");
+    SECTION("Printing strings")
+    {
+        logger.print("Hello world!");
+        REQUIRE(logger.put.ss.str() == "Hello world!");
+    }
 
-        logger.print(std::string_view("world!"));
-        REQUIRE(logger.put.ss.str() == "Hello, world!");
+    SECTION("Variadic print")
+    {
+        logger.print("1", 2, " ", 3.14159);
+        REQUIRE(logger.put.ss.str() == "12 3.14159");
+    }
+
+    SECTION("Empty println")
+    {
+        logger.println();
+        REQUIRE(logger.put.ss.str() == "\n");
     }
 }
 // @/
@@ -194,21 +230,6 @@ namespace bindings::basic_logger
 @{BasicLogger}
 
 }
-// @/
-```
-
-```c++
-// @#'tests.cpp'
-#include <catch2/catch_test_macros.hpp>
-
-#include "bindings/basic_logger/basic_logger.hpp"
-#include <iostream>
-#include <sstream>
-#include <string>
-
-using namespace bindings::basic_logger;
-
-@{tests}
 // @/
 ```
 
