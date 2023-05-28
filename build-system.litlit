@@ -17,7 +17,7 @@ regenerate all machine sources from the litlit literate source files:
 ```sh
 # @#'litlit.sh'
 # generate machine sources from literate source code
-find -iname '*.litlit' | parallel 'echo {}; cd {//}; litlit {/}'
+find -iname '*.litlit' | parallel 'cd {//} ; generated="$(grep -m 1 -h -r -I "@@#" {/} | head -n 1 | sed 's/^.*@#.//' | sed 's/.$//')" ; [ {/} -nt "$generated" ] && { echo {} "newer than $generated, running litlit..." ; litlit {/} ; }'
 # @/
 ```
 
