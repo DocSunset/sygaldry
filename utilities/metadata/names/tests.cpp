@@ -6,23 +6,26 @@
 using std::string;
 using namespace utilities::metadata::names;
 
-TEST_CASE("Snake Case Function-like Access")
+TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
 {
-    struct example_t
+    SECTION("Snake Case Function-like Access")
     {
-        static consteval const char * name() {return "snake case example";}
-    } x;
+        struct example_t
+        {
+            static consteval const char * name() {return "snake case example";}
+        } x;
 
-    REQUIRE(string(snake_case(x)) == string("snake_case_example"));
-}
-TEST_CASE("Snake Case Template Variable Access")
-{
-    struct example_t
+        REQUIRE(string(snake_case(x)) == string("snake_case_example"));
+    }
+    SECTION("Snake Case Template Variable Access")
     {
-        static consteval const char * name() {return "snake case example";}
-    };
+        struct example_t
+        {
+            static consteval const char * name() {return "snake case example";}
+        };
 
-    REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
+        REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
+    }
 }
 TEST_CASE("Kebab Case")
 {

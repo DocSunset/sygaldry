@@ -107,8 +107,8 @@ constexpr operator const char *() { return value.data(); }
 This way, given a value of `NamedType` we can access its snake case name like this:
 
 ```c++
-// @+'tests'
-TEST_CASE("Snake Case Function-like Access")
+// @+'snake tests'
+SECTION("Snake Case Function-like Access")
 {
     struct example_t
     {
@@ -131,8 +131,8 @@ template<typename NamedType>
 constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
 // @/
 
-// @+'tests'
-TEST_CASE("Snake Case Template Variable Access")
+// @+'snake tests'
+SECTION("Snake Case Template Variable Access")
 {
     struct example_t
     {
@@ -140,6 +140,13 @@ TEST_CASE("Snake Case Template Variable Access")
     };
 
     REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
+}
+// @/
+
+// @+'tests'
+TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
+{
+    @{snake tests}
 }
 // @/
 ```
