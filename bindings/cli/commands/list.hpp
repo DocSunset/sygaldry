@@ -4,7 +4,7 @@
 
 namespace bindings::cli::commands
 {
-template<typename Config, typename ... Devices>
+template<typename Config>
 struct List
 {
     static consteval auto name() { return "list"; }
@@ -13,8 +13,8 @@ struct List
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename... T>
-    int main(int argc, char** argv, std::tuple<T...>&)
+    template<typename... Devices>
+    int main(int argc, char** argv, std::tuple<Devices...>&)
     {
         using utilities::metadata::names::lower_kebab_case_v;
         ( log.println(lower_kebab_case_v<Devices>), ... );

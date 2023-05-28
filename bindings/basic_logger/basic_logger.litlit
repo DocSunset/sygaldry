@@ -58,7 +58,13 @@ so that resource contention or exhaustion issues are avoided. This gives us
 the following overall plan:
 
 ```c++
-// @='BasicLogger'
+// @#'basic_logger.hpp'
+#pragma once
+@{basic logger includes}
+
+namespace bindings::basic_logger
+{
+
 template<typename putter>
 struct BasicLogger
 {
@@ -83,35 +89,41 @@ struct BasicLogger
         print("\n");
     }
 };
+
+}
 // @/
 ```
 
-With tests developed with the help of chatGPT:
+With tests initially developed with the help of chatGPT:
 
 ```c++
-// @#'test_putter.hpp'
+// @#'test_logger.hpp'
 #pragma once
+#include "basic_logger.hpp"
 
 namespace bindings::basic_logger
 {
 
 struct TestPutter
 {
-    std::stringstream ss;
+    static std::stringstream ss;
     void operator()(char c)
     {
         ss << c;
     }
 };
 
+using TestLogger = BasicLogger<TestPutter>;
+
 }
+
+std::stringstream bindings::basic_logger::TestPutter::ss;
 // @/
 
 // @#'tests.cpp'
 #include <catch2/catch_test_macros.hpp>
 
-#include "basic_logger.hpp"
-#include "test_putter.hpp"
+#include "test_logger.hpp"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -119,7 +131,8 @@ struct TestPutter
 using namespace bindings::basic_logger;
 
 TEST_CASE("BasicLogger print") {
-    BasicLogger<TestPutter> logger;
+    TestLogger logger;
+    logger.put.ss.str("");
 
     SECTION("Printing integers")
     {
@@ -161,6 +174,11 @@ standard library functionality to implement the `print` template. For now, we
 will support only numeric conversions, string views, and string literals.
 
 ```c++
+// @+'basic logger includes'
+#include <type_traits>
+#include <string_view>
+// @/
+
 // @='convert message to a string'
 std::string_view string_message;
 if constexpr (std::is_arithmetic_v<T>)
@@ -187,6 +205,11 @@ digits representable by a given numeric type, and these are conservatively
 augmented with additional padding space to be safe.
 
 ```c++
+// @+'basic logger includes'
+#include <limits>
+#include <charconv>
+// @/
+
 // @='convert a number'
 std::is_signed_v<T>;
 ;
@@ -214,24 +237,43 @@ if (ec == std::errc()) {
 }
 // @/
 
-# Summary, test, and build
+# Basic Putters
+
+For convenience, we provide some basic `Putter` implementations. One, seen
+above, is used for tests and puts the printed messages into a string. Another,
+useful for informal experimentation and bindings in environments where the C
+library `putc` is available, puts messages onto the standard output:
 
 ```c++
-// @#'basic_logger.hpp'
+// @#'standard_logger.hpp'
 #pragma once
-#include <type_traits>
-#include <limits>
-#include <charconv>
-#include <string_view>
+#include "basic_logger.hpp"
+#include <stdio.h>
+#include <cstdlib>
 
 namespace bindings::basic_logger
 {
 
-@{BasicLogger}
+struct StandardPutter
+{
+    void operator()(char c)
+    {
+        auto retcode = putchar(c);
+        if (retcode == EOF)
+        {
+            // I guess we're unexpectedly done now?
+            std::exit(EXIT_FAILURE);
+        }
+    }
+};
+
+using StandardLogger = BasicLogger<StandardPutter>;
 
 }
 // @/
 ```
+
+# Build
 
 ```cmake
 # @#'CMakeLists.txt'

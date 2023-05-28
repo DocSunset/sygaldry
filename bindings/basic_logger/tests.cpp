@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "basic_logger.hpp"
-#include "test_putter.hpp"
+#include "test_logger.hpp"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -9,7 +8,8 @@
 using namespace bindings::basic_logger;
 
 TEST_CASE("BasicLogger print") {
-    BasicLogger<TestPutter> logger;
+    TestLogger logger;
+    logger.put.ss.str("");
 
     SECTION("Printing integers")
     {

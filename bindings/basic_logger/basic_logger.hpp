@@ -1,8 +1,8 @@
 #pragma once
 #include <type_traits>
+#include <string_view>
 #include <limits>
 #include <charconv>
-#include <string_view>
 
 namespace bindings::basic_logger
 {

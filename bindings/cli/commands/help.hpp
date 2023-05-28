@@ -2,7 +2,7 @@
 
 namespace bindings::cli::commands
 {
-template<typename Config, typename ... Commands>
+template<typename Config>
 struct Help
 {
     static consteval auto name() { return "help"; }
@@ -12,25 +12,21 @@ struct Help
     [[no_unique_address]] typename Config::basic_logger_type log;
 
     template<typename Cmd>
-    void _print()
+    void _print(Cmd&& command)
     {
-        log.print(Cmd::name());
-        if constexpr (requires {Cmd::usage();})
-        {
-            log.print(" ");
-            log.println(Cmd::usage());
-        }
+        if constexpr (requires {command.usage();})
+            log.println(command.name(), " ", command.usage());
         else
-        {
-            log.println();
-        }
-        log.print("    ");
-        log.println(Cmd::description());
+            log.println(command.name());
+        log.println("    ", command.description());
     }
 
-    int main()
+    template<typename ... Commands>
+    int main(Commands&& ... commands)
     {
-        ( _print<Commands>(), ... );
+        ( _print(commands), ... );
+        log.println(name());
+        log.println("    ", description());
         return 0;
     }
 };
