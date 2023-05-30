@@ -6,6 +6,8 @@
 #include "commands/list.hpp"
 #include "commands/help.hpp"
 
+namespace sygaldry
+{
 namespace bindings::cli
 {
 
@@ -123,4 +125,5 @@ struct _Cli
 template<typename Config, typename devs_t>
 using Cli = _Cli<Config, devs_t, commands::List>;
 
+}
 }

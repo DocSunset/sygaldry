@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 
-namespace utilities::metadata::names
+namespace sygaldry::utilities::metadata::names
 {
 
 template<typename Device>

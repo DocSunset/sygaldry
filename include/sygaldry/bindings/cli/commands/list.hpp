@@ -1,7 +1,9 @@
 #pragma once
 
-#include "utilities/metadata/names/names.hpp"
+#include <sygaldry/utilities/metadata/names/names.hpp>
 
+namespace sygaldry
+{
 namespace bindings::cli::commands
 {
 template<typename Config>
@@ -21,4 +23,5 @@ struct List
         return 0;
     }
 };
+}
 }
