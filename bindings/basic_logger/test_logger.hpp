@@ -1,7 +1,7 @@
 #pragma once
 #include "basic_logger.hpp"
 
-namespace bindings::basic_logger
+namespace sygaldry::bindings::basic_logger
 {
 
 struct TestPutter
@@ -15,6 +15,6 @@ struct TestPutter
 
 using TestLogger = BasicLogger<TestPutter>;
 
-}
+std::stringstream TestPutter::ss;
 
-std::stringstream bindings::basic_logger::TestPutter::ss;
+}

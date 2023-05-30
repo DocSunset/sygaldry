@@ -2,8 +2,9 @@
 
 #include "utilities/metadata/names/names.hpp"
 
-namespace bindings::cli::commands
+namespace sygaldry::bindings::cli::commands
 {
+
 template<typename Config>
 struct List
 {
@@ -16,9 +17,10 @@ struct List
     template<typename... Devices>
     int main(int argc, char** argv, std::tuple<Devices...>&)
     {
-        using utilities::metadata::names::lower_kebab_case_v;
+        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
         ( log.println(lower_kebab_case_v<Devices>), ... );
         return 0;
     }
 };
+
 }

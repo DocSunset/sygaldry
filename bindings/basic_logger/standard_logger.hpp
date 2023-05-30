@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <cstdlib>
 
-namespace bindings::basic_logger
+namespace sygaldry::bindings::basic_logger
 {
 
 struct StandardPutter

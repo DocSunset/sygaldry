@@ -62,7 +62,7 @@ the following overall plan:
 #pragma once
 @{basic logger includes}
 
-namespace bindings::basic_logger
+namespace sygaldry::bindings::basic_logger
 {
 
 template<typename putter>
@@ -101,7 +101,7 @@ With tests initially developed with the help of chatGPT:
 #pragma once
 #include "basic_logger.hpp"
 
-namespace bindings::basic_logger
+namespace sygaldry::bindings::basic_logger
 {
 
 struct TestPutter
@@ -115,9 +115,9 @@ struct TestPutter
 
 using TestLogger = BasicLogger<TestPutter>;
 
-}
+std::stringstream TestPutter::ss;
 
-std::stringstream bindings::basic_logger::TestPutter::ss;
+}
 // @/
 
 // @#'tests.cpp'
@@ -128,7 +128,7 @@ std::stringstream bindings::basic_logger::TestPutter::ss;
 #include <sstream>
 #include <string>
 
-using namespace bindings::basic_logger;
+using namespace sygaldry::bindings::basic_logger;
 
 TEST_CASE("BasicLogger print") {
     TestLogger logger;
@@ -251,7 +251,7 @@ library `putc` is available, puts messages onto the standard output:
 #include <stdio.h>
 #include <cstdlib>
 
-namespace bindings::basic_logger
+namespace sygaldry::bindings::basic_logger
 {
 
 struct StandardPutter

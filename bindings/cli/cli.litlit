@@ -319,7 +319,7 @@ struct Device2 {
 // @='test config class'
 struct Config
 {
-    using basic_logger_type = bindings::basic_logger::TestLogger;
+    using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
 };
 // @/
 
@@ -540,7 +540,7 @@ void _complain_about_command_failure(int retcode)
 
 @{commands headers}
 
-namespace bindings::cli
+namespace sygaldry { namespace bindings::cli
 {
 
 template<typename Config, typename devs_t, template<typename> typename ... Commands>
@@ -569,7 +569,7 @@ struct _Cli
 
 @{cli default type alias}
 
-}
+} }
 // @/
 ```
 
@@ -619,8 +619,9 @@ expression and print each one's name using the injected logger.
 
 #include "utilities/metadata/names/names.hpp"
 
-namespace bindings::cli::commands
+namespace sygaldry::bindings::cli::commands
 {
+
 template<typename Config>
 struct List
 {
@@ -633,11 +634,12 @@ struct List
     template<typename... Devices>
     int main(int argc, char** argv, std::tuple<Devices...>&)
     {
-        using utilities::metadata::names::lower_kebab_case_v;
+        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
         ( log.println(lower_kebab_case_v<Devices>), ... );
         return 0;
     }
 };
+
 }
 // @/
 
@@ -695,7 +697,7 @@ and have a `main` method with no arguments.
 // @#'commands/help.hpp'
 #pragma once
 
-namespace bindings::cli::commands
+namespace sygaldry { namespace bindings::cli::commands
 {
 template<typename Config>
 struct Help
@@ -725,7 +727,7 @@ struct Help
         return 0;
     }
 };
-}
+} }
 // @/
 
 // @+'commands headers'
@@ -764,7 +766,7 @@ the provides `getchar` and `putchar` from the C standard library.
 
 struct Config
 {
-    using basic_logger_type = bindings::basic_logger::StandardLogger;
+    using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
 };
 
 template<typename ... Devices>
@@ -773,7 +775,7 @@ struct CliApp
     using devs_tuple_t = std::tuple<Devices...>;
     using devs_t = std::shared_ptr<devs_tuple_t>;
     devs_t devices = std::make_shared<devs_tuple_t>();
-    bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
+    sygaldry::bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
 
     int main()
     {
@@ -825,8 +827,8 @@ int main()
 
 using std::string;
 
-using namespace bindings::cli::commands;
-using namespace bindings::cli;
+using namespace sygaldry::bindings::cli::commands;
+using namespace sygaldry::bindings::cli;
 
 @{cli test wrapper}
 
