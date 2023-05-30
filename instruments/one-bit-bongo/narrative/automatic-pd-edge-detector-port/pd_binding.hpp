@@ -1,7 +1,7 @@
 #include <type_traits>
 #include "m_pd.h"
 #include <boost/pfr.hpp>
-#include <sygaldry/utilities/metadata/names/names.hpp>
+#include "utilities/metadata/names/names.hpp"
 
 
 template<typename Processor>
@@ -43,7 +43,7 @@ void setter_method(t_processor<Processor> *obj, t_float f)
 template<typename Processor>
 void bang_method(t_processor<Processor> *obj)
 {
-    using sygaldry::utilities::metadata::names::lower_kebab_case;
+    using utilities::metadata::names::lower_kebab_case;
     obj->processor();
     boost::pfr::for_each_field(obj->processor.outputs, [&](auto endpoint)
     {
@@ -73,14 +73,14 @@ void * processor_new(t_symbol, int argc, t_atom *argv)
 template<typename Processor>
 void processor_setup_internal()
 {
-    using sygaldry::utilities::metadata::names::lower_snake_case_v;
+    using utilities::metadata::names::lower_snake_case_v;
     processor_class<Processor> = class_new(gensym(lower_snake_case_v<Processor>),
         (t_newmethod)processor_new<Processor>,
         0, sizeof(t_processor<Processor>),
         CLASS_DEFAULT,
         A_GIMME, 0);
 
-    using sygaldry::utilities::metadata::names::lower_kebab_case;
+    using utilities::metadata::names::lower_kebab_case;
     boost::pfr::for_each_field(Processor{}.inputs, [](auto endpoint)
     {
         class_addmethod(processor_class<Processor>,

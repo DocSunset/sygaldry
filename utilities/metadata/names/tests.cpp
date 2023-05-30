@@ -4,7 +4,7 @@
 #include <array>
 
 using std::string;
-using namespace sygaldry::utilities::metadata::names;
+using namespace utilities::metadata::names;
 
 TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
 {

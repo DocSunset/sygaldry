@@ -1,6 +1,6 @@
 #pragma once
 
-namespace sygaldry::bindings::cli::commands
+namespace bindings::cli::commands
 {
 template<typename Config>
 struct Help

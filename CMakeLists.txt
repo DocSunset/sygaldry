@@ -20,7 +20,8 @@ include(CTest)
 include(Catch)
 
 include_directories(dependencies/pfr/include)
-include_directories(./include)
+include_directories(./)
 
-add_subdirectory(include/sygaldry)
-add_subdirectory(src/instruments)
+add_subdirectory(utilities)
+add_subdirectory(bindings)
+add_subdirectory(instruments)

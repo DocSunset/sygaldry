@@ -69,7 +69,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
 ```cmake
 # @='Include libraries'
 include_directories(dependencies/pfr/include)
-include_directories(./include)
+include_directories(./)
 # @/
 ```
 
@@ -88,7 +88,8 @@ project(Sygaldry)
 
 @{Include libraries}
 
-add_subdirectory(include/sygaldry)
-add_subdirectory(src/instruments)
+add_subdirectory(utilities)
+add_subdirectory(bindings)
+add_subdirectory(instruments)
 # @/
 ```

@@ -4,7 +4,7 @@
 #include <limits>
 #include <charconv>
 
-namespace sygaldry::bindings::basic_logger
+namespace bindings::basic_logger
 {
 
 template<typename putter>

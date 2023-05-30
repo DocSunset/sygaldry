@@ -348,7 +348,7 @@ strings and capitalization mappings.
 #pragma once
 #include <array>
 
-namespace sygaldry::utilities::metadata::names
+namespace utilities::metadata::names
 {
 
 @{string length function}
@@ -371,7 +371,7 @@ namespace sygaldry::utilities::metadata::names
 #include <array>
 
 using std::string;
-using namespace sygaldry::utilities::metadata::names;
+using namespace utilities::metadata::names;
 
 @{tests}
 // @/

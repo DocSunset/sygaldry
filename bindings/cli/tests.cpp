@@ -1,12 +1,12 @@
-#include <string>
 #include <catch2/catch_test_macros.hpp>
-#include <sygaldry/bindings/basic_logger/test_logger.hpp>
 #include "cli.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
+#include <string>
 
 using std::string;
 
-using namespace sygaldry::bindings::cli::commands;
-using namespace sygaldry::bindings::cli;
+using namespace bindings::cli::commands;
+using namespace bindings::cli;
 
 template <typename Cli>
 string cli_process_input(Cli& cli, string input)
@@ -74,7 +74,7 @@ struct Device2 {
 
 struct Config
 {
-    using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
+    using basic_logger_type = bindings::basic_logger::TestLogger;
 };
 
 TEST_CASE("CLI", "[bindings][cli]")

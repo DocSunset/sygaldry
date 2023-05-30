@@ -1,4 +1,4 @@
-#include <sygaldry/bindings/cli/cli_app.hpp>
+#include "cli_app.hpp"
 
 struct Device1 {
     static consteval auto name() { return "Test Device 1"; }

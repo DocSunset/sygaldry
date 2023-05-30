@@ -319,7 +319,7 @@ struct Device2 {
 // @='test config class'
 struct Config
 {
-    using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
+    using basic_logger_type = bindings::basic_logger::TestLogger;
 };
 // @/
 
@@ -540,8 +540,6 @@ void _complain_about_command_failure(int retcode)
 
 @{commands headers}
 
-namespace sygaldry
-{
 namespace bindings::cli
 {
 
@@ -571,7 +569,6 @@ struct _Cli
 
 @{cli default type alias}
 
-}
 }
 // @/
 ```
@@ -620,10 +617,8 @@ expression and print each one's name using the injected logger.
 // @#'commands/list.hpp'
 #pragma once
 
-#include <sygaldry/utilities/metadata/names/names.hpp>
+#include "utilities/metadata/names/names.hpp"
 
-namespace sygaldry
-{
 namespace bindings::cli::commands
 {
 template<typename Config>
@@ -643,7 +638,6 @@ struct List
         return 0;
     }
 };
-}
 }
 // @/
 
@@ -701,7 +695,7 @@ and have a `main` method with no arguments.
 // @#'commands/help.hpp'
 #pragma once
 
-namespace sygaldry::bindings::cli::commands
+namespace bindings::cli::commands
 {
 template<typename Config>
 struct Help
@@ -762,7 +756,7 @@ the provides `getchar` and `putchar` from the C standard library.
 ```c++
 // @#'cli_app.hpp'
 #pragma once
-#include <sygaldry/bindings/basic_logger/standard_logger.hpp>
+#include "bindings/basic_logger/standard_logger.hpp"
 #include "cli.hpp"
 #include <stdio.h>
 #include <cstdlib>
@@ -770,7 +764,7 @@ the provides `getchar` and `putchar` from the C standard library.
 
 struct Config
 {
-    using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
+    using basic_logger_type = bindings::basic_logger::StandardLogger;
 };
 
 template<typename ... Devices>
@@ -779,7 +773,7 @@ struct CliApp
     using devs_tuple_t = std::tuple<Devices...>;
     using devs_t = std::shared_ptr<devs_tuple_t>;
     devs_t devices = std::make_shared<devs_tuple_t>();
-    sygaldry::bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
+    bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
 
     int main()
     {
@@ -800,7 +794,7 @@ The CLI class itself implements a fairly limited behavior.
 
 ```c++
 // @#'cli_app_demo.cpp'
-#include <sygaldry/bindings/cli/cli_app.hpp>
+#include "cli_app.hpp"
 
 struct Device1 {
     static consteval auto name() { return "Test Device 1"; }
@@ -824,15 +818,15 @@ int main()
 
 ```c++
 // @#'tests.cpp'
-#include <string>
 #include <catch2/catch_test_macros.hpp>
-#include <sygaldry/bindings/basic_logger/test_logger.hpp>
 #include "cli.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
+#include <string>
 
 using std::string;
 
-using namespace sygaldry::bindings::cli::commands;
-using namespace sygaldry::bindings::cli;
+using namespace bindings::cli::commands;
+using namespace bindings::cli;
 
 @{cli test wrapper}
 
