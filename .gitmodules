@@ -1,3 +1,6 @@
 [submodule "dependencies/pfr"]
 	path = dependencies/pfr
 	url = https://github.com/boostorg/pfr.git
+[submodule "dependencies/avendish"]
+	path = dependencies/avendish
+	url = git@github.com:celtera/avendish.git
