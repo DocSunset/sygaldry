@@ -44,32 +44,29 @@ representation of the data. The interpretation of throughpoints depends on
 information from the original source or final destination of the data flowing
 through the port.
 
-# Common Endpoints
+# Metadata
 
-There are many common kinds of endpoints in a digital musical instrument that
-vary depending on the type of data sent or received from the endpoint and the
-expected temporal semantics with which that data is sent or received. Some
-kinds of endpoints are more common than others, so it's convenient to define
-helper types to allow instances of these endpoints to be instantiated easily
-and to ensure consistency between instances of similar ports.
+Metadata associated with endpoints can be used to guide binding authors towards
+the intended interpretation of a component. Some metadata are required, others
+are optional. Considering Avendish as a point of reference, we can identify
+three different kinds of metadata. There are compile-time functions, such as
+the one used to get an endpoint's name. There are types with standardized names
+and structures, such as a `struct range` with members `min`, `max`, and `init`.
+And there are names within the scope of the endpoint (or component?) such as
+those introduced by a bare `enum` declaration.
 
-## Metadata
+## Names
 
 All endpoints are required to have a name. To facilitate setting this conveniently,
 we define a thin wrapper around a string literal that allows us to pass string
-literals as template parameters to our helpers:
+literals as template parameters to our helpers.
 
 ```c++
-// @#'string_literal.hpp'
-#pragma once
-
+// @+'ports includes'
 #include <cstddef>
+// @/
 
-namespace sygaldry
-{
-namespace ports
-{
-
+// @+'port helpers'
 template<std::size_t N>
 struct string_literal
 {
@@ -79,22 +76,107 @@ struct string_literal
         for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
     }
 };
-
-}
-}
 // @/
 
 // @+'tests'
 template<string_literal str>
 consteval auto name() {return string_view{str.value};}
+
 TEST_CASE("String literal", "[ports][string_literal]")
 {
     REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");
 }
-
 // @/
 ```
+
+Then we can define a class template that endpoint helpers can inherit from to
+gain a name method; in general, users are anticipated to use the helpers and
+not the base class, but the latter remains available for users spinning up a
+custom type of endpoint.
+
+```c++
+// @+'port bases'
+template<string_literal str>
+struct named
+{
+    static consteval auto name() {return std::string_view{str.value};}
+};
+// @/
+
+// @+'tests'
+struct struct_with_name : named<"foo"> {};
+TEST_CASE("Named", "[ports][bases][named]")
+{
+    REQUIRE(struct_with_name::name() == "foo");
+}
+// @/
+```
+
+## Range
+
+Many endpoints have a fixed range, such as the integral 0 to 127 of MIDI
+control change messages. In deviation from Avendish, we do not consider a
+default initial value to be a part of the range of an endpoint, although we do
+take the minimum value as the default if an explit initial value is not
+specified. Similar to the `named` class, we define a helper class that
+endpoints can inherit to specify their range, along with some type aliases
+for the same.
+
+```c++
+// @+'port bases'
+template<typename T>
+concept number = std::is_integral_v<T> || std::is_floating_point_v<T>;
+
+template<number auto _min, number auto _max>
+struct ranged
+{
+    static consteval auto range() {
+        static_assert(std::is_same_v<decltype(_min), decltype(_max)>,
+                      "ranged min and max must be of same type");
+        struct {
+            decltype(_min) min = _min;
+            decltype(_max) max = _max;
+        } r;
+        return r;
+    }
+};
+// @/
+
+// @+'port includes'
+#include <type_traits>
+// @/
+
+// @+'tests'
+struct struct_with_range : ranged<0, 127> {};
+
+TEST_CASE("Ranged", "[port][bases][ranged]")
+{
+    REQUIRE(struct_with_range::range().min == 0);
+    REQUIRE(struct_with_range::range().max == 127);
+}
+// @/
+```
+
+## Initial Value
+
+As above.
+
+```c++
+// @+'port bases'
+//template<typename T>
+//struct
+// @/
+```
+
+# Common Endpoints
+
+There are many common kinds of endpoints in a digital musical instrument that
+vary depending on the type of data sent or received from the endpoint and the
+expected temporal semantics with which that data is sent or received. Some
+kinds of endpoints are more common than others, so it's convenient to define
+helper types to allow instances of these endpoints to be instantiated easily
+and to ensure consistency between instances of similar ports.
 
 ## Value Port
 
@@ -102,10 +184,9 @@ TEST_CASE("String literal", "[ports][string_literal]")
 // @+'ports'
 template <string_literal str, typename T>
     requires std::is_trivial_v<T>
-struct value_port
+struct value_port : named<str>
 {
     using type = T;
-    static consteval auto name() {return std::string_view{str.value};}
     T value;
     operator T&() noexcept {return value;}
     operator const T&() const noexcept {return value;}
@@ -141,14 +222,17 @@ template<string_literal str, float min, float max,
 #pragma once
 
 #include <string_view>
-#include "string_literal.hpp"
 
 namespace sygaldry::ports
 {
 
 using namespace sygaldry;
 
-@{ports}
+@{port helpers}
+
+@{port bases}
+
+//@{ports}
 
 }
 // @/
@@ -157,7 +241,7 @@ using namespace sygaldry;
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
-#include "string_literal.hpp"
+#include "ports.hpp"
 
 using namespace sygaldry::ports;
 using std::string_view;

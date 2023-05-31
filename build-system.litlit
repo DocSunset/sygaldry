@@ -93,5 +93,6 @@ project(Sygaldry)
 add_subdirectory(utilities)
 add_subdirectory(bindings)
 add_subdirectory(instruments)
+add_subdirectory(components)
 # @/
 ```
