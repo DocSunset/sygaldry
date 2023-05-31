@@ -1,0 +1,175 @@
+# Introduction
+
+A digital musical instrument is an assemblage of components that generate,
+process, and output various forms of information with numerous different
+structures and temporal characteristics. We define a *port* as a
+point in the flow of data that is associated with a certain component,
+and can be said to be a source or destination of data flowing through
+the assemblage.
+
+## Endpoints
+
+Imagine we have two components, `A` and `B`, where `A` is connected directly to
+`B`. We call the ports of `A` from which data originate its *source endpoints*.
+These ports can generally be given descriptive names related to their
+interpretation with respect to `A`, e.g. "button state" if `A` is a button, or
+"saw wave" if `A` is an oscillator. From `A`'s perspective, the data coming
+from these endpoints are its *outputs*. Similarly, the ports of `B` where data
+arrives are its *destination endpoints*, they can be described based on their
+interpretation with respect to `B`, e.g. "bypass switch" or "cutoff frequency",
+and from `B`'s perspective the data arriving at these endpoints are its
+*inputs*. Notice that the data that `A` sees as outputs is the same data that
+`B` sees as inputs. The interpretation of endpoints depends only on the
+component with which they are associated.
+
+## Throughpoints
+
+Now suppose the `A` and `B` are connected by an intermediary mapping `M`, such
+as a preset interpolator or neural network. `M` is trained on a dataset of
+examples assocating values of `A`'s sources to intended values of `B`'s
+destinations. `M` automatically generates a set of ports that exactly match
+`A`'s source endpoints into which data from `A` will flow into `M`, as well as
+a set of ports that exactly match `B`'s destination endpoints from which data
+for `B` will flow out of `M`. `M`'s ports are thus mere reflections of those of
+`A` and `B`, and do not carry their own semantic interpretation or meaningful
+properties. We define such ports as *throughpoints*, in contrast with
+endpoints. As another example of throughpoints, imagine that data flows out of
+`B` from its own source endpoints and is connected to an automatic binding `P`
+that forwards this data unchanged e.g. to a network control protocol or plugin
+API. `P` may also be said to have destination throughpoints matched to `B`.
+Whereas the endpoints of a component have a specific interpretation,
+throughpoints adapt to match certain endpoints, often all of the endpoints of
+another component, based on training data, or as a binding to a different
+representation of the data. The interpretation of throughpoints depends on
+information from the original source or final destination of the data flowing
+through the port.
+
+# Common Endpoints
+
+There are many common kinds of endpoints in a digital musical instrument that
+vary depending on the type of data sent or received from the endpoint and the
+expected temporal semantics with which that data is sent or received. Some
+kinds of endpoints are more common than others, so it's convenient to define
+helper types to allow instances of these endpoints to be instantiated easily
+and to ensure consistency between instances of similar ports.
+
+## Metadata
+
+All endpoints are required to have a name. To facilitate setting this conveniently,
+we define a thin wrapper around a string literal that allows us to pass string
+literals as template parameters to our helpers:
+
+```c++
+// @#'string_literal.hpp'
+#pragma once
+
+#include <cstddef>
+
+namespace sygaldry
+{
+namespace ports
+{
+
+template<std::size_t N>
+struct string_literal
+{
+    char value[N];
+    consteval string_literal(const char (&str)[N]) noexcept
+    {
+        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
+    }
+};
+
+}
+}
+// @/
+
+// @+'tests'
+template<string_literal str>
+consteval auto name() {return string_view{str.value};}
+TEST_CASE("String literal", "[ports][string_literal]")
+{
+    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
+    REQUIRE(name<"test">() == "test");
+}
+
+// @/
+```
+
+## Value Port
+
+```c++
+// @+'ports'
+template <string_literal str, typename T>
+    requires std::is_trivial_v<T>
+struct value_port
+{
+    using type = T;
+    static consteval auto name() {return std::string_view{str.value};}
+    T value;
+    operator T&() noexcept {return value;}
+    operator const T&() const noexcept {return value;}
+    auto& operator=(T& t) noexcept {return value = t;}
+    auto& operator=(const T& t) noexcept {return value = t;}
+};
+// @/
+```
+
+## Toggles, Buttons, and Sliders
+
+```c++
+// @+'ports'
+template<string_literal str, bool init = false>
+struct toggle : public value_port<str, bool>
+{
+    struct range
+    {
+        bool min = false;
+        bool max = true;
+        bool init = init;
+    };
+};
+
+template<string_literal str, float min, float max, 
+// @/
+```
+
+# Summary
+
+```c++
+// @#'ports.hpp'
+#pragma once
+
+#include <string_view>
+#include "string_literal.hpp"
+
+namespace sygaldry::ports
+{
+
+using namespace sygaldry;
+
+@{ports}
+
+}
+// @/
+
+// @#'tests.cpp'
+
+#include <catch2/catch_test_macros.hpp>
+#include <string_view>
+#include "string_literal.hpp"
+
+using namespace sygaldry::ports;
+using std::string_view;
+
+@{tests}
+// @/
+```
+
+```cmake
+# @#'CMakeLists.txt'
+add_executable(ports-tests tests.cpp)
+target_link_libraries(ports-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(ports-tests)
+# @/
+```
