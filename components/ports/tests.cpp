@@ -26,3 +26,9 @@ TEST_CASE("Ranged", "[port][bases][ranged]")
     REQUIRE(struct_with_range::range().min == 0);
     REQUIRE(struct_with_range::range().max == 127);
 }
+struct struct_with_init : initialized<42> {};
+
+TEST_CASE("Initialized", "[port][bases][initialized]")
+{
+    REQUIRE(struct_with_init::init() == 42);
+}

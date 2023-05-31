@@ -164,8 +164,20 @@ As above.
 
 ```c++
 // @+'port bases'
-//template<typename T>
-//struct
+template<number auto _init>
+struct initialized
+{
+    static consteval auto init() {return _init;}
+};
+// @/
+
+// @+'tests'
+struct struct_with_init : initialized<42> {};
+
+TEST_CASE("Initialized", "[port][bases][initialized]")
+{
+    REQUIRE(struct_with_init::init() == 42);
+}
 // @/
 ```
 

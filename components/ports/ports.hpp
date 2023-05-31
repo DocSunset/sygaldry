@@ -38,8 +38,11 @@ struct ranged
         return r;
     }
 };
-//template<typename T>
-//struct
+template<number auto _init>
+struct initialized
+{
+    static consteval auto init() {return _init;}
+};
 
 //template <string_literal str, typename T>
 //    requires std::is_trivial_v<T>
