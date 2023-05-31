@@ -80,7 +80,7 @@ struct Config
 TEST_CASE("CLI", "[bindings][cli]")
 {
     auto devices = std::make_shared<std::tuple<Device1, Device2>>();
-    auto cli = _Cli<Config, decltype(devices), HelloWorld, Echo>(devices);
+    auto cli = make_cli<Config, Echo, HelloWorld>(devices);
 
     SECTION("Hello world")
     {

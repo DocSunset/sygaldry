@@ -351,7 +351,7 @@ struct HelloWorld
 TEST_CASE("CLI", "[bindings][cli]")
 {
     auto devices = std::make_shared<std::tuple<Device1, Device2>>();
-    auto cli = _Cli<Config, decltype(devices), HelloWorld, Echo>(devices);
+    auto cli = make_cli<Config, Echo, HelloWorld>(devices);
 
     @{cli tests}
     SECTION("Hello world")
@@ -478,20 +478,76 @@ int _try_to_match_and_execute()
 
 // @/
 
-### Default type alias
+### Instantiation
 
-The main CLI implementation `_Cli` should be generic about what commands it
-accepts, mainly to facilitate testing without depending on all commands.
-However, we assume that in general most users will want to have all available
-commands accessible. To save these users from having to write out every command
-name when instantiating the CLI, a type alias is provided.
+The CLI is a template that can accept an arbitrary number of devices and
+commands, and requires a configuration that is passed through to all
+of its commands. Being able to instantiate such a template without having to name
+all of the devices and commands twice (e.g. in the template argument list
+and the constructor) is essential.
+
+We require the devices to be wrapped in a
+`std::shared_ptr<std::tuple<Devices...>>`; we assume that the client of the CLI
+will have already made such a container for the devices that they can pass to
+the CLI constructor, and we insist that the user not have to name the list of
+`Devices...` when instantiating the CLI. We further assume that the list of
+commands will, by default, be all available commands, but that (particularly
+for testing) some clients will want to specify their own list of commands.
+
+Unfortunately, we cannot rely on class template argument deduction (CTAD) to
+help us here, because the client will always need to specify the CLI `Config`
+type as a template argument, e.g. `auto cli = CLI<Config>(devices,
+arguments...);`. CTAD is not attempted when a template argument is explicitly
+given, so this won't ever work. We would have to explicitly state all template
+arguments, e.g. `auto cli = CLI<Config, std::shared_ptr<std::tuple<Dev1, Dev2,
+..., DevN>>, Cmd1, Cmd2, ..., CmdN>(devices, arguments...);` which is not
+acceptable. For the same reason, we cannot simply provide a template type
+alias to specify the default list of commands.
+
+The solution comes from defining factory functions for instantiating a CLI.
+Template function argument deduction can tolerate partial specification of the
+template parameters, so in this way we can have a function that takes a config
+and list of commands and deduces the devices from the argument, and another
+than takes only a config, deduces the devices, and uses the default set of all
+available commands. Unfortunately we must provide two seperate functions; since
+the arguments must be the same, overloading the same function would result in
+ambiguity that the compiler cannot resolve.
 
 ```c++
 // @='cli default type alias'
-template<typename Config, typename devs_t>
-using Cli = _Cli<Config, devs_t, commands::List>;
+template<typename Config, template<typename>typename ... Commands, typename ... Devs>
+auto make_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, Commands...>(devs, boot_message);
+}
+
+template<typename Config, typename ... Devs>
+auto make_default_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, commands::List>(devs, boot_message);
+}
 // @/
 ```
+
+The constructor simply copies the pointer to the devices, writes a welcome
+message, and then prompts the user for input. The logger specified by the
+configuration and a tuple of commands with the same configuration are both
+default initialized.
+
+```c++
+// @='cli instantiation'
+[[no_unique_address]] typename Config::basic_logger_type log{};
+std::tuple<Commands<Config>...> commands{};
+devs_t devices;
+
+Cli(devs_t devs, const char * extra_boot_message)
+: devices{devs}
+{
+    log.println("CLI enabled. Write `help` for a list of available commands.");
+    if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
+    _prompt();
+}
+// @/
 
 ### Details
 
@@ -544,18 +600,9 @@ namespace sygaldry { namespace bindings::cli
 {
 
 template<typename Config, typename devs_t, template<typename> typename ... Commands>
-struct _Cli
+struct Cli
 {
-    [[no_unique_address]] typename Config::basic_logger_type log;
-    devs_t devices;
-    std::tuple<Commands<Config>...> commands{};
-
-    _Cli(devs_t devs, const char * extra_boot_message = "") : devices{devs}
-    {
-        log.println("CLI enabled. Write `help` for a list of available commands.");
-        if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
-        _prompt();
-    }
+    @{cli instantiation}
 
     @{cli buffers}
 
@@ -753,7 +800,7 @@ For quick tests and experimentation, we would like to be able to run this as an
 interactive command line application in the OS of our choice, allowing us to
 run our devices in a simulated environment, feed them test inputs, and examine
 their outputs. The same implementation should also be usable on any environment
-the provides `getchar` and `putchar` from the C standard library.
+that provides `getchar` and `putchar` from the C standard library.
 
 ```c++
 // @#'cli_app.hpp'
@@ -772,13 +819,10 @@ struct Config
 template<typename ... Devices>
 struct CliApp
 {
-    using devs_tuple_t = std::tuple<Devices...>;
-    using devs_t = std::shared_ptr<devs_tuple_t>;
-    devs_t devices = std::make_shared<devs_tuple_t>();
-    sygaldry::bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
-
     int main()
     {
+        auto devices = std::make_shared<std::tuple<Devices...>>();
+        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(devices, "Type Ctrl-D to exit.");
         for (;;)
         {
             char c = getchar();

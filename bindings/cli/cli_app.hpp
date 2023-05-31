@@ -13,13 +13,10 @@ struct Config
 template<typename ... Devices>
 struct CliApp
 {
-    using devs_tuple_t = std::tuple<Devices...>;
-    using devs_t = std::shared_ptr<devs_tuple_t>;
-    devs_t devices = std::make_shared<devs_tuple_t>();
-    sygaldry::bindings::cli::Cli<Config, devs_t> cli{devices, "Type Ctrl-D to exit."};
-
     int main()
     {
+        auto devices = std::make_shared<std::tuple<Devices...>>();
+        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(devices, "Type Ctrl-D to exit.");
         for (;;)
         {
             char c = getchar();

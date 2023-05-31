@@ -10,13 +10,14 @@ namespace sygaldry { namespace bindings::cli
 {
 
 template<typename Config, typename devs_t, template<typename> typename ... Commands>
-struct _Cli
+struct Cli
 {
-    [[no_unique_address]] typename Config::basic_logger_type log;
-    devs_t devices;
+    [[no_unique_address]] typename Config::basic_logger_type log{};
     std::tuple<Commands<Config>...> commands{};
+    devs_t devices;
 
-    _Cli(devs_t devs, const char * extra_boot_message = "") : devices{devs}
+    Cli(devs_t devs, const char * extra_boot_message)
+    : devices{devs}
     {
         log.println("CLI enabled. Write `help` for a list of available commands.");
         if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
@@ -120,7 +121,16 @@ struct _Cli
     }
 };
 
-template<typename Config, typename devs_t>
-using Cli = _Cli<Config, devs_t, commands::List>;
+template<typename Config, template<typename>typename ... Commands, typename ... Devs>
+auto make_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, Commands...>(devs, boot_message);
+}
+
+template<typename Config, typename ... Devs>
+auto make_default_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, commands::List>(devs, boot_message);
+}
 
 } }
