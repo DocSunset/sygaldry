@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <optional>
 
 namespace sygaldry::ports
 {
@@ -43,29 +44,45 @@ struct initialized
 {
     static consteval auto init() {return _init;}
 };
+template <typename T>
+struct persistent
+{
+    using type = T;
+    T value;
+    operator T&() noexcept {return value;}
+    operator const T&() const noexcept {return value;}
+    auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
+    auto& operator=(const T& t) noexcept {value = t; return *this;}
+};
 
-//template <string_literal str, typename T>
-//    requires std::is_trivial_v<T>
-//struct value_port : named<str>
-//{
-//    using type = T;
-//    T value;
-//    operator T&() noexcept {return value;}
-//    operator const T&() const noexcept {return value;}
-//    auto& operator=(T& t) noexcept {return value = t;}
-//    auto& operator=(const T& t) noexcept {return value = t;}
-//};
-//template<string_literal str, bool init = false>
-//struct toggle : public value_port<str, bool>
-//{
-//    struct range
-//    {
-//        bool min = false;
-//        bool max = true;
-//        bool init = init;
-//    };
-//};
+template <typename T>
+using occasional = std::optional<T>;
+template<string_literal str, bool init = false>
+struct _btn : named<str>, initialized<init>, ranged<false, true> { };
 
-//template<string_literal str, float min, float max, 
+template<string_literal str, bool init = false>
+struct button : occasional<bool>, _btn<str, init>
+{
+    using occasional<bool>::operator=;
+};
+
+template<string_literal str, bool init = false>
+struct toggle : persistent<bool>, _btn<str, init>
+{
+    using persistent<bool>::operator=;
+};
+
+template<string_literal str, float init = 0.0f>
+struct slider : persistent<float>, named<str>, initialized<init>, ranged<0.0f, 1.0f>
+{
+    using persistent<float>::operator=;
+};
+template<string_literal str>
+struct bng : persistent<bool>, named<str>
+{
+    using persistent<bool>::operator=;
+    enum {impulse};
+    void operator()() {value = true;}
+};
 
 }

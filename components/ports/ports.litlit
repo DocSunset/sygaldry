@@ -44,16 +44,29 @@ representation of the data. The interpretation of throughpoints depends on
 information from the original source or final destination of the data flowing
 through the port.
 
-# Metadata
+# Port Bases
 
-Metadata associated with endpoints can be used to guide binding authors towards
-the intended interpretation of a component. Some metadata are required, others
-are optional. Considering Avendish as a point of reference, we can identify
-three different kinds of metadata. There are compile-time functions, such as
-the one used to get an endpoint's name. There are types with standardized names
-and structures, such as a `struct range` with members `min`, `max`, and `init`.
-And there are names within the scope of the endpoint (or component?) such as
-those introduced by a bare `enum` declaration.
+There are many common kinds of endpoints in a digital musical instrument that
+vary depending on the type of data sent or received from the endpoint and the
+expected temporal semantics with which that data is sent or received. Some
+kinds of endpoints are more common than others, so it's convenient to define
+helper types to allow instances of these endpoints to be instantiated easily
+and to ensure consistency between instances of similar endpoints.
+
+Similarly, certain forms of metadata are shared across numerous different types
+of endpoint. Metadata associated with endpoints can be used to guide binding
+authors towards the intended interpretation of a component. Some metadata are
+required, others are optional. Considering Avendish as a point of reference, we
+can identify three different kinds of metadata. There are compile-time
+functions, such as the one used to get an endpoint's name. There are types with
+standardized names and structures, such as a `struct range` with members `min`,
+`max`, and `init`. And there are names within the scope of the endpoint (or
+component?) such as those introduced by a bare `enum` declaration.
+
+Here we rely mainly on function calls, as this allows metadata and other common
+features of ports to be composed through inheritance. This provides a
+convenient declarative method for users to define their own port types by
+combining the basic building blocks themselves.
 
 ## Names
 
@@ -109,6 +122,7 @@ struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[ports][bases][named]")
 {
     REQUIRE(struct_with_name::name() == "foo");
+    static_assert(is_aggregate_v<struct_with_name>);
 }
 // @/
 ```
@@ -154,6 +168,7 @@ TEST_CASE("Ranged", "[port][bases][ranged]")
 {
     REQUIRE(struct_with_range::range().min == 0);
     REQUIRE(struct_with_range::range().max == 127);
+    static_assert(is_aggregate_v<struct_with_range>);
 }
 // @/
 ```
@@ -177,53 +192,205 @@ struct struct_with_init : initialized<42> {};
 TEST_CASE("Initialized", "[port][bases][initialized]")
 {
     REQUIRE(struct_with_init::init() == 42);
+    static_assert(is_aggregate_v<struct_with_init>);
 }
 // @/
 ```
 
-# Common Endpoints
+## Persistent Values
 
-There are many common kinds of endpoints in a digital musical instrument that
-vary depending on the type of data sent or received from the endpoint and the
-expected temporal semantics with which that data is sent or received. Some
-kinds of endpoints are more common than others, so it's convenient to define
-helper types to allow instances of these endpoints to be instantiated easily
-and to ensure consistency between instances of similar ports.
+An endpoint that has a persistent value across activations of a component is well
+modelled by storing the value as a persistent member variable. Unfortunately,
+to maintain reflectability this value has to be stored inside a struct, which
+makes accessing it cumbersome, as in e.g. `outputs.parameter.value =
+inputs.parameter.value`. To ease this discomfort, we provide a class that
+sweetens access to the value allowing the endpoint to be treated direclty
+as though it were the value itself rather than a container for it. We call
+these endpoint `persistent` in contrast with the next kind.
 
-## Value Port
+Unfortunately, assignment operators are tricky to inherit due to C++'s
+automatically generated default assignment operators. For this reason, the
+`persistent` type needs to be treated directly as an endpoint type (i.e. not
+merely inherited), or the assignment operators need to be explictly drawn into
+the derived class with a `using` declaration in public scope, e.g. `using
+persistent::operator=`.
+
+Note that we could define a specialization for the `persistent` class in case
+`std::is_trivial_v<T>`; this allows us to avoid defining a move assignment
+operator, and to use the slightly cheaper version of the copy assignment that
+takes `T` instead of `const T&`. For now this is deemed premature optimization.
 
 ```c++
-// @+'ports'
-template <string_literal str, typename T>
-    requires std::is_trivial_v<T>
-struct value_port : named<str>
+// @+'port bases'
+template <typename T>
+struct persistent
 {
     using type = T;
     T value;
     operator T&() noexcept {return value;}
     operator const T&() const noexcept {return value;}
-    auto& operator=(T& t) noexcept {return value = t;}
-    auto& operator=(const T& t) noexcept {return value = t;}
+    auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
+    auto& operator=(const T& t) noexcept {value = t; return *this;}
 };
+// @/
+
+// @+'tests'
+struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
+TEST_CASE("Persistent Value", "[ports][bases][persistent]")
+{
+    auto s = persistent_struct{42};
+    REQUIRE(s == 42);
+    s = 88;
+    REQUIRE(s == 88);
+    static_assert(is_aggregate_v<persistent_struct>);
+}
 // @/
 ```
 
-## Toggles, Buttons, and Sliders
+## Occasional Values
+
+Sometimes updating a value should initiate activation of the processor, and
+sometimes the processor outputs values that should be propagated immediately. A
+convenient way to represent this, borrowed from Avendish, is using
+`std::optional` to represent the temporal semantics of these updates. The
+platform is expected to clear `std::optional` valued endpoints before
+activating a component so that it can signal hot outputs and recognize hot
+inputs. Afterwards, the platform is expected to inspect hot outputs and take
+appropriate action if any are present. An important consequence of this
+semantics is that, unlike a regular value port, the state of hot outputs is not
+expected to be persistent across invocations of a component, and so cannot be
+used to carry state across invocations as with a regular value endpoint.
+For now, we wholesale subsume `std::optional` by defining our occasional value
+class as an alias for the former.
+
+```c++
+// @+'ports'
+template <typename T>
+using occasional = std::optional<T>;
+// @/
+
+// @+'tests'
+struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
+TEST_CASE("Occasional Value", "[ports][bases][occasional]")
+{
+    auto s = occasional_struct{42};
+    s = 42;
+    REQUIRE(s);
+    REQUIRE(s == 42);
+    s = 88;
+    REQUIRE(s == 88);
+    auto null = occasional_struct{};
+    REQUIRE(!null);
+    static_assert(is_aggregate_v<occasional_struct>);
+}
+// @/
+```
+
+## Bang
+
+Often an endpoint doesn't carry any value, but merely serves to convey that
+an event has occurred. In Max/MSP and Pure Data, this kind of temporal
+impulsive event without data is called a *bang*. We adopt the same naming
+convention here.
+
+A bang could be represented as `std::optional` of an empty type, but measurements
+suggest that this actually takes more space than a `bool`, so we instead opt
+to treat a persistent value port tagged with the symbol `bang` as our preferred
+bang representation.
+
+## Tags
+
+We can introduce arbitrary symbols into the scope of a class through a bare
+`enum` declaration e.g. `enum { bang };`. Our bindings can then be designed to
+look for such symbols, e.g. `if constexpr (requires {port::bang;}) { ... }` and
+behave depending on their presence or absence. There's no real need for a helper
+class for this kind of metadata; trying to define a template class or a macro
+gets cumbersome very quickly, and it's already pretty trivial to add an `enum`
+to an endpoint.
+
+# Basic Endpoints
+
+Given the above ingredients, we now define some basic endpoints composed
+from them.
 
 ```c++
 // @+'ports'
 template<string_literal str, bool init = false>
-struct toggle : public value_port<str, bool>
+struct _btn : named<str>, initialized<init>, ranged<false, true> { };
+
+template<string_literal str, bool init = false>
+struct button : occasional<bool>, _btn<str, init>
 {
-    struct range
-    {
-        bool min = false;
-        bool max = true;
-        bool init = init;
-    };
+    using occasional<bool>::operator=;
 };
 
-template<string_literal str, float min, float max, 
+template<string_literal str, bool init = false>
+struct toggle : persistent<bool>, _btn<str, init>
+{
+    using persistent<bool>::operator=;
+};
+
+template<string_literal str, float init = 0.0f>
+struct slider : persistent<float>, named<str>, initialized<init>, ranged<0.0f, 1.0f>
+{
+    using persistent<float>::operator=;
+};
+// @/
+
+// @+'tests'
+TEST_CASE("Basic Ports", "[ports][basic]")
+{
+    static_assert(is_aggregate_v<button<"foo">>);
+    static_assert(is_aggregate_v<toggle<"bar">>);
+    static_assert(is_aggregate_v<slider<"baz">>);
+}
+// @/
+```
+
+## Bang
+
+Often an endpoint doesn't carry any value, but merely serves to convey that
+an event has occurred. In Max/MSP and Pure Data, this kind of temporal
+impulsive event without data is called a *bang*. We adopt the same naming
+convention here.
+
+A bang could be represented as `std::optional` of an empty type, but
+measurements suggest that this actually takes more space than a `bool`, so we
+instead opt to treat a persistent value port tagged with the symbol `bang` as
+our preferred bang representation; this requires us to give our bang class a
+different name, but we consider this an acceptable tradeoff. We further augment
+this type with a function call operator that will set the boolean value,
+signalling an event has occurred.
+
+Another possible approach would be to employ a callback semantics, so that
+triggering the bang would immediately pass execution to a function registered
+by the platform. For now, we opt to retain value semantics, despite callback
+semantics might allow for a more space efficient implementation. Callback
+semantics place a greater burden on the binding author that we would prefer to
+avoid at this point.
+
+```c++
+// @+'ports'
+template<string_literal str>
+struct bng : persistent<bool>, named<str>
+{
+    using persistent<bool>::operator=;
+    enum {impulse};
+    void operator()() {value = true;}
+};
+// @/
+
+// @+'tests'
+TEST_CASE("Bang", "[ports][bang]")
+{
+    static_assert(is_aggregate_v<bng<"foo">>);
+    auto b = bng<"foo">{};
+    REQUIRE(!b);
+    b();
+    REQUIRE(b);
+    b = {};
+    REQUIRE(!b);
+}
 // @/
 ```
 
@@ -234,6 +401,7 @@ template<string_literal str, float min, float max,
 #pragma once
 
 #include <string_view>
+#include <optional>
 
 namespace sygaldry::ports
 {
@@ -244,7 +412,7 @@ using namespace sygaldry;
 
 @{port bases}
 
-//@{ports}
+@{ports}
 
 }
 // @/
@@ -253,10 +421,13 @@ using namespace sygaldry;
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
+#include <type_traits>
+#include <boost/pfr.hpp>
 #include "ports.hpp"
 
 using namespace sygaldry::ports;
 using std::string_view;
+using std::is_aggregate_v;
 
 @{tests}
 // @/
