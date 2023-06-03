@@ -1,12 +1,16 @@
 #pragma once
+#include "utilities/metadata/names/names.hpp"
 
-namespace sygaldry::bindings::cli
+namespace sygaldry
+{
+namespace bindings::cli
 {
 
 template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
-    if (std::string_view(name) == std::string_view(t.name()))
+    using utilities::metadata::names::lower_kebab_case;
+    if (std::string_view(name) == std::string_view(lower_kebab_case(t)))
         return f(t);
     else if constexpr (sizeof...(NamedTs) == 0)
         return d;
@@ -24,4 +28,15 @@ auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Ca
     }, tup);
 }
 
+template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
+auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+{
+    if constexpr (std::tuple_size_v<TupleOfNamed> > 0) std::apply([&](auto& t)
+    {
+        return f(t);
+    }, tup);
+    else return d;
+}
+
+}
 }

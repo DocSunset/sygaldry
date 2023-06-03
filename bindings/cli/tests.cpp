@@ -115,3 +115,6 @@ TEST_CASE("Help command", "[cli][commands][help]")
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
+TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
+{
+}

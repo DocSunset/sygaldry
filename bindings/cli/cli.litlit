@@ -452,19 +452,29 @@ The logic for iterating over the tuple of commands in order to do something
 with one of them is also required by component commands described later. To
 avoid repeating ourselves, we will implement this logic in a way that can
 be generically leveraged by both the CLI iterating over a list of commands,
-and by commands iterating over lists of components.
+and by commands iterating over lists of components. As it will be useful
+to some commands and follows a very similar implementation, we also define
+at this time a matcher that accepts a wildcard to match all elements of
+the tuple.
+
+Notice again that we convert command and component names to lower kebab case to
+permit a simpler implementation of the command line parser.
 
 ```c++
 // @#'matcher.hpp'
 #pragma once
+#include "utilities/metadata/names/names.hpp"
 
-namespace sygaldry::bindings::cli
+namespace sygaldry
+{
+namespace bindings::cli
 {
 
 template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
-    if (std::string_view(name) == std::string_view(t.name()))
+    using utilities::metadata::names::lower_kebab_case;
+    if (std::string_view(name) == std::string_view(lower_kebab_case(t)))
         return f(t);
     else if constexpr (sizeof...(NamedTs) == 0)
         return d;
@@ -482,12 +492,23 @@ auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Ca
     }, tup);
 }
 
+template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
+auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+{
+    if constexpr (std::tuple_size_v<TupleOfNamed> > 0) std::apply([&](auto& t)
+    {
+        return f(t);
+    }, tup);
+    else return d;
+}
+
+}
 }
 // @/
 ```
 
-We invoke the matcher subroutine as follows, accounting for `help` as a special
-case in our callback lambda.
+For the CLI, we invoke the matcher subroutine as follows, accounting for `help`
+as a special case in our callback lambda.
 
 ```c++
 // @+'cli includes'
@@ -499,7 +520,7 @@ int _try_to_match_and_execute()
 {
     return try_to_match_and_execute(argv[0], commands, 127, [this](auto& command)
         {
-            if constexpr (std::is_same_v<decltype(command), commands::Help<Config>>)
+            if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
             {
                 return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
                 {
@@ -552,13 +573,15 @@ ambiguity that the compiler cannot resolve.
 template<typename Config, template<typename>typename ... Commands, typename ... Cpts>
 auto make_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, Commands...>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help, Commands...>(cpts, boot_message);
 }
 
 template<typename Config, typename ... Cpts>
 auto make_default_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::List>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help
+            , commands::@{default commands}
+            >(cpts, boot_message);
 }
 // @/
 ```
@@ -727,6 +750,10 @@ struct List
 // @+'commands headers'
 #include "commands/list.hpp"
 // @/
+
+// @+'default commands'
+List
+// @/
 ```
 
 ## Help Command
@@ -772,7 +799,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 
 Since the help command is a special case, which operates over commands instead
 of components, we allow it to buck the pattern established with the list command
-and have a `main` method with no arguments.
+and have a `main` method that takes a parameter pack of commands to describe.
 
 ```c++
 // @#'commands/help.hpp'
@@ -816,6 +843,11 @@ struct Help
 // @/
 ```
 
+Unlike with the list command, we don't append the help command to our
+code chunk for default commands; instead it is explicitly added by the
+factory methods described above so that it is always available even
+when the user does not use the default commands.
+
 # Component Commands
 
 These commands all take the name of a component as their first argument, and
@@ -834,15 +866,44 @@ different components. They are simply not the same.
 
 ## Describe
 
+First, a test case:
+
 ```c++
+// @+'tests'
+TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
+{
+}
+// @/
 ```
+
+The bulk of this command's logic comes from four functions: one that matches an
+argument to a component, one that decribes a matched component, one that matches an
+argument to a port, and one that describes a matched port. 
+
+```c++
+// @='describe main'
+using utilities::metadata::names;
+if (argc == 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
+{
+    @{describe component}
+});
+else if (argc > 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
+{
+});
+// @/
+```
+
+We can use the matcher subroutines defined earlier for the CLI to match components
+from our tuple of components, and in fact we can also use it to match ports thanks
+to Boost PFR's `structure_tie(aggregate)` function.
 
 ```c++
 // @#'commands/describe.hpp'
 #pragma once
 
-#include "utilities/metadata/names/names.hpp"
 #include <boost/pfr.hpp>
+#include "utilities/metadata/names/names.hpp"
+#include "matcher.hpp"
 
 namespace sygaldry
 {
@@ -853,17 +914,15 @@ template<typename Config>
 struct Describe
 {
     static consteval auto name() { return "describe"; }
-    static consteval auto usage() { return "component-name <port-name>"; }
-    static consteval auto description() { return "Convey available metadata about a component or one of its ports"; }
+    static consteval auto usage() { return "component-name [port-name]"; }
+    static consteval auto description() { return "Convey metadata about a component or its port. Pass * to describe all"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
     template<typename... Components>
     int main(int argc, char** argv, std::tuple<Components...>&)
     {
-        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
-        ( log.println(lower_kebab_case_v<Components>), ... );
-        return 0;
+        @{describe main}
     }
 };
 

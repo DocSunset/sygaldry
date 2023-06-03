@@ -36,7 +36,7 @@ struct Cli
     {
         return try_to_match_and_execute(argv[0], commands, 127, [this](auto& command)
             {
-                if constexpr (std::is_same_v<decltype(command), commands::Help<Config>>)
+                if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
                 {
                     return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
                     {
@@ -107,13 +107,15 @@ struct Cli
 template<typename Config, template<typename>typename ... Commands, typename ... Cpts>
 auto make_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, Commands...>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help, Commands...>(cpts, boot_message);
 }
 
 template<typename Config, typename ... Cpts>
 auto make_default_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::List>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help
+            , commands::List
+            >(cpts, boot_message);
 }
 
 } }
