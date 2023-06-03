@@ -8,3 +8,7 @@ find -iname '*.litlit' | parallel '
         litlit {/}
     }
 '
+find -iname '*.litlit' | parallel '
+    cd {//}
+    [ -e "README.md" ] || ln -s -T {/} README.md
+'
