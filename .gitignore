@@ -1,4 +1,4 @@
-build
+_build*
 sdkconfig
 *.o
 *.pd_linux
