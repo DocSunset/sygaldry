@@ -1,2 +1,2 @@
-add_subdirectory("ports")
+add_subdirectory("endpoints")
 #add_subdirectory("sensors")

@@ -6,27 +6,27 @@
 #include "helpers.hpp"
 #include "inspectors.hpp"
 
-using namespace sygaldry::ports;
-using namespace sygaldry::ports::inspectors;
+using namespace sygaldry::endpoints;
+using namespace sygaldry::endpoints::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 
 template<string_literal str>
 _consteval auto name() {return string_view{str.value};}
 
-TEST_CASE("String literal", "[ports][string_literal]")
+TEST_CASE("String literal", "[endpoints][string_literal]")
 {
     REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");
 }
 struct struct_with_name : named<"foo"> {};
-TEST_CASE("Named", "[ports][bases][named]")
+TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(struct_with_name::name() == "foo");
     static_assert(is_aggregate_v<struct_with_name>);
 }
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][ports][inspectors][named]")
+TEST_CASE("Named", "[components][endpoints][inspectors][named]")
 {
     static_assert(Named<base_struct_with_name>);
     static_assert(Named<struct_with_name>);
@@ -40,7 +40,7 @@ TEST_CASE("Named", "[components][ports][inspectors][named]")
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
 
-TEST_CASE("Range", "[port][bases][range]")
+TEST_CASE("Range", "[endpoints][bases][range]")
 {
     SECTION("With range")
     {
@@ -55,7 +55,7 @@ TEST_CASE("Range", "[port][bases][range]")
         static_assert(is_aggregate_v<struct_with_init>);
     }
 }
-TEST_CASE("Ranged", "[components][ports][inspectors][ranged]")
+TEST_CASE("Ranged", "[components][endpoints][inspectors][ranged]")
 {
     static_assert(Ranged<struct_with_range>);
     struct_with_range foo{};
@@ -67,7 +67,7 @@ TEST_CASE("Ranged", "[components][ports][inspectors][ranged]")
     REQUIRE(get_range<struct_with_range>().init == 0);
 }
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
-TEST_CASE("Persistent Value", "[ports][helpers][persistent]")
+TEST_CASE("Persistent Value", "[endpoints][helpers][persistent]")
 {
     auto s = persistent_struct{42};
     REQUIRE(s == 42);
@@ -77,7 +77,7 @@ TEST_CASE("Persistent Value", "[ports][helpers][persistent]")
     static_assert(PersistentValue<persistent_struct>);
 }
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
+TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
 {
     auto s = occasional_struct{42};
     REQUIRE(bool(s) == true);
@@ -89,13 +89,13 @@ TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
     static_assert(is_aggregate_v<occasional_struct>);
     static_assert(OccasionalValue<occasional_struct>);
 }
-TEST_CASE("Basic Ports", "[ports][basic]")
+TEST_CASE("Basic Endpoints", "[endpoints][basic]")
 {
     static_assert(is_aggregate_v<button<"foo">>);
     static_assert(is_aggregate_v<toggle<"bar">>);
     static_assert(is_aggregate_v<slider<"baz">>);
 }
-TEST_CASE("Bang", "[ports][bang]")
+TEST_CASE("Bang", "[endpoints][bang]")
 {
     auto b = bng<"foo">{};
     REQUIRE(bool(b) == false);

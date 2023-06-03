@@ -4,7 +4,7 @@
 #include <optional>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::ports
+namespace sygaldry::endpoints
 {
 
 template<std::size_t N>

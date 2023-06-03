@@ -3,7 +3,7 @@
 #include <concepts>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::ports::inspectors
+namespace sygaldry::endpoints::inspectors
 {
     template<typename T>
     concept Named

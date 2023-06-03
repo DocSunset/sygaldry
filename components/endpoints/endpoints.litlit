@@ -5,44 +5,21 @@ process, and output various forms of information with numerous different
 structures and temporal characteristics. We define a *port* as a
 point in the flow of data that is associated with a certain component,
 and can be said to be a source or destination of data flowing through
-the assemblage.
-
-## Endpoints
+the assemblage, and an *endpoint* as a port with which metadata is
+readily associated.
 
 Imagine we have two components, `A` and `B`, where `A` is connected directly to
-`B`. We call the ports of `A` from which data originate its *source endpoints*.
-These ports can generally be given descriptive names related to their
-interpretation with respect to `A`, e.g. "button state" if `A` is a button, or
-"saw wave" if `A` is an oscillator. From `A`'s perspective, the data coming
-from these endpoints are its *outputs*. Similarly, the ports of `B` where data
-arrives are its *destination endpoints*, they can be described based on their
-interpretation with respect to `B`, e.g. "bypass switch" or "cutoff frequency",
-and from `B`'s perspective the data arriving at these endpoints are its
-*inputs*. Notice that the data that `A` sees as outputs is the same data that
-`B` sees as inputs. The interpretation of endpoints depends only on the
+`B`. We call the endpoints of `A` from which data originate its *source
+endpoints*. These endpoints can generally be given descriptive names related to
+their interpretation with respect to `A`, e.g. "button state" if `A` is a
+button, or "saw wave" if `A` is an oscillator. From `A`'s perspective, the data
+coming from these endpoints are its *outputs*. Similarly, the endpoints of `B`
+where data arrives are its *destination endpoints*, they can be described based
+on their interpretation with respect to `B`, e.g. "bypass switch" or "cutoff
+frequency", and from `B`'s perspective the data arriving at these endpoints are
+its *inputs*. Notice that the data that `A` sees as outputs is the same data
+that `B` sees as inputs. The interpretation of endpoints depends only on the
 component with which they are associated.
-
-## Throughpoints
-
-Now suppose the `A` and `B` are connected by an intermediary mapping `M`, such
-as a preset interpolator or neural network. `M` is trained on a dataset of
-examples assocating values of `A`'s sources to intended values of `B`'s
-destinations. `M` automatically generates a set of ports that exactly match
-`A`'s source endpoints into which data from `A` will flow into `M`, as well as
-a set of ports that exactly match `B`'s destination endpoints from which data
-for `B` will flow out of `M`. `M`'s ports are thus mere reflections of those of
-`A` and `B`, and do not carry their own semantic interpretation or meaningful
-properties. We define such ports as *throughpoints*, in contrast with
-endpoints. As another example of throughpoints, imagine that data flows out of
-`B` from its own source endpoints and is connected to an automatic binding `P`
-that forwards this data unchanged e.g. to a network control protocol or plugin
-API. `P` may also be said to have destination throughpoints matched to `B`.
-Whereas the endpoints of a component have a specific interpretation,
-throughpoints adapt to match certain endpoints, often all of the endpoints of
-another component, based on training data, or as a binding to a different
-representation of the data. The interpretation of throughpoints depends on
-information from the original source or final destination of the data flowing
-through the port.
 
 # Endpoint Bases
 
@@ -64,11 +41,20 @@ standardized names and structures, such as a `struct range` with members `min`,
 component?) such as those introduced by a bare `enum` declaration.
 
 Here we rely mainly on function calls, as this allows metadata and other common
-features of ports to be composed through inheritance. This provides a
-convenient declarative method for users to define their own port types by
+features of endpoints to be composed through inheritance. This provides a
+convenient declarative method for users to define their own endpoint types by
 combining the basic building blocks themselves. In general, users are
 anticipated to use the higher-level helpers and not the base classs, but the
 latter remain available for users spinning up a custom type of endpoint.
+
+Note that there is no problem with inheritance for endpoints, but collections
+of endpoints such as the `inputs` and `outputs` structures of a component are
+not allowed to have base classes. Such collections must be simple aggregates in
+order to work with `boost::pfr`. The endpoints within these aggregates,
+however, have no such restrictions, so component authors are, in principle,
+free to employ whatever design methods they prefer for endpoints. Indeed, even
+a bare `float` or similar is perfectly allowed, although it is challenging to
+associate metadata with such an endpoint.
 
 ## With
 
@@ -78,7 +64,7 @@ literals as template parameters. Then we define a base class that takes a string
 template parameter and synthesizes a compile-time evaluated name method.
 
 ```c++
-// @+'ports includes'
+// @+'endpoints includes'
 #include <cstddef>
 // @/
 
@@ -98,14 +84,14 @@ struct string_literal
 template<string_literal str>
 _consteval auto name() {return string_view{str.value};}
 
-TEST_CASE("String literal", "[ports][string_literal]")
+TEST_CASE("String literal", "[endpoints][string_literal]")
 {
     REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");
 }
 // @/
 
-// @+'port bases'
+// @+'endpoint bases'
 template<string_literal str>
 struct named
 {
@@ -115,7 +101,7 @@ struct named
 
 // @+'tests'
 struct struct_with_name : named<"foo"> {};
-TEST_CASE("Named", "[ports][bases][named]")
+TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(struct_with_name::name() == "foo");
     static_assert(is_aggregate_v<struct_with_name>);
@@ -124,7 +110,7 @@ TEST_CASE("Named", "[ports][bases][named]")
 ```
 
 We encourage bindings to access the name through an intermediate function
-rather than directly through the port's name method, so that we can eventually
+rather than directly through the endpoint's name method, so that we can eventually
 easily support other conventions for storing and accessing the name besides
 a method call.
 
@@ -146,7 +132,7 @@ _consteval auto get_name() { return T::name(); }
 
 // @+'tests'
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][ports][inspectors][named]")
+TEST_CASE("Named", "[components][endpoints][inspectors][named]")
 {
     static_assert(Named<base_struct_with_name>);
     static_assert(Named<struct_with_name>);
@@ -170,13 +156,13 @@ initial value should be seperate. Similar to the `named` class, we define a
 helper class that endpoints can inherit to specify their range.
 
 Ideally, we would like to specify initial values and the minimum and maximum
-boundaries of the range as non-type template parameters, e.g. `struct myport :
+boundaries of the range as non-type template parameters, e.g. `struct myendpoint :
 ranged<0.0f, 1.0f>, inited<0.5f>`. Unfortunately, many compilers such as
 `clang` still do not support floating point numbers as non-type template
 parameters. 
 
 I first considered to define helper structs to hold the min and max, so that I
-would write `struct myport : ranged<range{0.0f, 1.0f}>`, however the redundancy
+would write `struct myendpoint : ranged<range{0.0f, 1.0f}>`, however the redundancy
 of writing `ranged<range...>` is rather unpleasant. This lead me to the
 following approach using template specialization, where we instead specialize a
 template class depending on the type of its non-type template parameter. This
@@ -186,7 +172,7 @@ also leaves open the possibility that we may eventually incorporate other kinds
 of numeric metadata by specializing `with` on a different parameter type.
 
 ```c++
-// @+'port bases'
+// @+'endpoint bases'
 template<typename T>
 struct range
 {
@@ -223,7 +209,7 @@ struct with<r>
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
 
-TEST_CASE("Range", "[port][bases][range]")
+TEST_CASE("Range", "[endpoints][bases][range]")
 {
     SECTION("With range")
     {
@@ -257,7 +243,7 @@ _consteval auto get_range() { return T::range(); }
 // @/
 
 // @+'tests'
-TEST_CASE("Ranged", "[components][ports][inspectors][ranged]")
+TEST_CASE("Ranged", "[components][endpoints][inspectors][ranged]")
 {
     static_assert(Ranged<struct_with_range>);
     struct_with_range foo{};
@@ -295,7 +281,7 @@ operator, and to use the slightly cheaper version of the copy assignment that
 takes `T` instead of `const T&`. For now this is deemed premature optimization.
 
 ```c++
-// @+'port bases'
+// @+'endpoint bases'
 template <typename T>
 struct persistent
 {
@@ -334,7 +320,7 @@ concept PersistentValue
 
 // @+'tests'
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
-TEST_CASE("Persistent Value", "[ports][helpers][persistent]")
+TEST_CASE("Persistent Value", "[endpoints][helpers][persistent]")
 {
     auto s = persistent_struct{42};
     REQUIRE(s == 42);
@@ -356,7 +342,7 @@ platform is expected to clear `std::optional` valued endpoints before
 activating a component so that it can signal hot outputs and recognize hot
 inputs. Afterwards, the platform is expected to inspect hot outputs and take
 appropriate action if any are present. An important consequence of this
-semantics is that, unlike a regular value port, the state of hot outputs is not
+semantics is that, unlike a regular value endpoint, the state of hot outputs is not
 expected to be persistent across invocations of a component, and so cannot be
 used to carry state across invocations as with a regular value endpoint.
 
@@ -364,7 +350,7 @@ For now, we wholesale subsume `std::optional` by defining our occasional value
 class as an alias for the former.
 
 ```c++
-// @+'port bases'
+// @+'endpoint bases'
 template <typename T>
 using occasional = std::optional<T>;
 // @/
@@ -390,7 +376,7 @@ concept OccasionalValue = requires (T t)
 
 // @+'tests'
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
+TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
 {
     auto s = occasional_struct{42};
     REQUIRE(bool(s) == true);
@@ -409,7 +395,7 @@ TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
 
 We can introduce arbitrary symbols into the scope of a class through a bare
 `enum` declaration e.g. `enum { bang };`. Our bindings can then be designed to
-look for such symbols, e.g. `if constexpr (requires {port::bang;}) { ... }` and
+look for such symbols, e.g. `if constexpr (requires {endpoint::bang;}) { ... }` and
 behave depending on their presence or absence. There's no real need for a helper
 class for this kind of metadata; trying to define a template class or a macro
 gets cumbersome very quickly, and it's already pretty trivial to add an `enum`
@@ -445,7 +431,7 @@ struct slider : persistent<float>, named<str>, with<range_arg>
 // @/
 
 // @+'tests'
-TEST_CASE("Basic Ports", "[ports][basic]")
+TEST_CASE("Basic Endpoints", "[endpoints][basic]")
 {
     static_assert(is_aggregate_v<button<"foo">>);
     static_assert(is_aggregate_v<toggle<"bar">>);
@@ -463,7 +449,7 @@ convention here.
 
 A bang could be represented as `std::optional` of an empty type, but
 measurements suggest that this actually takes more space than a `bool`, so we
-instead opt to treat a persistent value port tagged with the symbol `bang` as
+instead opt to treat a persistent value endpoint tagged with the symbol `bang` as
 our preferred bang representation; this requires us to give our bang class a
 different name, but we consider this an acceptable tradeoff.
 
@@ -536,7 +522,7 @@ constexpr void clear_flag(T& t)
 // @/
 
 // @+'tests'
-TEST_CASE("Bang", "[ports][bang]")
+TEST_CASE("Bang", "[endpoints][bang]")
 {
     auto b = bng<"foo">{};
     REQUIRE(bool(b) == false);
@@ -564,7 +550,7 @@ TEST_CASE("Bang", "[ports][bang]")
 #include <concepts>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::ports::inspectors
+namespace sygaldry::endpoints::inspectors
 {
     @{inspectors}
 }
@@ -577,12 +563,12 @@ namespace sygaldry::ports::inspectors
 #include <optional>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::ports
+namespace sygaldry::endpoints
 {
 
 @{string literal}
 
-@{port bases}
+@{endpoint bases}
 
 @{helpers}
 
@@ -598,8 +584,8 @@ namespace sygaldry::ports
 #include "helpers.hpp"
 #include "inspectors.hpp"
 
-using namespace sygaldry::ports;
-using namespace sygaldry::ports::inspectors;
+using namespace sygaldry::endpoints;
+using namespace sygaldry::endpoints::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 
@@ -609,8 +595,8 @@ using std::is_aggregate_v;
 
 ```cmake
 # @#'CMakeLists.txt'
-add_executable(ports-tests tests.cpp)
-target_link_libraries(ports-tests PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(ports-tests)
+add_executable(endpoints-tests tests.cpp)
+target_link_libraries(endpoints-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(endpoints-tests)
 # @/
 ```
