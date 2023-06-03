@@ -10,5 +10,9 @@ find -iname '*.litlit' | parallel '
 '
 find -iname '*.litlit' | parallel '
     cd {//}
-    [ -e "README.md" ] || ln -s -T {/} README.md
+    [ -L "README.md" ] &&
+    {
+        [ "$(readlink README.md)" != {/} ] && rm "README.md" && ln -s -T {/} README.md
+    } || [ ! -e "README.md" ] &&
+        ln -s -T {/} README.md
 '

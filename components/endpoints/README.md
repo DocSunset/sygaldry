@@ -1,1 +1,1 @@
-ports.litlit
+endpoints.litlit
