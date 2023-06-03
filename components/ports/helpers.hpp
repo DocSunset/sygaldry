@@ -7,8 +7,6 @@
 namespace sygaldry::ports
 {
 
-using namespace sygaldry;
-
 template<std::size_t N>
 struct string_literal
 {
@@ -59,14 +57,14 @@ struct persistent
 {
     using type = T;
     T value;
-    operator T&() noexcept {return value;}
-    operator const T&() const noexcept {return value;}
-    auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
-    auto& operator=(const T& t) noexcept {value = t; return *this;}
+    constexpr operator T&() noexcept {return value;}
+    constexpr operator const T&() const noexcept {return value;}
+    constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
+    constexpr auto& operator=(const T& t) noexcept {value = t; return *this;}
 };
-
 template <typename T>
 using occasional = std::optional<T>;
+
 template<string_literal str, bool init = false>
 struct _btn : named<str>, with<range{false, true, init}> { };
 
@@ -93,6 +91,7 @@ struct bng : persistent<bool>, named<str>
     using persistent<bool>::operator=;
     enum {bang, impulse};
     void operator()() {value = true;}
+    void reset() {value = false;}
 };
 
 }

@@ -3,11 +3,11 @@
 #include <string_view>
 #include <type_traits>
 #include <boost/pfr.hpp>
-#include "ports.hpp"
-#include "concepts.hpp"
+#include "helpers.hpp"
+#include "inspectors.hpp"
 
-using namespace sygaldry::concepts;
 using namespace sygaldry::ports;
+using namespace sygaldry::ports::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 
@@ -26,10 +26,10 @@ TEST_CASE("Named", "[ports][bases][named]")
     static_assert(is_aggregate_v<struct_with_name>);
 }
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][ports][concepts][named]")
+TEST_CASE("Named", "[components][ports][inspectors][named]")
 {
     static_assert(Named<base_struct_with_name>);
-    //static_assert(Named<struct_with_name>);
+    static_assert(Named<struct_with_name>);
     struct_with_name foo{};
     base_struct_with_name yup{};
     REQUIRE(get_name(foo) == "foo");
@@ -55,27 +55,39 @@ TEST_CASE("Range", "[port][bases][range]")
         static_assert(is_aggregate_v<struct_with_init>);
     }
 }
+TEST_CASE("Ranged", "[components][ports][inspectors][ranged]")
+{
+    static_assert(Ranged<struct_with_range>);
+    struct_with_range foo{};
+    REQUIRE(get_range(foo).min == 0);
+    REQUIRE(get_range(foo).max == 127);
+    REQUIRE(get_range(foo).init == 0);
+    REQUIRE(get_range<struct_with_range>().min == 0);
+    REQUIRE(get_range<struct_with_range>().max == 127);
+    REQUIRE(get_range<struct_with_range>().init == 0);
+}
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
-TEST_CASE("Persistent Value", "[ports][bases][persistent]")
+TEST_CASE("Persistent Value", "[ports][helpers][persistent]")
 {
     auto s = persistent_struct{42};
     REQUIRE(s == 42);
     s = 88;
     REQUIRE(s == 88);
     static_assert(is_aggregate_v<persistent_struct>);
+    static_assert(PersistentValue<persistent_struct>);
 }
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[ports][bases][occasional]")
+TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
 {
     auto s = occasional_struct{42};
-    s = 42;
-    REQUIRE(s);
-    REQUIRE(s == 42);
-    s = 88;
-    REQUIRE(s == 88);
-    auto null = occasional_struct{};
-    REQUIRE(!null);
+    REQUIRE(bool(s) == true);
+    REQUIRE(*s == 42);
+    *s = 88;
+    REQUIRE(*s == 88);
+    s = decltype(s){};
+    REQUIRE(bool(s) == false);
     static_assert(is_aggregate_v<occasional_struct>);
+    static_assert(OccasionalValue<occasional_struct>);
 }
 TEST_CASE("Basic Ports", "[ports][basic]")
 {
@@ -85,11 +97,17 @@ TEST_CASE("Basic Ports", "[ports][basic]")
 }
 TEST_CASE("Bang", "[ports][bang]")
 {
-    static_assert(is_aggregate_v<bng<"foo">>);
     auto b = bng<"foo">{};
-    REQUIRE(!b);
+    REQUIRE(bool(b) == false);
     b();
-    REQUIRE(b);
+    REQUIRE(bool(b) == true);
+    b.reset();
+    REQUIRE(bool(b) == false);
+    b = true;
+    REQUIRE(bool(b) == true);
     b = {};
-    REQUIRE(!b);
+    REQUIRE(bool(b) == false);
+    static_assert(is_aggregate_v<decltype(b)>);
+    static_assert(Bang<decltype(b)>);
+    static_assert(sizeof(decltype(b)) == 1);
 }

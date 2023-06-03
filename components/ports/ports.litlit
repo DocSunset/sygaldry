@@ -82,7 +82,7 @@ template parameter and synthesizes a compile-time evaluated name method.
 #include <cstddef>
 // @/
 
-// @+'port helpers'
+// @+'string literal'
 template<std::size_t N>
 struct string_literal
 {
@@ -129,7 +129,7 @@ easily support other conventions for storing and accessing the name besides
 a method call.
 
 ```c++
-// @+'concepts'
+// @+'inspectors'
 template<typename T>
 concept Named
     =  requires { {T::name()} -> std::convertible_to<std::string>; }
@@ -146,10 +146,10 @@ _consteval auto get_name() { return T::name(); }
 
 // @+'tests'
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][ports][concepts][named]")
+TEST_CASE("Named", "[components][ports][inspectors][named]")
 {
     static_assert(Named<base_struct_with_name>);
-    //static_assert(Named<struct_with_name>);
+    static_assert(Named<struct_with_name>);
     struct_with_name foo{};
     base_struct_with_name yup{};
     REQUIRE(get_name(foo) == "foo");
@@ -219,10 +219,6 @@ struct with<r>
 };
 // @/
 
-// @+'port includes'
-#include <type_traits>
-// @/
-
 // @+'tests'
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
@@ -241,6 +237,36 @@ TEST_CASE("Range", "[port][bases][range]")
         REQUIRE(struct_with_init::range().init == 42.0f);
         static_assert(is_aggregate_v<struct_with_init>);
     }
+}
+// @/
+
+// @+'inspectors'
+template<typename T>
+concept Ranged = requires
+{
+    T::range().min;
+    T::range().max;
+    T::range().init;
+};
+
+template<Ranged T>
+_consteval auto get_range(const T&) { return T::range(); }
+
+template<Ranged T>
+_consteval auto get_range() { return T::range(); }
+// @/
+
+// @+'tests'
+TEST_CASE("Ranged", "[components][ports][inspectors][ranged]")
+{
+    static_assert(Ranged<struct_with_range>);
+    struct_with_range foo{};
+    REQUIRE(get_range(foo).min == 0);
+    REQUIRE(get_range(foo).max == 127);
+    REQUIRE(get_range(foo).init == 0);
+    REQUIRE(get_range<struct_with_range>().min == 0);
+    REQUIRE(get_range<struct_with_range>().max == 127);
+    REQUIRE(get_range<struct_with_range>().init == 0);
 }
 // @/
 ```
@@ -275,22 +301,47 @@ struct persistent
 {
     using type = T;
     T value;
-    operator T&() noexcept {return value;}
-    operator const T&() const noexcept {return value;}
-    auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
-    auto& operator=(const T& t) noexcept {value = t; return *this;}
+    constexpr operator T&() noexcept {return value;}
+    constexpr operator const T&() const noexcept {return value;}
+    constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
+    constexpr auto& operator=(const T& t) noexcept {value = t; return *this;}
 };
+// @/
+```
+
+We define a concept for detecting persistent value endpoints. We take
+the opportunity to lay some ground work that will also be useful for our
+occasional value endpoints in the next section.
+
+```c++
+// @+'inspectors'
+template <typename T>
+concept _value_like = requires (T t)
+{
+    t.value;
+    T{t.value};
+    t = t.value;
+    t.value = t;
+    t.value = t.value;
+    t = t;
+};
+
+template <typename T>
+concept PersistentValue
+    =  _value_like<T>
+    && std::default_initializable<T>;
 // @/
 
 // @+'tests'
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
-TEST_CASE("Persistent Value", "[ports][bases][persistent]")
+TEST_CASE("Persistent Value", "[ports][helpers][persistent]")
 {
     auto s = persistent_struct{42};
     REQUIRE(s == 42);
     s = 88;
     REQUIRE(s == 88);
     static_assert(is_aggregate_v<persistent_struct>);
+    static_assert(PersistentValue<persistent_struct>);
 }
 // @/
 ```
@@ -308,28 +359,48 @@ appropriate action if any are present. An important consequence of this
 semantics is that, unlike a regular value port, the state of hot outputs is not
 expected to be persistent across invocations of a component, and so cannot be
 used to carry state across invocations as with a regular value endpoint.
+
 For now, we wholesale subsume `std::optional` by defining our occasional value
 class as an alias for the former.
 
 ```c++
-// @+'ports'
+// @+'port bases'
 template <typename T>
 using occasional = std::optional<T>;
+// @/
+```
+
+For the related concept, we take the minimum requirements that seem satisfying,
+focusing on the pointer-style syntax enabled by std::optional and momentarily
+ignoring the rest that it offers. We rely on a definition that we will examine
+later when we define concepts for our `bang` type.
+
+```c++
+// @+'inspectors'
+@{clearable flag}
+
+template<typename T>
+concept OccasionalValue = requires (T t)
+{
+    *t;
+    T{*t};
+    *t = *t;
+} && ClearableFlag<T>;
 // @/
 
 // @+'tests'
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[ports][bases][occasional]")
+TEST_CASE("Occasional Value", "[ports][helpers][occasional]")
 {
     auto s = occasional_struct{42};
-    s = 42;
-    REQUIRE(s);
-    REQUIRE(s == 42);
-    s = 88;
-    REQUIRE(s == 88);
-    auto null = occasional_struct{};
-    REQUIRE(!null);
+    REQUIRE(bool(s) == true);
+    REQUIRE(*s == 42);
+    *s = 88;
+    REQUIRE(*s == 88);
+    s = decltype(s){};
+    REQUIRE(bool(s) == false);
     static_assert(is_aggregate_v<occasional_struct>);
+    static_assert(OccasionalValue<occasional_struct>);
 }
 // @/
 ```
@@ -350,7 +421,7 @@ Given the above ingredients, we now define some basic endpoints composed
 from them.
 
 ```c++
-// @+'ports'
+// @+'helpers'
 template<string_literal str, bool init = false>
 struct _btn : named<str>, with<range{false, true, init}> { };
 
@@ -394,9 +465,7 @@ A bang could be represented as `std::optional` of an empty type, but
 measurements suggest that this actually takes more space than a `bool`, so we
 instead opt to treat a persistent value port tagged with the symbol `bang` as
 our preferred bang representation; this requires us to give our bang class a
-different name, but we consider this an acceptable tradeoff. We further augment
-this type with a function call operator that will set the boolean value,
-signalling an event has occurred.
+different name, but we consider this an acceptable tradeoff.
 
 Another possible approach would be to employ a callback semantics, so that
 triggering the bang would immediately pass execution to a function registered
@@ -406,26 +475,82 @@ semantics place a greater burden on the binding author that we would prefer to
 avoid at this point.
 
 ```c++
-// @+'ports'
+// @+'helpers'
 template<string_literal str>
 struct bng : persistent<bool>, named<str>
 {
     using persistent<bool>::operator=;
     enum {bang, impulse};
     void operator()() {value = true;}
+    void reset() {value = false;}
 };
+// @/
+```
+
+Our `bang` concept essentially just checks that the type has an enum value
+called `bang` in its scope, and that it is a clearable flag, a concept we
+also required for our `OccasionalValue` concept.
+
+```c++
+// @+'inspectors'
+template<typename T>
+concept Bang = requires (T t)
+{
+    requires std::is_enum_v<decltype(T::bang)>;
+} && ClearableFlag<T>;
+// @/
+```
+
+The `ClearableFlag` concept requires that we can convert a type to bool, and
+that the boolean interpretation of a default constructed value of the type is
+`false`. This is true of `std::optional`, `bool`, and also pointer types, if
+I'm not mistaken. We assume that by assigning a value of this type to a
+default-constructed value that we can set its boolean interpretation to
+`false`, and check at least that constructing the type in this way has the
+expected effect. This allows us to define a generic method for clearing values
+that meet the requirements of `ClearableFlag`.
+
+A client using the `bng` class defined above may prefer to use a different,
+perhaps more expressive, method of clearing it. But for a binding author,
+it's useful to have a way to clear a flag without having to know anything
+about it other than that it is a valid flag; this is especially pertinent
+given the assumption that occasional values and bangs should be cleared by
+the environment between calls to a component's main subroutine.
+
+```c++
+// @+'clearable flag'
+template<typename T>
+concept ClearableFlag = requires (T t)
+{
+    bool(t);
+    requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
+    requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
+    t = T{};
+};
+
+template<ClearableFlag T>
+constexpr void clear_flag(T& t)
+{
+    t = T{};
+}
 // @/
 
 // @+'tests'
 TEST_CASE("Bang", "[ports][bang]")
 {
-    static_assert(is_aggregate_v<bng<"foo">>);
     auto b = bng<"foo">{};
-    REQUIRE(!b);
+    REQUIRE(bool(b) == false);
     b();
-    REQUIRE(b);
+    REQUIRE(bool(b) == true);
+    b.reset();
+    REQUIRE(bool(b) == false);
+    b = true;
+    REQUIRE(bool(b) == true);
     b = {};
-    REQUIRE(!b);
+    REQUIRE(bool(b) == false);
+    static_assert(is_aggregate_v<decltype(b)>);
+    static_assert(Bang<decltype(b)>);
+    static_assert(sizeof(decltype(b)) == 1);
 }
 // @/
 ```
@@ -433,19 +558,19 @@ TEST_CASE("Bang", "[ports][bang]")
 # Summary
 
 ```c++
-// @#'concepts.hpp'
+// @#'inspectors.hpp'
 #pragma once
 
 #include <concepts>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::concepts
+namespace sygaldry::ports::inspectors
 {
-    @{concepts}
+    @{inspectors}
 }
 // @/
 
-// @#'ports.hpp'
+// @#'helpers.hpp'
 #pragma once
 
 #include <string_view>
@@ -455,13 +580,11 @@ namespace sygaldry::concepts
 namespace sygaldry::ports
 {
 
-using namespace sygaldry;
-
-@{port helpers}
+@{string literal}
 
 @{port bases}
 
-@{ports}
+@{helpers}
 
 }
 // @/
@@ -472,11 +595,11 @@ using namespace sygaldry;
 #include <string_view>
 #include <type_traits>
 #include <boost/pfr.hpp>
-#include "ports.hpp"
-#include "concepts.hpp"
+#include "helpers.hpp"
+#include "inspectors.hpp"
 
-using namespace sygaldry::concepts;
 using namespace sygaldry::ports;
+using namespace sygaldry::ports::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 
