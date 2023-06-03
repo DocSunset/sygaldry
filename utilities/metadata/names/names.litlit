@@ -15,23 +15,22 @@ to specify different spellings for alternative applications. For example, the
 name of the processor might be specified in this way:
 
 ```c++
-// @='example processor with explicit spellings'
 struct SimpleLowpass
 {
-    static consteval const char * name() {return "Simple Lowpass";}
-    static consteval const char * camel_name() {return "SimpleLowpass";}
-    static consteval const char * snake_name() {return "simple_lowpass";}
-    static consteval const char * kebab_name() {return "simple-lowpass";}
+    static _consteval const char * name() {return "Simple Lowpass";}
+    static _consteval const char * camel_name() {return "SimpleLowpass";}
+    static _consteval const char * snake_name() {return "simple_lowpass";}
+    static _consteval const char * kebab_name() {return "simple-lowpass";}
 
     struct inputs_t
     {
         struct cutoff_t
         {
-            static consteval const char * name() {return "cutoff frequency";}
-            static consteval const char * camel_name() {return "cutoffFrequency";}
-            static consteval const char * snake_name() {return "cutoff_frequency";}
-            static consteval const char * kebab_name() {return "cutoff-frequency";}
-            static consteval const char * osc_address() {return "SimpleLowpass/cutoff_frequency";}
+            static _consteval const char * name() {return "cutoff frequency";}
+            static _consteval const char * camel_name() {return "cutoffFrequency";}
+            static _consteval const char * snake_name() {return "cutoff_frequency";}
+            static _consteval const char * kebab_name() {return "cutoff-frequency";}
+            static _consteval const char * osc_address() {return "SimpleLowpass/cutoff_frequency";}
             float value;
         } cutoff;
     } inputs;
@@ -65,14 +64,13 @@ like to avoid. It's also not possible to use a template variable e.g.
 template parameters.
 
 One solution comes from the fact that the strings we want to process are
-assumed to be `static consteval` member functions of the named entities we are
+assumed to be `static _consteval` member functions of the named entities we are
 reflecting over. From this, we can use the type of the processor as a template
 parameter to a `struct` with its own `static constexpr` string data called `value`
 below. We can initialize this string with a lambda that applies the snake case
 mapping to the name of the processor, which gives us the following implementation:
 
 ```c++
-// @='snake case struct'
 template<typename NamedType>
 struct snake_case
 {
@@ -88,18 +86,17 @@ struct snake_case
         return ret;
     }(NamedType::name());
 
-    @{respeller sugar}
+    @{snake case sugar}
 };
-// @/
 ```
 
-To avoid having to write `_snake_case<example_t>::value.data()` to get at the
+To avoid having to write `snake_case<example_t>::value.data()` to get at the
 string, we can provide a constructor and conversion operator so that a function-like
 syntax can be used:
 
 ```c++
 // @='snake case sugar'
-_snake_case([[maybe_unused]] NamedType x) {}
+snake_case(NamedType) {}
 constexpr operator const char *() { return value.data(); }
 // @/
 ```
@@ -112,7 +109,7 @@ SECTION("Snake Case Function-like Access")
 {
     struct example_t
     {
-        static consteval const char * name() {return "snake case example";}
+        static _consteval const char * name() {return "snake case example";}
     } x;
 
     REQUIRE(string(snake_case(x)) == string("snake_case_example"));
@@ -136,7 +133,7 @@ SECTION("Snake Case Template Variable Access")
 {
     struct example_t
     {
-        static consteval const char * name() {return "snake case example";}
+        static _consteval const char * name() {return "snake case example";}
     };
 
     REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
@@ -160,7 +157,7 @@ out of bounds access on the compile-time constant input.
 ```c++
 // @='string length function'
 template<typename Device>
-consteval auto name_length()
+_consteval auto name_length()
 {
     size_t ret = 0;
     while (Device::name()[ret] != 0) ret++;
@@ -202,7 +199,7 @@ template<char_mapping mapping, char_mapping... mappings> struct compose<mapping,
 // @/
 ```
 
-Then the above `_snake_case` struct can be slightly modified. The
+Then the above `snake_case` struct can be slightly modified. The
 template parameter list is augmented to accept a variadic list of
 mappings.
 
@@ -248,28 +245,76 @@ constexpr char upper(char c)
 }
 // @/
 
-// @='template aliases'
+To save the user having to write out `respeller` with all of its template
+arguments, we provide some "aliases" for expected use cases, so that
+the user can write `snake_case(x)` or `snake_case_v<T>` as seen above.
+
+My initial thought here was to literally use a template type alias for the
+function-like syntax--
+
+```c++
 template<typename NamedType> using snake_case = respeller<NamedType, snake>;
-template<typename NamedType> using upper_snake_case = respeller<NamedType, snake, upper>;
-template<typename NamedType> using lower_snake_case = respeller<NamedType, snake, lower>;
-template<typename NamedType> using kebab_case = respeller<NamedType, kebab>;
-template<typename NamedType> using upper_kebab_case = respeller<NamedType, kebab, upper>;
-template<typename NamedType> using lower_kebab_case = respeller<NamedType, kebab, lower>;
+```
+
+--and this works fine with `gcc`. Unfortunately, `clang` doesn't allow
+argument deduction for template aliases:
+
+```sh
+.../sygaldry/utilities/metadata/names/tests.cpp:18:24: error: alias template
+'snake_case' requires template arguments; argument deduction only allowed for
+class templates
+        REQUIRE(string(snake_case(x)) == string("snake_case_example"));
+                       ^
+```
+
+Instead, we can use derived classes. We have to re-define the constructor from `NamedType`,
+but it'll do.
+
+// @='template aliases'
+template<typename NamedType>
+struct snake_case : respeller<NamedType, snake>
+{
+    snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake>{x} {}
+};
+
+template<typename NamedType>
+struct upper_snake_case : respeller<NamedType, snake, upper>
+{
+    upper_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, upper>{x} {}
+};
+
+template<typename NamedType>
+struct lower_snake_case : respeller<NamedType, snake, lower>
+{
+    lower_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, lower>{x} {}
+};
+
+template<typename NamedType>
+struct kebab_case : respeller<NamedType, kebab>
+{
+    kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab>{x} {}
+};
+
+template<typename NamedType>
+struct upper_kebab_case : respeller<NamedType, kebab, upper>
+{
+    upper_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, upper>{x} {}
+};
+
+template<typename NamedType>
+struct lower_kebab_case : respeller<NamedType, kebab, lower>
+{
+    lower_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, lower>{x} {}
+};
 // @/
 
 // @='template variables'
-template<typename NamedType>
-constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
-template<typename NamedType>
-constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
-template<typename NamedType>
-constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
-template<typename NamedType>
-constexpr const char * kebab_case_v = kebab_case<NamedType>::value.data();
-template<typename NamedType>
-constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
-template<typename NamedType>
-constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * snake_case_v       =       snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * kebab_case_v       =       kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
 // @/
 ```
 
@@ -279,7 +324,7 @@ TEST_CASE("Kebab Case")
 {
     struct example_t
     {
-        static consteval const char * name() {return "kebab case example";}
+        static _consteval const char * name() {return "kebab case example";}
     } x;
 
     CHECK(string(kebab_case(x)) == string("kebab-case-example"));
@@ -289,7 +334,7 @@ TEST_CASE("Upper/lower")
 {
     struct example_t
     {
-        static consteval const char * name() {return "A Basic Example";}
+        static _consteval const char * name() {return "A Basic Example";}
     } x;
     CHECK(string(upper_snake_case(x)) == string("A_BASIC_EXAMPLE"));
     CHECK(string(lower_kebab_case(x)) == string("a-basic-example"));
@@ -347,6 +392,7 @@ strings and capitalization mappings.
 // @#'names.hpp'
 #pragma once
 #include <array>
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::utilities::metadata::names
 {
@@ -365,10 +411,11 @@ namespace sygaldry::utilities::metadata::names
 
 ```c++
 // @#'tests.cpp'
-#include <catch2/catch_test_macros.hpp>
-#include "names.hpp"
 #include <string>
 #include <array>
+#include <catch2/catch_test_macros.hpp>
+#include "utilities/consteval/consteval.hpp"
+#include "names.hpp"
 
 using std::string;
 using namespace sygaldry::utilities::metadata::names;

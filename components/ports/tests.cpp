@@ -10,7 +10,7 @@ using std::string_view;
 using std::is_aggregate_v;
 
 template<string_literal str>
-consteval auto name() {return string_view{str.value};}
+_consteval auto name() {return string_view{str.value};}
 
 TEST_CASE("String literal", "[ports][string_literal]")
 {
@@ -23,7 +23,7 @@ TEST_CASE("Named", "[ports][bases][named]")
     REQUIRE(struct_with_name::name() == "foo");
     static_assert(is_aggregate_v<struct_with_name>);
 }
-struct struct_with_range : ranged<0, 127> {};
+struct struct_with_range : with<range{0, 127}> {};
 
 TEST_CASE("Ranged", "[port][bases][ranged]")
 {
@@ -31,11 +31,12 @@ TEST_CASE("Ranged", "[port][bases][ranged]")
     REQUIRE(struct_with_range::range().max == 127);
     static_assert(is_aggregate_v<struct_with_range>);
 }
-struct struct_with_init : initialized<42> {};
+
+struct struct_with_init : with<init{42.0f}> {};
 
 TEST_CASE("Initialized", "[port][bases][initialized]")
 {
-    REQUIRE(struct_with_init::init() == 42);
+    REQUIRE(struct_with_init::init() == 42.0f);
     static_assert(is_aggregate_v<struct_with_init>);
 }
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};

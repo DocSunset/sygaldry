@@ -84,7 +84,7 @@ template<std::size_t N>
 struct string_literal
 {
     char value[N];
-    consteval string_literal(const char (&str)[N]) noexcept
+    _consteval string_literal(const char (&str)[N]) noexcept
     {
         for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
     }
@@ -93,7 +93,7 @@ struct string_literal
 
 // @+'tests'
 template<string_literal str>
-consteval auto name() {return string_view{str.value};}
+_consteval auto name() {return string_view{str.value};}
 
 TEST_CASE("String literal", "[ports][string_literal]")
 {
@@ -113,7 +113,7 @@ custom type of endpoint.
 template<string_literal str>
 struct named
 {
-    static consteval auto name() {return std::string_view{str.value};}
+    static _consteval auto name() {return std::string_view{str.value};}
 };
 // @/
 
@@ -127,7 +127,7 @@ TEST_CASE("Named", "[ports][bases][named]")
 // @/
 ```
 
-## Range
+## Range and Initial Value
 
 Many endpoints have a fixed range, such as the integral 0 to 127 of MIDI
 control change messages. In deviation from Avendish, we do not consider a
@@ -137,22 +137,56 @@ specified. Similar to the `named` class, we define a helper class that
 endpoints can inherit to specify their range, along with some type aliases
 for the same.
 
+Ideally, we would like to specify initial values and the minimum and maximum
+boundaries of the range as non-type template parameters, e.g. `struct myport :
+ranged<0.0f, 1.0f>, inited<0.5f>`. Unfortunately, many compilers such as
+`clang` still do not support floating point numbers as non-type template
+parameters. 
+
+I first considered to define helper structs to hold the min and max, so that I
+would write `struct myport : ranged<range{0.0f, 1.0f}>, inited<init{0.5f}>`. It
+occurred to me that the resultant structure of `ranged` and `inited` would be
+very similar, and that the repeating of `ranged<range...>` and
+`inited<init...>` would be rather unpleasant. This lead me to the following
+approach using template specialization:
+
 ```c++
 // @+'port bases'
 template<typename T>
-concept number = std::is_integral_v<T> || std::is_floating_point_v<T>;
-
-template<number auto _min, number auto _max>
-struct ranged
+struct range
 {
-    static consteval auto range() {
-        static_assert(std::is_same_v<decltype(_min), decltype(_max)>,
-                      "ranged min and max must be of same type");
-        struct {
-            decltype(_min) min = _min;
-            decltype(_max) max = _max;
-        } r;
+    T min;
+    T max;
+    _consteval range(T _min, T _max) noexcept
+    {
+        min = _min < _max ? _min : _max;
+        max = _min > _max ? _min : _max;
+    }
+};
+
+template<typename T>
+struct init
+{
+    T value;
+    _consteval init(T x) noexcept : value{x} { }
+};
+
+template<auto arg>
+struct with {};
+
+template<range r>
+struct with<r>
+{
+    static _consteval auto range() {
         return r;
+    }
+};
+
+template<init i>
+struct with<i>
+{
+    static _consteval auto init() {
+        return i.value;
     }
 };
 // @/
@@ -162,13 +196,21 @@ struct ranged
 // @/
 
 // @+'tests'
-struct struct_with_range : ranged<0, 127> {};
+struct struct_with_range : with<range{0, 127}> {};
 
 TEST_CASE("Ranged", "[port][bases][ranged]")
 {
     REQUIRE(struct_with_range::range().min == 0);
     REQUIRE(struct_with_range::range().max == 127);
     static_assert(is_aggregate_v<struct_with_range>);
+}
+
+struct struct_with_init : with<init{42.0f}> {};
+
+TEST_CASE("Initialized", "[port][bases][initialized]")
+{
+    REQUIRE(struct_with_init::init() == 42.0f);
+    static_assert(is_aggregate_v<struct_with_init>);
 }
 // @/
 ```
@@ -178,22 +220,7 @@ TEST_CASE("Ranged", "[port][bases][ranged]")
 As above.
 
 ```c++
-// @+'port bases'
-template<number auto _init>
-struct initialized
-{
-    static consteval auto init() {return _init;}
-};
-// @/
-
 // @+'tests'
-struct struct_with_init : initialized<42> {};
-
-TEST_CASE("Initialized", "[port][bases][initialized]")
-{
-    REQUIRE(struct_with_init::init() == 42);
-    static_assert(is_aggregate_v<struct_with_init>);
-}
 // @/
 ```
 
@@ -315,8 +342,8 @@ from them.
 
 ```c++
 // @+'ports'
-template<string_literal str, bool init = false>
-struct _btn : named<str>, initialized<init>, ranged<false, true> { };
+template<string_literal str, bool initial_value = false>
+struct _btn : named<str>, with<init{initial_value}>, with<range{false, true}> { };
 
 template<string_literal str, bool init = false>
 struct button : occasional<bool>, _btn<str, init>
@@ -330,8 +357,8 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, float init = 0.0f>
-struct slider : persistent<float>, named<str>, initialized<init>, ranged<0.0f, 1.0f>
+template<string_literal str, init<float> initial_value = 0.0f>
+struct slider : persistent<float>, named<str>, with<initial_value>, with<range{0.0f, 1.0f}>
 {
     using persistent<float>::operator=;
 };
@@ -402,6 +429,7 @@ TEST_CASE("Bang", "[ports][bang]")
 
 #include <string_view>
 #include <optional>
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::ports
 {

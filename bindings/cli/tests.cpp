@@ -1,7 +1,8 @@
-#include <catch2/catch_test_macros.hpp>
-#include "cli.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
 #include <string>
+#include <catch2/catch_test_macros.hpp>
+#include "utilities/consteval/consteval.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
+#include "cli.hpp"
 
 using std::string;
 
@@ -20,8 +21,8 @@ string cli_process_input(Cli& cli, string input)
 template<typename Config>
 struct Echo
 {
-    static consteval auto name() { return "echo"; }
-    static consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
+    static _consteval auto name() { return "echo"; }
+    static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
@@ -40,8 +41,8 @@ struct Echo
 template<typename Config>
 struct HelloWorld
 {
-    static consteval auto name() { return "hello"; }
-    static consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
+    static _consteval auto name() { return "hello"; }
+    static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
@@ -53,23 +54,23 @@ struct HelloWorld
     };
 };
 struct Command1 {
-    static consteval auto name() { return "test-command-1"; }
-    static consteval auto usage() { return "foo bar"; }
-    static consteval auto description() { return "Description 1"; }
+    static _consteval auto name() { return "test-command-1"; }
+    static _consteval auto usage() { return "foo bar"; }
+    static _consteval auto description() { return "Description 1"; }
 };
 
 struct Command2 {
-    static consteval auto name() { return "test-command-2"; }
+    static _consteval auto name() { return "test-command-2"; }
     // no arguments, no usage text
-    static consteval auto description() { return "Description 2"; }
+    static _consteval auto description() { return "Description 2"; }
 };
 
 struct Component1 {
-    static consteval auto name() { return "Test Component 1"; }
+    static _consteval auto name() { return "Test Component 1"; }
 };
 
 struct Component2 {
-    static consteval auto name() { return "Test Component 2"; }
+    static _consteval auto name() { return "Test Component 2"; }
 };
 
 struct Config

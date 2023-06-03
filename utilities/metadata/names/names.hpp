@@ -1,11 +1,12 @@
 #pragma once
 #include <array>
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::utilities::metadata::names
 {
 
 template<typename Device>
-consteval auto name_length()
+_consteval auto name_length()
 {
     size_t ret = 0;
     while (Device::name()[ret] != 0) ret++;
@@ -56,23 +57,46 @@ constexpr char upper(char c)
     if ('a' <= c && c <= 'z') return c-('a'-'A');
     return c;
 }
-template<typename NamedType> using snake_case = respeller<NamedType, snake>;
-template<typename NamedType> using upper_snake_case = respeller<NamedType, snake, upper>;
-template<typename NamedType> using lower_snake_case = respeller<NamedType, snake, lower>;
-template<typename NamedType> using kebab_case = respeller<NamedType, kebab>;
-template<typename NamedType> using upper_kebab_case = respeller<NamedType, kebab, upper>;
-template<typename NamedType> using lower_kebab_case = respeller<NamedType, kebab, lower>;
 template<typename NamedType>
-constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
+struct snake_case : respeller<NamedType, snake>
+{
+    snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake>{x} {}
+};
+
 template<typename NamedType>
-constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+struct upper_snake_case : respeller<NamedType, snake, upper>
+{
+    upper_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, upper>{x} {}
+};
+
 template<typename NamedType>
-constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+struct lower_snake_case : respeller<NamedType, snake, lower>
+{
+    lower_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, lower>{x} {}
+};
+
 template<typename NamedType>
-constexpr const char * kebab_case_v = kebab_case<NamedType>::value.data();
+struct kebab_case : respeller<NamedType, kebab>
+{
+    kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab>{x} {}
+};
+
 template<typename NamedType>
-constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+struct upper_kebab_case : respeller<NamedType, kebab, upper>
+{
+    upper_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, upper>{x} {}
+};
+
 template<typename NamedType>
-constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
+struct lower_kebab_case : respeller<NamedType, kebab, lower>
+{
+    lower_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, lower>{x} {}
+};
+template<typename NamedType> constexpr const char * snake_case_v       =       snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * kebab_case_v       =       kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
 
 }

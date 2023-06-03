@@ -1,13 +1,16 @@
 #pragma once
+#include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry { namespace bindings::cli::commands
+namespace sygaldry
+{
+namespace bindings::cli::commands
 {
 template<typename Config>
 struct Help
 {
-    static consteval auto name() { return "help"; }
-    static consteval auto usage() { return ""; }
-    static consteval auto description() { return "Describe the available commands and their usage"; }
+    static _consteval auto name() { return "help"; }
+    static _consteval auto usage() { return ""; }
+    static _consteval auto description() { return "Describe the available commands and their usage"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
@@ -30,4 +33,6 @@ struct Help
         return 0;
     }
 };
-} }
+
+}
+}

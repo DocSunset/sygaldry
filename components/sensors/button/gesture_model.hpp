@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utilities/consteval/consteval.hpp"
 #include "components/ports/ports.hpp"
 
 namespace sygaldry
@@ -9,7 +10,7 @@ namespace components
 
 struct ButtonGestureModel
 {
-    static consteval auto name() {return "Button Gesture Model";}
+    static _consteval auto name() {return "Button Gesture Model";}
 
     struct inputs_t {
         ports::toggle<"button state"> button_state;

@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::ports
 {
@@ -12,7 +13,7 @@ template<std::size_t N>
 struct string_literal
 {
     char value[N];
-    consteval string_literal(const char (&str)[N]) noexcept
+    _consteval string_literal(const char (&str)[N]) noexcept
     {
         for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
     }
@@ -21,28 +22,44 @@ struct string_literal
 template<string_literal str>
 struct named
 {
-    static consteval auto name() {return std::string_view{str.value};}
+    static _consteval auto name() {return std::string_view{str.value};}
 };
 template<typename T>
-concept number = std::is_integral_v<T> || std::is_floating_point_v<T>;
-
-template<number auto _min, number auto _max>
-struct ranged
+struct range
 {
-    static consteval auto range() {
-        static_assert(std::is_same_v<decltype(_min), decltype(_max)>,
-                      "ranged min and max must be of same type");
-        struct {
-            decltype(_min) min = _min;
-            decltype(_max) max = _max;
-        } r;
+    T min;
+    T max;
+    _consteval range(T _min, T _max) noexcept
+    {
+        min = _min < _max ? _min : _max;
+        max = _min > _max ? _min : _max;
+    }
+};
+
+template<typename T>
+struct init
+{
+    T value;
+    _consteval init(T x) noexcept : value{x} { }
+};
+
+template<auto arg>
+struct with {};
+
+template<range r>
+struct with<r>
+{
+    static _consteval auto range() {
         return r;
     }
 };
-template<number auto _init>
-struct initialized
+
+template<init i>
+struct with<i>
 {
-    static consteval auto init() {return _init;}
+    static _consteval auto init() {
+        return i.value;
+    }
 };
 template <typename T>
 struct persistent
@@ -57,8 +74,8 @@ struct persistent
 
 template <typename T>
 using occasional = std::optional<T>;
-template<string_literal str, bool init = false>
-struct _btn : named<str>, initialized<init>, ranged<false, true> { };
+template<string_literal str, bool initial_value = false>
+struct _btn : named<str>, with<init{initial_value}>, with<range{false, true}> { };
 
 template<string_literal str, bool init = false>
 struct button : occasional<bool>, _btn<str, init>
@@ -72,8 +89,8 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, float init = 0.0f>
-struct slider : persistent<float>, named<str>, initialized<init>, ranged<0.0f, 1.0f>
+template<string_literal str, init<float> initial_value = 0.0f>
+struct slider : persistent<float>, named<str>, with<initial_value>, with<range{0.0f, 1.0f}>
 {
     using persistent<float>::operator=;
 };

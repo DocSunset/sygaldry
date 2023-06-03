@@ -155,13 +155,13 @@ treating these as `outputs` in the same way we treat other output signals:
 ```c++
 struct CliCommand
 {
-    static consteval auto name() { return "Example Command"; }
+    static _consteval auto name() { return "Example Command"; }
 
     struct outputs_t
     {
         struct stdout_t
         {
-            static consteval auto name() { return "standard text output"; }
+            static _consteval auto name() { return "standard text output"; }
             const char * value;
         } stdout;
     } outputs;
@@ -268,8 +268,8 @@ conceptual design of the logger feature injection scheme from Avendish:
 template<typename Config>
 struct Echo
 {
-    static consteval auto name() { return "echo"; }
-    static consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
+    static _consteval auto name() { return "echo"; }
+    static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
@@ -316,11 +316,11 @@ string cli_process_input(Cli& cli, string input)
 
 // @='test components'
 struct Component1 {
-    static consteval auto name() { return "Test Component 1"; }
+    static _consteval auto name() { return "Test Component 1"; }
 };
 
 struct Component2 {
-    static consteval auto name() { return "Test Component 2"; }
+    static _consteval auto name() { return "Test Component 2"; }
 };
 // @/
 
@@ -341,8 +341,8 @@ defined above, and the following:
 template<typename Config>
 struct HelloWorld
 {
-    static consteval auto name() { return "hello"; }
-    static consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
+    static _consteval auto name() { return "hello"; }
+    static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
@@ -650,6 +650,7 @@ void _complain_about_command_failure(int retcode)
 #include <memory>
 #include <tuple>
 #include <string_view>
+#include "utilities/consteval/consteval.hpp"
 @{cli includes}
 @{commands headers}
 
@@ -710,7 +711,7 @@ Notice that we expect the component names to be converted to lower-kebab-case,
 since this is arguably the most idiomatic spelling for a CLI context, and
 easier to parse than a natural spelling with spaces.
 
-Since component names are `consteval`, we can generate the whole expected output
+Since component names are `_consteval`, we can generate the whole expected output
 at compile time. However, doing so is noticeably more complicated than merely
 printing the correct output at runtime, and also imposes an increased program
 size to statically store the generated strings, which needlessly duplicates the
@@ -721,6 +722,7 @@ expression and print each one's name using the injected logger.
 // @#'commands/list.hpp'
 #pragma once
 
+#include "utilities/consteval/consteval.hpp"
 #include "utilities/metadata/names/names.hpp"
 
 namespace sygaldry::bindings::cli::commands
@@ -729,9 +731,9 @@ namespace sygaldry::bindings::cli::commands
 template<typename Config>
 struct List
 {
-    static consteval auto name() { return "list"; }
-    static consteval auto usage() { return ""; }
-    static consteval auto description() { return "List the components available to interact with through the CLI"; }
+    static _consteval auto name() { return "list"; }
+    static _consteval auto usage() { return ""; }
+    static _consteval auto description() { return "List the components available to interact with through the CLI"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
@@ -772,15 +774,15 @@ if the command takes arguments.
 ```c++
 // @+'test commands'
 struct Command1 {
-    static consteval auto name() { return "test-command-1"; }
-    static consteval auto usage() { return "foo bar"; }
-    static consteval auto description() { return "Description 1"; }
+    static _consteval auto name() { return "test-command-1"; }
+    static _consteval auto usage() { return "foo bar"; }
+    static _consteval auto description() { return "Description 1"; }
 };
 
 struct Command2 {
-    static consteval auto name() { return "test-command-2"; }
+    static _consteval auto name() { return "test-command-2"; }
     // no arguments, no usage text
-    static consteval auto description() { return "Description 2"; }
+    static _consteval auto description() { return "Description 2"; }
 };
 // @/
 
@@ -804,15 +806,18 @@ and have a `main` method that takes a parameter pack of commands to describe.
 ```c++
 // @#'commands/help.hpp'
 #pragma once
+#include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry { namespace bindings::cli::commands
+namespace sygaldry
+{
+namespace bindings::cli::commands
 {
 template<typename Config>
 struct Help
 {
-    static consteval auto name() { return "help"; }
-    static consteval auto usage() { return ""; }
-    static consteval auto description() { return "Describe the available commands and their usage"; }
+    static _consteval auto name() { return "help"; }
+    static _consteval auto usage() { return ""; }
+    static _consteval auto description() { return "Describe the available commands and their usage"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
@@ -835,7 +840,9 @@ struct Help
         return 0;
     }
 };
-} }
+
+}
+}
 // @/
 
 // @+'commands headers'
@@ -902,6 +909,7 @@ to Boost PFR's `structure_tie(aggregate)` function.
 #pragma once
 
 #include <boost/pfr.hpp>
+#include "utilities/consteval/consteval.hpp"
 #include "utilities/metadata/names/names.hpp"
 #include "matcher.hpp"
 
@@ -913,9 +921,9 @@ namespace bindings::cli::commands
 template<typename Config>
 struct Describe
 {
-    static consteval auto name() { return "describe"; }
-    static consteval auto usage() { return "component-name [port-name]"; }
-    static consteval auto description() { return "Convey metadata about a component or its port. Pass * to describe all"; }
+    static _consteval auto name() { return "describe"; }
+    static _consteval auto usage() { return "component-name [port-name]"; }
+    static _consteval auto description() { return "Convey metadata about a component or its port. Pass * to describe all"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
@@ -932,7 +940,7 @@ struct Describe
 ```
 
 // @+'commands headers'
-#include "commands/list.hpp"
+//#include "commands/describe.hpp"
 // @/
 
 ## Get
@@ -990,14 +998,15 @@ The CLI class itself implements a fairly limited behavior.
 ```c++
 // @#'cli_app_demo.cpp'
 #include "cli_app.hpp"
+#include "utilities/consteval/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 
 struct Component1 {
-    static consteval auto name() { return "Test Component 1"; }
+    static _consteval auto name() { return "Test Component 1"; }
 };
 
 struct Component2 {
-    static consteval auto name() { return "Test Component 2"; }
+    static _consteval auto name() { return "Test Component 2"; }
 };
 
 int main()
@@ -1015,10 +1024,11 @@ int main()
 
 ```c++
 // @#'tests.cpp'
-#include <catch2/catch_test_macros.hpp>
-#include "cli.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
 #include <string>
+#include <catch2/catch_test_macros.hpp>
+#include "utilities/consteval/consteval.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
+#include "cli.hpp"
 
 using std::string;
 

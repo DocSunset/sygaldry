@@ -2,10 +2,11 @@
 #include <memory>
 #include <tuple>
 #include <string_view>
+#include "utilities/consteval/consteval.hpp"
 #include "matcher.hpp"
 #include "commands/list.hpp"
 #include "commands/help.hpp"
-#include "commands/list.hpp"
+//#include "commands/describe.hpp"
 
 namespace sygaldry { namespace bindings::cli
 {
