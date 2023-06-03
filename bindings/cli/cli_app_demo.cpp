@@ -1,15 +1,17 @@
 #include "cli_app.hpp"
+#include "components/sensors/button/gesture_model.hpp"
 
-struct Device1 {
-    static consteval auto name() { return "Test Device 1"; }
+struct Component1 {
+    static consteval auto name() { return "Test Component 1"; }
 };
 
-struct Device2 {
-    static consteval auto name() { return "Test Device 2"; }
+struct Component2 {
+    static consteval auto name() { return "Test Component 2"; }
 };
 
 int main()
 {
-    CliApp<Device1, Device2> app{};
+    using namespace sygaldry::components;
+    CliApp<Component1, Component2, ButtonGestureModel> app{};
     app.main();
 }

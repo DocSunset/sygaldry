@@ -10,13 +10,13 @@ struct Config
     using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
 };
 
-template<typename ... Devices>
+template<typename ... Components>
 struct CliApp
 {
     int main()
     {
-        auto devices = std::make_shared<std::tuple<Devices...>>();
-        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(devices, "Type Ctrl-D to exit.");
+        auto components = std::make_shared<std::tuple<Components...>>();
+        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(components, "Type Ctrl-D to exit.");
         for (;;)
         {
             char c = getchar();

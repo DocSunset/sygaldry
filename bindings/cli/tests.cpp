@@ -25,8 +25,8 @@ struct Echo
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Devices>
-    int main(int argc, char ** argv, std::tuple<Devices...>&)
+    template<typename ... Components>
+    int main(int argc, char ** argv, std::tuple<Components...>&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -45,8 +45,8 @@ struct HelloWorld
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Devices>
-    int main(int argc, char ** argv, std::tuple<Devices...>&)
+    template<typename ... Components>
+    int main(int argc, char ** argv, std::tuple<Components...>&)
     {
         log.println("Hello world!");
         return 0;
@@ -64,12 +64,12 @@ struct Command2 {
     static consteval auto description() { return "Description 2"; }
 };
 
-struct Device1 {
-    static consteval auto name() { return "Test Device 1"; }
+struct Component1 {
+    static consteval auto name() { return "Test Component 1"; }
 };
 
-struct Device2 {
-    static consteval auto name() { return "Test Device 2"; }
+struct Component2 {
+    static consteval auto name() { return "Test Component 2"; }
 };
 
 struct Config
@@ -79,8 +79,8 @@ struct Config
 
 TEST_CASE("CLI", "[bindings][cli]")
 {
-    auto devices = std::make_shared<std::tuple<Device1, Device2>>();
-    auto cli = make_cli<Config, Echo, HelloWorld>(devices);
+    auto components = std::make_shared<std::tuple<Component1, Component2>>();
+    auto cli = make_cli<Config, Echo, HelloWorld>(components);
 
     SECTION("Hello world")
     {
@@ -100,10 +100,10 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
 
     List<Config> command;
 
-    auto devices = std::make_tuple(Device1{}, Device2{});
-    auto retcode = command.main(argc, argv, devices);
+    auto components = std::make_tuple(Component1{}, Component2{});
+    auto retcode = command.main(argc, argv, components);
 
-    REQUIRE(command.log.put.ss.str() == string("test-device-1\ntest-device-2\n"));
+    REQUIRE(command.log.put.ss.str() == string("test-component-1\ntest-component-2\n"));
     REQUIRE(retcode == 0);
 }
 TEST_CASE("Help command", "[cli][commands][help]")

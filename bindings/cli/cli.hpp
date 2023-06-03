@@ -2,22 +2,23 @@
 #include <memory>
 #include <tuple>
 #include <string_view>
-
+#include "matcher.hpp"
 #include "commands/list.hpp"
 #include "commands/help.hpp"
+#include "commands/list.hpp"
 
 namespace sygaldry { namespace bindings::cli
 {
 
-template<typename Config, typename devs_t, template<typename> typename ... Commands>
+template<typename Config, typename cpts_t, template<typename> typename ... Commands>
 struct Cli
 {
     [[no_unique_address]] typename Config::basic_logger_type log{};
     std::tuple<Commands<Config>...> commands{};
-    devs_t devices;
+    cpts_t components;
 
-    Cli(devs_t devs, const char * extra_boot_message)
-    : devices{devs}
+    Cli(cpts_t cpts, const char * extra_boot_message)
+    : components{cpts}
     {
         log.println("CLI enabled. Write `help` for a list of available commands.");
         if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
@@ -31,38 +32,20 @@ struct Cli
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
 
-    template<typename Cmd, typename ... Cmds>
-    int _try_to_match_and_execute_impl(Cmd&& command, Cmds&&... cmds)
-    {
-        if (std::string_view(argv[0]) == std::string_view(command.name()))
-        {
-            return command.main(argc, argv, *devices);
-        }
-        else if constexpr (sizeof...(Cmds) == 0)
-            return 127;
-        else
-            return _try_to_match_and_execute_impl(cmds...);
-    }
-
     int _try_to_match_and_execute()
     {
-        constexpr auto N_cmds = std::tuple_size_v<decltype(commands)>;
-
-        if (std::string_view(argv[0]) == std::string_view("help"))
-        {
-            auto help = commands::Help<Config>{};
-            return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
+        return try_to_match_and_execute(argv[0], commands, 127, [this](auto& command)
             {
-                return help.main(cmds...);
-            }, commands);
-        }
-        else if constexpr (N_cmds == 0) return 127; // avoid impl if no args
-        else return std::apply([this]<typename ... Cmds>(Cmds&& ... cmds)
-        {
-            return _try_to_match_and_execute_impl(cmds...);
-        }, commands);
+                if constexpr (std::is_same_v<decltype(command), commands::Help<Config>>)
+                {
+                    return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
+                    {
+                        return command.main(cmds...);
+                    }, commands);
+                }
+                else return command.main(argc, argv, *components);
+            });
     }
-
     bool _is_whitespace(char c)
     {
         if (c == ' ' || c == '\t' || c == '\n') return true;
@@ -121,16 +104,16 @@ struct Cli
     }
 };
 
-template<typename Config, template<typename>typename ... Commands, typename ... Devs>
-auto make_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+template<typename Config, template<typename>typename ... Commands, typename ... Cpts>
+auto make_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, Commands...>(devs, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, Commands...>(cpts, boot_message);
 }
 
-template<typename Config, typename ... Devs>
-auto make_default_cli(std::shared_ptr<std::tuple<Devs...>> devs, const char * boot_message = "")
+template<typename Config, typename ... Cpts>
+auto make_default_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Devs...>>, commands::List>(devs, boot_message);
+    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::List>(cpts, boot_message);
 }
 
 } }
