@@ -4,7 +4,9 @@
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "ports.hpp"
+#include "concepts.hpp"
 
+using namespace sygaldry::concepts;
 using namespace sygaldry::ports;
 using std::string_view;
 using std::is_aggregate_v;
@@ -23,21 +25,35 @@ TEST_CASE("Named", "[ports][bases][named]")
     REQUIRE(struct_with_name::name() == "foo");
     static_assert(is_aggregate_v<struct_with_name>);
 }
-struct struct_with_range : with<range{0, 127}> {};
-
-TEST_CASE("Ranged", "[port][bases][ranged]")
+struct base_struct_with_name {static _consteval auto name() {return "yup";}};
+TEST_CASE("Named", "[components][ports][concepts][named]")
 {
-    REQUIRE(struct_with_range::range().min == 0);
-    REQUIRE(struct_with_range::range().max == 127);
-    static_assert(is_aggregate_v<struct_with_range>);
+    static_assert(Named<base_struct_with_name>);
+    //static_assert(Named<struct_with_name>);
+    struct_with_name foo{};
+    base_struct_with_name yup{};
+    REQUIRE(get_name(foo) == "foo");
+    REQUIRE(get_name<struct_with_name>() == "foo");
+    REQUIRE(get_name(yup) == "yup");
+    REQUIRE(get_name<base_struct_with_name>() == "yup");
 }
+struct struct_with_range : with<range{0, 127}> {};
+struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
 
-struct struct_with_init : with<init{42.0f}> {};
-
-TEST_CASE("Initialized", "[port][bases][initialized]")
+TEST_CASE("Range", "[port][bases][range]")
 {
-    REQUIRE(struct_with_init::init() == 42.0f);
-    static_assert(is_aggregate_v<struct_with_init>);
+    SECTION("With range")
+    {
+        REQUIRE(struct_with_range::range().min == 0);
+        REQUIRE(struct_with_range::range().max == 127);
+        REQUIRE(struct_with_range::range().init == 0);
+        static_assert(is_aggregate_v<struct_with_range>);
+    }
+    SECTION("With init")
+    {
+        REQUIRE(struct_with_init::range().init == 42.0f);
+        static_assert(is_aggregate_v<struct_with_init>);
+    }
 }
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
 TEST_CASE("Persistent Value", "[ports][bases][persistent]")

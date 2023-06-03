@@ -44,7 +44,7 @@ representation of the data. The interpretation of throughpoints depends on
 information from the original source or final destination of the data flowing
 through the port.
 
-# Port Bases
+# Endpoint Bases
 
 There are many common kinds of endpoints in a digital musical instrument that
 vary depending on the type of data sent or received from the endpoint and the
@@ -66,13 +66,16 @@ component?) such as those introduced by a bare `enum` declaration.
 Here we rely mainly on function calls, as this allows metadata and other common
 features of ports to be composed through inheritance. This provides a
 convenient declarative method for users to define their own port types by
-combining the basic building blocks themselves.
+combining the basic building blocks themselves. In general, users are
+anticipated to use the higher-level helpers and not the base classs, but the
+latter remain available for users spinning up a custom type of endpoint.
 
-## Names
+## With
 
 All endpoints are required to have a name. To facilitate setting this conveniently,
 we define a thin wrapper around a string literal that allows us to pass string
-literals as template parameters to our helpers.
+literals as template parameters. Then we define a base class that takes a string
+template parameter and synthesizes a compile-time evaluated name method.
 
 ```c++
 // @+'ports includes'
@@ -101,14 +104,7 @@ TEST_CASE("String literal", "[ports][string_literal]")
     REQUIRE(name<"test">() == "test");
 }
 // @/
-```
 
-Then we can define a class template that endpoint helpers can inherit from to
-gain a name method; in general, users are anticipated to use the helpers and
-not the base class, but the latter remains available for users spinning up a
-custom type of endpoint.
-
-```c++
 // @+'port bases'
 template<string_literal str>
 struct named
@@ -127,15 +123,51 @@ TEST_CASE("Named", "[ports][bases][named]")
 // @/
 ```
 
+We encourage bindings to access the name through an intermediate function
+rather than directly through the port's name method, so that we can eventually
+easily support other conventions for storing and accessing the name besides
+a method call.
+
+```c++
+// @+'concepts'
+template<typename T>
+concept Named
+    =  requires { {T::name()} -> std::convertible_to<std::string>; }
+    || requires { {T::name()} -> std::convertible_to<std::string_view>; }
+    || requires { {T::name()} -> std::convertible_to<const char *>; }
+    ;
+
+template<Named T>
+_consteval auto get_name(const T&) { return T::name(); }
+
+template<Named T>
+_consteval auto get_name() { return T::name(); }
+// @/
+
+// @+'tests'
+struct base_struct_with_name {static _consteval auto name() {return "yup";}};
+TEST_CASE("Named", "[components][ports][concepts][named]")
+{
+    static_assert(Named<base_struct_with_name>);
+    //static_assert(Named<struct_with_name>);
+    struct_with_name foo{};
+    base_struct_with_name yup{};
+    REQUIRE(get_name(foo) == "foo");
+    REQUIRE(get_name<struct_with_name>() == "foo");
+    REQUIRE(get_name(yup) == "yup");
+    REQUIRE(get_name<base_struct_with_name>() == "yup");
+}
+// @/
+```
+
+
 ## Range and Initial Value
 
 Many endpoints have a fixed range, such as the integral 0 to 127 of MIDI
-control change messages. In deviation from Avendish, we do not consider a
-default initial value to be a part of the range of an endpoint, although we do
-take the minimum value as the default if an explit initial value is not
-specified. Similar to the `named` class, we define a helper class that
-endpoints can inherit to specify their range, along with some type aliases
-for the same.
+control change messages. For compatibility with Avendish, we consider a default
+initial value to be a part of the range of an endpoint, although arguably the
+initial value should be seperate. Similar to the `named` class, we define a
+helper class that endpoints can inherit to specify their range.
 
 Ideally, we would like to specify initial values and the minimum and maximum
 boundaries of the range as non-type template parameters, e.g. `struct myport :
@@ -144,31 +176,35 @@ ranged<0.0f, 1.0f>, inited<0.5f>`. Unfortunately, many compilers such as
 parameters. 
 
 I first considered to define helper structs to hold the min and max, so that I
-would write `struct myport : ranged<range{0.0f, 1.0f}>, inited<init{0.5f}>`. It
-occurred to me that the resultant structure of `ranged` and `inited` would be
-very similar, and that the repeating of `ranged<range...>` and
-`inited<init...>` would be rather unpleasant. This lead me to the following
-approach using template specialization:
+would write `struct myport : ranged<range{0.0f, 1.0f}>`, however the redundancy
+of writing `ranged<range...>` is rather unpleasant. This lead me to the
+following approach using template specialization, where we instead specialize a
+template class depending on the type of its non-type template parameter. This
+doesn't actually save any lines of code compared to defining a `ranged` class,
+but it does lead to a more agreeable spelling when we declare the metadata. It
+also leaves open the possibility that we may eventually incorporate other kinds
+of numeric metadata by specializing `with` on a different parameter type.
 
 ```c++
 // @+'port bases'
 template<typename T>
 struct range
 {
-    T min;
-    T max;
-    _consteval range(T _min, T _max) noexcept
-    {
-        min = _min < _max ? _min : _max;
-        max = _min > _max ? _min : _max;
-    }
-};
+    const T min;
+    const T max;
+    const T init;
 
-template<typename T>
-struct init
-{
-    T value;
-    _consteval init(T x) noexcept : value{x} { }
+    _consteval range(const T _min, const T _max) noexcept
+    : min{_min < _max ? _min : _max}
+    , max{_min > _max ? _min : _max}
+    , init{min}
+    { }
+
+    _consteval range(const T _min, const T _max, const T _init) noexcept
+    : min{_min < _max ? _min : _max}
+    , max{_min > _max ? _min : _max}
+    , init{_init}
+    { }
 };
 
 template<auto arg>
@@ -181,14 +217,6 @@ struct with<r>
         return r;
     }
 };
-
-template<init i>
-struct with<i>
-{
-    static _consteval auto init() {
-        return i.value;
-    }
-};
 // @/
 
 // @+'port includes'
@@ -197,30 +225,23 @@ struct with<i>
 
 // @+'tests'
 struct struct_with_range : with<range{0, 127}> {};
+struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
 
-TEST_CASE("Ranged", "[port][bases][ranged]")
+TEST_CASE("Range", "[port][bases][range]")
 {
-    REQUIRE(struct_with_range::range().min == 0);
-    REQUIRE(struct_with_range::range().max == 127);
-    static_assert(is_aggregate_v<struct_with_range>);
+    SECTION("With range")
+    {
+        REQUIRE(struct_with_range::range().min == 0);
+        REQUIRE(struct_with_range::range().max == 127);
+        REQUIRE(struct_with_range::range().init == 0);
+        static_assert(is_aggregate_v<struct_with_range>);
+    }
+    SECTION("With init")
+    {
+        REQUIRE(struct_with_init::range().init == 42.0f);
+        static_assert(is_aggregate_v<struct_with_init>);
+    }
 }
-
-struct struct_with_init : with<init{42.0f}> {};
-
-TEST_CASE("Initialized", "[port][bases][initialized]")
-{
-    REQUIRE(struct_with_init::init() == 42.0f);
-    static_assert(is_aggregate_v<struct_with_init>);
-}
-// @/
-```
-
-## Initial Value
-
-As above.
-
-```c++
-// @+'tests'
 // @/
 ```
 
@@ -313,18 +334,6 @@ TEST_CASE("Occasional Value", "[ports][bases][occasional]")
 // @/
 ```
 
-## Bang
-
-Often an endpoint doesn't carry any value, but merely serves to convey that
-an event has occurred. In Max/MSP and Pure Data, this kind of temporal
-impulsive event without data is called a *bang*. We adopt the same naming
-convention here.
-
-A bang could be represented as `std::optional` of an empty type, but measurements
-suggest that this actually takes more space than a `bool`, so we instead opt
-to treat a persistent value port tagged with the symbol `bang` as our preferred
-bang representation.
-
 ## Tags
 
 We can introduce arbitrary symbols into the scope of a class through a bare
@@ -342,8 +351,8 @@ from them.
 
 ```c++
 // @+'ports'
-template<string_literal str, bool initial_value = false>
-struct _btn : named<str>, with<init{initial_value}>, with<range{false, true}> { };
+template<string_literal str, bool init = false>
+struct _btn : named<str>, with<range{false, true, init}> { };
 
 template<string_literal str, bool init = false>
 struct button : occasional<bool>, _btn<str, init>
@@ -357,8 +366,8 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, init<float> initial_value = 0.0f>
-struct slider : persistent<float>, named<str>, with<initial_value>, with<range{0.0f, 1.0f}>
+template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
+struct slider : persistent<float>, named<str>, with<range_arg>
 {
     using persistent<float>::operator=;
 };
@@ -391,7 +400,7 @@ signalling an event has occurred.
 
 Another possible approach would be to employ a callback semantics, so that
 triggering the bang would immediately pass execution to a function registered
-by the platform. For now, we opt to retain value semantics, despite callback
+by the platform. For now, we opt to retain value semantics, despite that callback
 semantics might allow for a more space efficient implementation. Callback
 semantics place a greater burden on the binding author that we would prefer to
 avoid at this point.
@@ -402,7 +411,7 @@ template<string_literal str>
 struct bng : persistent<bool>, named<str>
 {
     using persistent<bool>::operator=;
-    enum {impulse};
+    enum {bang, impulse};
     void operator()() {value = true;}
 };
 // @/
@@ -424,6 +433,18 @@ TEST_CASE("Bang", "[ports][bang]")
 # Summary
 
 ```c++
+// @#'concepts.hpp'
+#pragma once
+
+#include <concepts>
+#include "utilities/consteval/consteval.hpp"
+
+namespace sygaldry::concepts
+{
+    @{concepts}
+}
+// @/
+
 // @#'ports.hpp'
 #pragma once
 
@@ -452,7 +473,9 @@ using namespace sygaldry;
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "ports.hpp"
+#include "concepts.hpp"
 
+using namespace sygaldry::concepts;
 using namespace sygaldry::ports;
 using std::string_view;
 using std::is_aggregate_v;

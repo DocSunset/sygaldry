@@ -27,20 +27,21 @@ struct named
 template<typename T>
 struct range
 {
-    T min;
-    T max;
-    _consteval range(T _min, T _max) noexcept
-    {
-        min = _min < _max ? _min : _max;
-        max = _min > _max ? _min : _max;
-    }
-};
+    const T min;
+    const T max;
+    const T init;
 
-template<typename T>
-struct init
-{
-    T value;
-    _consteval init(T x) noexcept : value{x} { }
+    _consteval range(const T _min, const T _max) noexcept
+    : min{_min < _max ? _min : _max}
+    , max{_min > _max ? _min : _max}
+    , init{min}
+    { }
+
+    _consteval range(const T _min, const T _max, const T _init) noexcept
+    : min{_min < _max ? _min : _max}
+    , max{_min > _max ? _min : _max}
+    , init{_init}
+    { }
 };
 
 template<auto arg>
@@ -51,14 +52,6 @@ struct with<r>
 {
     static _consteval auto range() {
         return r;
-    }
-};
-
-template<init i>
-struct with<i>
-{
-    static _consteval auto init() {
-        return i.value;
     }
 };
 template <typename T>
@@ -74,8 +67,8 @@ struct persistent
 
 template <typename T>
 using occasional = std::optional<T>;
-template<string_literal str, bool initial_value = false>
-struct _btn : named<str>, with<init{initial_value}>, with<range{false, true}> { };
+template<string_literal str, bool init = false>
+struct _btn : named<str>, with<range{false, true, init}> { };
 
 template<string_literal str, bool init = false>
 struct button : occasional<bool>, _btn<str, init>
@@ -89,8 +82,8 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, init<float> initial_value = 0.0f>
-struct slider : persistent<float>, named<str>, with<initial_value>, with<range{0.0f, 1.0f}>
+template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
+struct slider : persistent<float>, named<str>, with<range_arg>
 {
     using persistent<float>::operator=;
 };
@@ -98,7 +91,7 @@ template<string_literal str>
 struct bng : persistent<bool>, named<str>
 {
     using persistent<bool>::operator=;
-    enum {impulse};
+    enum {bang, impulse};
     void operator()() {value = true;}
 };
 
