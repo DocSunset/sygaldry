@@ -25,6 +25,6 @@ set(AVENDISH_INCLUDE_SOURCE_ONLY ON)
 include_directories(dependencies/avendish/include/)
 
 add_subdirectory(utilities)
+add_subdirectory(components)
 add_subdirectory(bindings)
 add_subdirectory(instruments)
-add_subdirectory(components)
