@@ -7,22 +7,14 @@
 #include "inspectors.hpp"
 
 using namespace sygaldry::endpoints;
-using namespace sygaldry::endpoints::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 
-template<string_literal str>
-_consteval auto name() {return string_view{str.value};}
-
-TEST_CASE("String literal", "[endpoints][string_literal]")
-{
-    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
-    REQUIRE(name<"test">() == "test");
-}
 struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(struct_with_name::name() == "foo");
+    constexpr auto n = struct_with_name::name();
     static_assert(is_aggregate_v<struct_with_name>);
 }
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
@@ -34,8 +26,8 @@ TEST_CASE("Named", "[components][endpoints][inspectors][named]")
     base_struct_with_name yup{};
     REQUIRE(get_name(foo) == "foo");
     REQUIRE(get_name<struct_with_name>() == "foo");
-    REQUIRE(get_name(yup) == "yup");
-    REQUIRE(get_name<base_struct_with_name>() == "yup");
+    REQUIRE(string_view(get_name(yup)) == "yup");
+    REQUIRE(string_view(get_name<base_struct_with_name>()) == "yup");
 }
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
