@@ -6,7 +6,7 @@
 #include "matcher.hpp"
 #include "commands/list.hpp"
 #include "commands/help.hpp"
-//#include "commands/describe.hpp"
+#include "commands/describe.hpp"
 
 namespace sygaldry { namespace bindings::cli
 {

@@ -492,13 +492,14 @@ auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Ca
 }
 
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<TupleOfNamed> > 0) std::apply([&](auto& t)
+    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d;
+    else if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
     {
         return f(t);
     }, tup);
-    else return d;
+    else return try_to_match_and_execute(name, tup, d, f);
 }
 
 }
@@ -874,36 +875,149 @@ different components. They are simply not the same.
 
 ## Describe
 
-First, a test case:
+First, a test case, using the test component provided in
+`components/testcomponent.hpp`:
 
 ```c++
 // @+'tests'
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
+    int argc = 3;
+    char * arg0 = (char *)"describe";
+    char * arg1 = (char *)"test-component-1";
+    char * arg2 = (char *)"slider-out";
+    char * wild = (char *)"*";
+    char * argv[] = {arg0, arg1, arg2};
+    auto components = std::make_tuple(sygaldry::components::TestComponent{});
+
+
+    argc = 2;
+    SECTION("describe device")
+    {
+        Describe<Config> command;
+        command.log.put.ss.str("");
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
+        REQUIRE(retcode == 0);
+        command.log.put.ss.str("");
+    }
+
+    argc = 2;
+    argv[1] = wild;
+    SECTION("describe all devices")
+    {
+        Describe<Config> command;
+        command.log.put.ss.str("");
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+        command.log.put.ss.str("");
+    }
+
+    argc = 3;
+    SECTION("describe endpoint")
+    {
+        Describe<Config> command;
+        command.log.put.ss.str("");
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+        command.log.put.ss.str("");
+    }
+
+    argv[1] = arg1;
+    argv[2] = wild;
+    SECTION("describe all endpoints")
+    {
+        Describe<Config> command;
+        command.log.put.ss.str("");
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+        command.log.put.ss.str("");
+    }
+
+    argv[1] = wild;
+    argv[2] = wild;
+    SECTION("describe everything")
+    {
+        Describe<Config> command;
+        command.log.put.ss.str("");
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+        command.log.put.ss.str("");
+    }
 }
 // @/
 ```
 
 The bulk of this command's logic comes from four functions: one that matches an
 argument to a component, one that decribes a matched component, one that matches an
-argument to a port, and one that describes a matched port. 
+argument to an endpoint, and one that describes a matched endpoint. 
+We can use the matcher subroutines defined earlier for the CLI to match components
+from our tuple of components, and in fact we can also use it to match endpoints thanks
+to Boost PFR's `structure_to_tuple(aggregate)` function.
 
 ```c++
 // @='describe main'
-using utilities::metadata::names;
-if (argc == 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
+if (argc < 2) return 2;
+else return try_to_match_and_execute_with_wildcard(argv[1], components, 2, [&](auto component)
 {
-    @{describe component}
-});
-else if (argc > 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
-{
+
+    describe_component(component);
+
+    if (argc > 2)
+    {
+        auto cb = [&](auto endpoint) { describe_endpoint(endpoint); return true; };
+        bool match = false;
+        if (match) return 0;
+        else 
+        {
+            log.println(name(), ": cannot access '", argv[2], "': No such endpoint");
+            return 2;
+        }
+    }
+    else /* argc == 2, no endpoint argument */
+    {
+        list_endpoints(component);
+        return 0;
+    }
+    return 0;
 });
 // @/
 ```
 
-We can use the matcher subroutines defined earlier for the CLI to match components
-from our tuple of components, and in fact we can also use it to match ports thanks
-to Boost PFR's `structure_tie(aggregate)` function.
+At the moment, components don't possess a lot of metadata. Describing a component therefore
+consists of simply printing its name.
+In case no endpoint argument is passed, then we print out a list of all the endpoint names.
+It turns out both of these things can be implemented with the same simple function:
+
+```c++
+// @+'describe implementation details'
+template<typename NamedT, typename ... Args>
+void log_name(NamedT& t, Args ... args)
+{
+    using sygaldry::spelling::lower_kebab_case_v;
+    log.println(lower_kebab_case_v<NamedT>, args...);
+}
+
+template<typename Component>
+void describe_component(Component& component)
+{
+    log_name(component, ":");
+}
+
+template<typename Component>
+void list_endpoints(Component& component)
+{
+    //auto& inputs  = get_inputs(component);
+    //auto& outputs = get_outputs(component);
+    //boost::pfr::for_each_field(inputs,  [&](auto& endpoint){ log_name(endpoint); });
+    //boost::pfr::for_each_field(outputs, [&](auto& endpoint){ log_name(endpoint); });
+}
+// @/
+```
 
 ```c++
 // @#'commands/describe.hpp'
@@ -912,24 +1026,29 @@ to Boost PFR's `structure_tie(aggregate)` function.
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "matcher.hpp"
+#include "components/endpoints/concepts.hpp"
+#include "../matcher.hpp"
 
 namespace sygaldry
 {
-namespace bindings::cli::commands
+namespace bindings::cli
+{
+namespace commands
 {
 
 template<typename Config>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
-    static _consteval auto usage() { return "component-name [port-name]"; }
-    static _consteval auto description() { return "Convey metadata about a component or its port. Pass * to describe all"; }
+    static _consteval auto usage() { return "component-name [endpoint-name]"; }
+    static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
+    @{describe implementation details}
+
     template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>&)
+    int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         @{describe main}
     }
@@ -937,11 +1056,12 @@ struct Describe
 
 }
 }
+}
 // @/
 ```
 
 // @+'commands headers'
-//#include "commands/describe.hpp"
+#include "commands/describe.hpp"
 // @/
 
 ## Get
@@ -1028,6 +1148,7 @@ int main()
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
+#include "components/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 

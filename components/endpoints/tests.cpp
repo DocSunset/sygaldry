@@ -22,20 +22,20 @@ TEST_CASE("String literal", "[endpoints][string_literal]")
 struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
-    REQUIRE(struct_with_name::name() == "foo");
+    REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
     static_assert(is_aggregate_v<struct_with_name>);
 }
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][endpoints][concepts][named]")
+TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
 {
     static_assert(Named<base_struct_with_name>);
     static_assert(Named<struct_with_name>);
     struct_with_name foo{};
     base_struct_with_name yup{};
-    REQUIRE(get_name(foo) == "foo");
-    REQUIRE(get_name<struct_with_name>() == "foo");
-    REQUIRE(get_name(yup) == "yup");
-    REQUIRE(get_name<base_struct_with_name>() == "yup");
+    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
+    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
+    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};

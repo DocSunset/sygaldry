@@ -28,13 +28,14 @@ auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Ca
 }
 
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<TupleOfNamed> > 0) std::apply([&](auto& t)
+    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d;
+    else if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
     {
         return f(t);
     }, tup);
-    else return d;
+    else return try_to_match_and_execute(name, tup, d, f);
 }
 
 }
