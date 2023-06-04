@@ -636,6 +636,7 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
     List<Config> command;
 
     auto components = std::make_tuple(Component1{}, Component2{});
+    command.log.put.ss.str("");
     auto retcode = command.main(argc, argv, components);
 
     REQUIRE(command.log.put.ss.str() == string("test-component-1\ntest-component-2\n"));
@@ -730,6 +731,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 {
     Help<Config> command;
 
+    command.log.put.ss.str("");
     auto retcode = command.main(Command1{}, Command2{});
 
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
@@ -833,7 +835,41 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("component: test-component-1\n  name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
+        REQUIRE(command.log.put.ss.str() == string(
+R"DESCRIBEDEVICE(component: test-component-1
+  name: "Test Component 1"
+  type:  component
+  input:   button-in
+    name: "button in"
+    type:  occasional value
+    range: false to true (init: false)
+  input:   toggle-in
+    name: "toggle in"
+    type:  persistent value
+    range: false to true (init: false)
+  input:   slider-in
+    name: "slider in"
+    type:  persistent value
+    range: 0 to 1 (init: 0)
+  input:   bang-in
+    name: "bang in"
+    type:  persistent value
+  output:  button-out
+    name: "button out"
+    type:  occasional value
+    range: false to true (init: false)
+  output:  toggle-out
+    name: "toggle out"
+    type:  persistent value
+    range: false to true (init: false)
+  output:  slider-out
+    name: "slider out"
+    type:  persistent value
+    range: 0 to 1 (init: 0)
+  output:  bang-out
+    name: "bang out"
+    type:  persistent value
+)DESCRIBEDEVICE"));
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
@@ -844,7 +880,13 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(command.log.put.ss.str() == string(
+R"DESCRIBEENDPOINT(endpoint: slider-out
+  name: "slider out"
+  type:  persistent value
+  range: 0 to 1 (init: 0)
+)DESCRIBEENDPOINT"));
+
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
@@ -875,14 +917,18 @@ struct DescribeMatcher
 ```c++
 // @='describe main'
 if (argc < 2) return 2;
-bool list_eps = argc == 2;
-bool describe_eps = argc > 2;
+bool describe_component = argc == 2;
+bool describe_endpoint = argc > 2;
 return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
 {
-    describe_component(component, list_eps);
-    if (describe_eps) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+    if (describe_component)
     {
-        describe_endpoint(endpoint, "  ");
+        describe_entity("component: ", component);
+        return 0;
+    }
+    else if (describe_endpoint) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+    {
+        describe_entity("endpoint: ", endpoint);
         return 0;
     });
     else return 0;
@@ -890,64 +936,49 @@ return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
 // @/
 ```
 
-At the moment, components don't possess a lot of metadata. Describing a
-component therefore consists of simply printing its name. In case no endpoint
-argument is passed, we also print out a list of all the endpoint names. It
-turns out both of these things can be implemented with the same simple function:
+We generically describe both components and endpoints using the same
+methods, which reflect on the input entity using concepts, recursing
+over nested entities.
 
 ```c++
 // @+'describe implementation details'
-void describe_component(auto& component, bool and_endpoints, auto ... indents)
+void describe_entity_type(auto& entity)
+{
+    using T = decltype(entity);
+    if constexpr (Component<T>) log.println("component");
+    else if constexpr (PersistentValue<T>) log.println("persistent value");
+    else if constexpr (OccasionalValue<T>) log.println("occasional value");
+    else if constexpr (Bang<T>) log.println("bang");
+    else if constexpr (ClearableFlag<T>) log.println("clearable flag");
+    else if constexpr (value_like<T>) log.println("value-like");
+}
+
+void describe_entity(auto preface, auto& entity, auto ... indents)
 {
     using spelling::lower_kebab_case;
-    log.println(indents..., "component: ", (const char *)lower_kebab_case(component));
-    log.println(indents..., "  name: \"", component.name(), "\"");
-    if (and_endpoints) list_endpoints(component, "  ", indents...);
-}
-
-void list_endpoints(auto& component, auto ... indents)
-{
-    // TODO: we should get the inputs and outputs generically
-    using spelling::lower_kebab_case;
-    auto list_it = [&](auto& endpoint){ describe_endpoint(endpoint, "  ", indents...); };
-    auto list_group = [&](auto& group, auto groupname)
-    {
-        log.println(indents..., groupname, ":");
-        boost::pfr::for_each_field(group,  list_it);
-    };
-    list_group(component.inputs, "inputs");
-    list_group(component.outputs, "outputs");
-}
-
-// @/
-```
-
-Describing endpoints is more involved, requiring us to reflect on the type
-and data members of the endpoint.
-
-```c++
-// @+'describe implementation details'
-void describe_endpoint_type(auto& endpoint)
-{
-    log.println("todo");
-}
-
-void describe_endpoint_range(auto& endpoint)
-{
-    log.println("todo");
-}
-
-void describe_endpoint(auto& endpoint, auto ... indents)
-{
-    using spelling::lower_kebab_case;
-    log.println(indents..., (const char *)lower_kebab_case(endpoint));
-    log.println(indents..., "  name: \"", endpoint.name(), "\"");
-    log.print(indents..., "  type: ");
-    describe_endpoint_type(endpoint);
-    if constexpr (concepts::Ranged<decltype(endpoint)>)
+    using T = decltype(entity);
+    static_assert(Named<T>);
+    log.println(indents..., preface, (const char *)lower_kebab_case(entity));
+    log.println(indents..., "  name: \"", entity.name(), "\"");
+    log.print(indents...,   "  type:  ");
+    describe_entity_type(entity);
+    if constexpr (Ranged<T>)
     {
         log.print(indents..., "  range: ");
-        describe_endpoint_range(endpoint);
+        auto range = get_range<T>();
+        log.println(range.min, " to ", range.max, " (init: ", range.init, ")");
+    }
+    if constexpr (Component<T>)
+    {
+        auto describe_group = [&](auto& group, auto groupname)
+        {
+            boost::pfr::for_each_field(group, [&](auto& entity)
+            {
+                describe_entity(groupname, entity, "  ", indents...);
+            });
+        };
+        describe_group(entity.inputs,  "input:   ");
+        describe_group(entity.outputs, "output:  ");
     }
 }
 // @/
@@ -962,12 +993,9 @@ void describe_endpoint(auto& endpoint, auto ... indents)
 #include "components/endpoints/concepts.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli
-{
-namespace commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+
+using namespace sygaldry::concepts;
 
 template<typename Config>
 struct Describe
@@ -989,9 +1017,7 @@ struct Describe
     }
 };
 
-}
-}
-}
+} } } } // namespaces
 // @/
 ```
 

@@ -103,6 +103,7 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
     List<Config> command;
 
     auto components = std::make_tuple(Component1{}, Component2{});
+    command.log.put.ss.str("");
     auto retcode = command.main(argc, argv, components);
 
     REQUIRE(command.log.put.ss.str() == string("test-component-1\ntest-component-2\n"));
@@ -112,6 +113,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 {
     Help<Config> command;
 
+    command.log.put.ss.str("");
     auto retcode = command.main(Command1{}, Command2{});
 
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
@@ -133,7 +135,41 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("component: test-component-1\n  name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
+        REQUIRE(command.log.put.ss.str() == string(
+R"DESCRIBEDEVICE(component: test-component-1
+  name: "Test Component 1"
+  type:  component
+  input:   button-in
+    name: "button in"
+    type:  occasional value
+    range: false to true (init: false)
+  input:   toggle-in
+    name: "toggle in"
+    type:  persistent value
+    range: false to true (init: false)
+  input:   slider-in
+    name: "slider in"
+    type:  persistent value
+    range: 0 to 1 (init: 0)
+  input:   bang-in
+    name: "bang in"
+    type:  persistent value
+  output:  button-out
+    name: "button out"
+    type:  occasional value
+    range: false to true (init: false)
+  output:  toggle-out
+    name: "toggle out"
+    type:  persistent value
+    range: false to true (init: false)
+  output:  slider-out
+    name: "slider out"
+    type:  persistent value
+    range: 0 to 1 (init: 0)
+  output:  bang-out
+    name: "bang out"
+    type:  persistent value
+)DESCRIBEDEVICE"));
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
@@ -144,7 +180,13 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(command.log.put.ss.str() == string(
+R"DESCRIBEENDPOINT(endpoint: slider-out
+  name: "slider out"
+  type:  persistent value
+  range: 0 to 1 (init: 0)
+)DESCRIBEENDPOINT"));
+
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }

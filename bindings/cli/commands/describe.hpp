@@ -6,12 +6,9 @@
 #include "components/endpoints/concepts.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli
-{
-namespace commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+
+using namespace sygaldry::concepts;
 
 template<typename Config>
 struct Describe
@@ -32,49 +29,43 @@ struct Describe
         }
     };
 
-    void describe_component(auto& component, bool and_endpoints, auto ... indents)
+    void describe_entity_type(auto& entity)
+    {
+        using T = decltype(entity);
+        if constexpr (Component<T>) log.println("component");
+        else if constexpr (PersistentValue<T>) log.println("persistent value");
+        else if constexpr (OccasionalValue<T>) log.println("occasional value");
+        else if constexpr (Bang<T>) log.println("bang");
+        else if constexpr (ClearableFlag<T>) log.println("clearable flag");
+        else if constexpr (value_like<T>) log.println("value-like");
+    }
+
+    void describe_entity(auto preface, auto& entity, auto ... indents)
     {
         using spelling::lower_kebab_case;
-        log.println(indents..., "component: ", (const char *)lower_kebab_case(component));
-        log.println(indents..., "  name: \"", component.name(), "\"");
-        if (and_endpoints) list_endpoints(component, "  ", indents...);
-    }
-
-    void list_endpoints(auto& component, auto ... indents)
-    {
-        // TODO: we should get the inputs and outputs generically
-        using spelling::lower_kebab_case;
-        auto list_it = [&](auto& endpoint){ describe_endpoint(endpoint, "  ", indents...); };
-        auto list_group = [&](auto& group, auto groupname)
-        {
-            log.println(indents..., groupname, ":");
-            boost::pfr::for_each_field(group,  list_it);
-        };
-        list_group(component.inputs, "inputs");
-        list_group(component.outputs, "outputs");
-    }
-
-    void describe_endpoint_type(auto& endpoint)
-    {
-        log.println("todo");
-    }
-
-    void describe_endpoint_range(auto& endpoint)
-    {
-        log.println("todo");
-    }
-
-    void describe_endpoint(auto& endpoint, auto ... indents)
-    {
-        using spelling::lower_kebab_case;
-        log.println(indents..., (const char *)lower_kebab_case(endpoint));
-        log.println(indents..., "  name: \"", endpoint.name(), "\"");
-        log.print(indents..., "  type: ");
-        describe_endpoint_type(endpoint);
-        if constexpr (concepts::Ranged<decltype(endpoint)>)
+        using T = decltype(entity);
+        static_assert(Named<T>);
+        log.println(indents..., preface, (const char *)lower_kebab_case(entity));
+        log.println(indents..., "  name: \"", entity.name(), "\"");
+        log.print(indents...,   "  type:  ");
+        describe_entity_type(entity);
+        if constexpr (Ranged<T>)
         {
             log.print(indents..., "  range: ");
-            describe_endpoint_range(endpoint);
+            auto range = get_range<T>();
+            log.println(range.min, " to ", range.max, " (init: ", range.init, ")");
+        }
+        if constexpr (Component<T>)
+        {
+            auto describe_group = [&](auto& group, auto groupname)
+            {
+                boost::pfr::for_each_field(group, [&](auto& entity)
+                {
+                    describe_entity(groupname, entity, "  ", indents...);
+                });
+            };
+            describe_group(entity.inputs,  "input:   ");
+            describe_group(entity.outputs, "output:  ");
         }
     }
 
@@ -82,14 +73,18 @@ struct Describe
     int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         if (argc < 2) return 2;
-        bool list_eps = argc == 2;
-        bool describe_eps = argc > 2;
+        bool describe_component = argc == 2;
+        bool describe_endpoint = argc > 2;
         return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
         {
-            describe_component(component, list_eps);
-            if (describe_eps) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+            if (describe_component)
             {
-                describe_endpoint(endpoint, "  ");
+                describe_entity("component: ", component);
+                return 0;
+            }
+            else if (describe_endpoint) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+            {
+                describe_entity("endpoint: ", endpoint);
                 return 0;
             });
             else return 0;
@@ -97,6 +92,4 @@ struct Describe
     }
 };
 
-}
-}
-}
+} } } } // namespaces
