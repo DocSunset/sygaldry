@@ -1,5 +1,5 @@
 #pragma once
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
 namespace sygaldry
 {

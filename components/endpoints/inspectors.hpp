@@ -1,22 +1,23 @@
 #pragma once
 
 #include <concepts>
-#include "utilities/consteval/consteval.hpp"
+#include <type_traits>
+#include "utilities/consteval.hpp"
 
 namespace sygaldry::endpoints
 {
     template<typename T>
     concept Named
-        =  requires { {T::name()} -> std::convertible_to<std::string>; }
-        || requires { {T::name()} -> std::convertible_to<std::string_view>; }
-        || requires { {T::name()} -> std::convertible_to<const char *>; }
+        =  requires { {std::decay_t<T>::name()} -> std::convertible_to<std::string>; }
+        || requires { {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>; }
+        || requires { {std::decay_t<T>::name()} -> std::convertible_to<const char *>; }
         ;
 
     template<Named T>
-    _consteval auto get_name(const T&) { return T::name(); }
+    constexpr auto get_name(const T&) { return std::decay_t<T>::name(); }
 
     template<Named T>
-    _consteval auto get_name() { return T::name(); }
+    _consteval auto get_name() { return std::decay_t<T>::name(); }
     template<typename T>
     concept Ranged = requires
     {

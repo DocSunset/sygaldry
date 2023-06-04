@@ -3,7 +3,7 @@
 #include <string_view>
 #include <optional>
 #include "utilities/string_literal.hpp"
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
 namespace sygaldry::endpoints
 {
@@ -12,7 +12,7 @@ using sygaldry::utilities::string_literal;
 template<string_literal str>
 struct named
 {
-    static _consteval auto name() {return str.value;}
+    static _consteval auto name() {return str;}
 };
 template<typename T>
 struct range

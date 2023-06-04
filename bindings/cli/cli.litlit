@@ -134,7 +134,7 @@ can't reasonably assume that there are any common OS facilities available, like
 `printf` or `std::cout`, which would normally be included by a shell program's
 source code and dynamically linked to a library on the system.
 
-### Printing Through Ports
+### Printing Through Endpoints
 
 With respect to our main target environment (i.e. firmware) and its
 constraints, our CLI commands might more reasonably adopt an interface that
@@ -166,7 +166,7 @@ struct CliCommand
         } stdout;
     } outputs;
 
-    void main(int argc, char ** argv); // return code is now an output port
+    void main(int argc, char ** argv); // return code is now an output endpoint
 };
 ```
 
@@ -182,7 +182,7 @@ memory-managed containers from the standard library (e.g. `std::string_stream`
 seems obviously relevant), the burden of memory management can be significant.
 
 For simple components with very basic logging needs, e.g. if all messages that may
-ever be logged are known at compile time, a string-typed output port may still
+ever be logged are known at compile time, a string-typed output endpoint may still
 be useful. But in case the messages incorporate runtime information, this
 approach is probably not satisfactory.
 
@@ -256,7 +256,7 @@ its own directory.
 So we have moved from considering our CLI commands as general purpose shell
 programs, to restricting that view to see them as mere text outputters, to once
 again broadening our view to see them as general purpose
-reflectable-aggregate-type components with textual output ports, to recognizing
+reflectable-aggregate-type components with textual output endpoints, to recognizing
 that text output requires feature injection, preferably through a template
 parameter, to avoid glue code, forcing explicit dependencies on the component, and
 added runtime costs. This leads to the following plan, demonstrated with a
@@ -463,7 +463,8 @@ permit a simpler implementation of the command line parser.
 ```c++
 // @#'matcher.hpp'
 #pragma once
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/spelling.hpp"
+#include "components/endpoints/inspectors.hpp"
 
 namespace sygaldry
 {
@@ -473,8 +474,9 @@ namespace bindings::cli
 template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
-    using utilities::metadata::names::lower_kebab_case;
-    if (std::string_view(name) == std::string_view(lower_kebab_case(t)))
+    using sygaldry::utilities::spelling::lower_kebab_case;
+    using sygaldry::endpoints::get_name;
+    if (std::string_view(name) == std::string_view(lower_kebab_case<get_name<NamedT>()>()))
         return f(t);
     else if constexpr (sizeof...(NamedTs) == 0)
         return d;
@@ -483,9 +485,9 @@ auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, N
 }
 
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+auto try_to_match_and_execute(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d; // no impl if no t
+    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d; // no impl if no t
     else return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
     {
         return _try_to_match_and_execute_impl(name, d, f, ts...);
@@ -493,13 +495,14 @@ auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Ca
 }
 
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<TupleOfNamed> > 0) std::apply([&](auto& t)
+    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d;
+    else if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
     {
         return f(t);
     }, tup);
-    else return d;
+    else return try_to_match_and_execute(name, tup, d, f);
 }
 
 }
@@ -650,7 +653,7 @@ void _complain_about_command_failure(int retcode)
 #include <memory>
 #include <tuple>
 #include <string_view>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 @{cli includes}
 @{commands headers}
 
@@ -722,10 +725,13 @@ expression and print each one's name using the injected logger.
 // @#'commands/list.hpp'
 #pragma once
 
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
+#include "components/endpoints/inspectors.hpp"
 
-namespace sygaldry::bindings::cli::commands
+namespace sygaldry
+{
+namespace bindings::cli::commands
 {
 
 template<typename Config>
@@ -737,15 +743,23 @@ struct List
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
+    template<typename Component>
+    void list_component()
+    {
+        using sygaldry::utilities::spelling::lower_kebab_case;
+        using sygaldry::endpoints::get_name;
+        log.println(lower_kebab_case<get_name<Component>()>());
+    }
+
     template<typename... Components>
     int main(int argc, char** argv, std::tuple<Components...>&)
     {
-        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
-        ( log.println(lower_kebab_case_v<Components>), ... );
+        ( list_component<Components>(), ... );
         return 0;
     }
 };
 
+}
 }
 // @/
 
@@ -806,7 +820,7 @@ and have a `main` method that takes a parameter pack of commands to describe.
 ```c++
 // @#'commands/help.hpp'
 #pragma once
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
 namespace sygaldry
 {
@@ -858,77 +872,186 @@ when the user does not use the default commands.
 # Component Commands
 
 These commands all take the name of a component as their first argument, and
-`describe`, `get`, and `set` additionally take the name of a port of that
+`describe`, `get`, and `set` additionally take the name of an endpoint of that
 component. Here we see a possible disadvantage of the compile-time approach
 to generic code. As opposed to run-time polymorphism, where at some levels
 the same binary code can be used to perform the same subroutine, unique but
 very similar machine code may be generated for the branch of code that acts
-on the matched component and/or port names, each command because
+on the matched component and/or endpoint names, each command because
 our commands and components are all unique types. It remains to be seen whether
 this leads to a problematic increase in compiled binary code size. If it
 ever becomes an issue, it may be helpful to exploit runtime polymorphism when
-matching command, component, and port names. However, it is likely not possible
+matching command, component, and endpoint names. However, it is likely not possible
 to reduce the steps necessary to iterate over the heterogeneous endpoints of
 different components. They are simply not the same.
 
 ## Describe
 
-First, a test case:
+First, a test case, using the test component provided in
+`components/testcomponent.hpp`:
 
 ```c++
 // @+'tests'
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
+    int argc = 3;
+    char * arg0 = (char *)"describe";
+    char * arg1 = (char *)"test-component-1";
+    char * arg2 = (char *)"slider-out";
+    char * wild = (char *)"*";
+    char * argv[] = {arg0, arg1, arg2};
+    auto components = std::make_tuple(sygaldry::components::TestComponent{});
+
+    argc = 2;
+    SECTION("describe device")
+    {
+        Describe<Config> command;
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
+        REQUIRE(retcode == 0);
+    }
+
+    argc = 2;
+    argv[1] = wild;
+    SECTION("describe all devices")
+    {
+        Describe<Config> command;
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+    }
+
+    argc = 3;
+    SECTION("describe endpoint")
+    {
+        Describe<Config> command;
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+    }
+
+    argv[1] = arg1;
+    argv[2] = wild;
+    SECTION("describe all endpoints")
+    {
+        Describe<Config> command;
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+    }
+
+    argv[1] = wild;
+    argv[2] = wild;
+    SECTION("describe everything")
+    {
+        Describe<Config> command;
+        auto retcode = command.main(argc, argv, components);
+        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(retcode == 0);
+    }
 }
 // @/
 ```
 
 The bulk of this command's logic comes from four functions: one that matches an
 argument to a component, one that decribes a matched component, one that matches an
-argument to a port, and one that describes a matched port. 
+argument to an endpoint, and one that describes a matched endpoint. 
+We can use the matcher subroutines defined earlier for the CLI to match components
+from our tuple of components, and in fact we can also use it to match endpoints thanks
+to Boost PFR's `structure_to_tuple(aggregate)` function.
 
 ```c++
 // @='describe main'
-using utilities::metadata::names;
-if (argc == 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
+if (argc < 2) return 2;
+else return try_to_match_and_execute_with_wildcard(argv[1], components, 2, [&](auto component)
 {
-    @{describe component}
-});
-else if (argc > 2) return try_to_match_and_execute_with_wildcard(arv[1], components, 2, [](auto component)
-{
+
+    describe_component(component);
+
+    if (argc > 2)
+    {
+        auto cb = [&](auto endpoint) { describe_endpoint(endpoint); return true; };
+        bool match = false;
+        if (match) return 0;
+        else 
+        {
+            log.println(name(), ": cannot access '", argv[2], "': No such endpoint");
+            return 2;
+        }
+    }
+    else /* argc == 2, no endpoint argument */
+    {
+        list_endpoints(component);
+    }
+    return 0;
 });
 // @/
 ```
 
-We can use the matcher subroutines defined earlier for the CLI to match components
-from our tuple of components, and in fact we can also use it to match ports thanks
-to Boost PFR's `structure_tie(aggregate)` function.
+At the moment, components don't possess a lot of metadata. Describing a component therefore
+consists of simply printing its name.
+In case no endpoint argument is passed, then we print out a list of all the endpoint names.
+It turns out both of these things can be implemented with the same simple function:
+
+```c++
+// @+'describe implementation details'
+template<typename NamedT, typename ... Args>
+void log_name(NamedT& t, Args ... args)
+{
+    using sygaldry::utilities::spelling::lower_kebab_case;
+    using sygaldry::endpoints::get_name;
+    log.println(lower_kebab_case<get_name<NamedT>()>(), args...);
+}
+
+template<typename Component>
+void describe_component(Component& component)
+{
+    log_name(component, ":");
+}
+
+template<typename Component>
+void list_endpoints(Component& component)
+{
+    auto& inputs  = get_inputs(component);
+    auto& outputs = get_outputs(component);
+    //boost::pfr::for_each_field(inputs,  [&](auto& endpoint){ log_name(endpoint); });
+    //boost::pfr::for_each_field(outputs, [&](auto& endpoint){ log_name(endpoint); });
+}
+// @/
+```
 
 ```c++
 // @#'commands/describe.hpp'
 #pragma once
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
-#include "matcher.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
+#include "components/endpoints/inspectors.hpp"
+#include "../matcher.hpp"
 
 namespace sygaldry
 {
-namespace bindings::cli::commands
+namespace bindings::cli
 {
+namespace commands
+{
+
+using namespace sygaldry::endpoints;
 
 template<typename Config>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
-    static _consteval auto usage() { return "component-name [port-name]"; }
-    static _consteval auto description() { return "Convey metadata about a component or its port. Pass * to describe all"; }
+    static _consteval auto usage() { return "component-name [endpoint-name]"; }
+    static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
+    @{describe implementation details}
+
     template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>&)
+    int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         @{describe main}
     }
@@ -936,11 +1059,12 @@ struct Describe
 
 }
 }
+}
 // @/
 ```
 
 // @+'commands headers'
-//#include "commands/describe.hpp"
+#include "commands/describe.hpp"
 // @/
 
 ## Get
@@ -998,7 +1122,7 @@ The CLI class itself implements a fairly limited behavior.
 ```c++
 // @#'cli_app_demo.cpp'
 #include "cli_app.hpp"
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 
 struct Component1 {
@@ -1026,7 +1150,10 @@ int main()
 // @#'tests.cpp'
 #include <string>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
+#include "components/endpoints/inspectors.hpp"
+#include "components/endpoints/helpers.hpp"
+#include "components/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 

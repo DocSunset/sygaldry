@@ -1,0 +1,222 @@
+# Motivation
+
+The base concepts and helpers for components and processors to declar their
+names conveniently, and for bindings to access names generically, are defined
+in `components/endpoints/endpoints.litlit`. This document deals with
+transformations over names required for bindings.
+
+Names are spelled differently when generating bindings. For example, a processor
+that applies a one pole exponential moving average low pass filter to its input
+might be called "Simple Lowpass", and an endpoints called "cutoff frequency".
+In its Open Sound Control binding, these might have to be spelled differently,
+such as "SimpleLowpass" and "SimpleLowpass/cutoff_frequency". In a command-line
+style binding or as a Pure Data externail, it might be more convenient and
+idiomatic to spell them "simple-lowpass" and "cutoff-frequency". In other
+contexts, different spellings might be required.
+
+To support all these use cases, one approach is for the author of the processor
+to specify different spellings for alternative applications. For example, the
+name of the processor might be specified in this way:
+
+```c++
+struct SimpleLowpass
+{
+    static _consteval const char * name() {return "Simple Lowpass";}
+    static _consteval const char * camel_name() {return "SimpleLowpass";}
+    static _consteval const char * snake_name() {return "simple_lowpass";}
+    static _consteval const char * kebab_name() {return "simple-lowpass";}
+
+    struct inputs_t
+    {
+        struct cutoff_t
+        {
+            static _consteval const char * name() {return "cutoff frequency";}
+            static _consteval const char * camel_name() {return "cutoffFrequency";}
+            static _consteval const char * snake_name() {return "cutoff_frequency";}
+            static _consteval const char * kebab_name() {return "cutoff-frequency";}
+            static _consteval const char * osc_address() {return "SimpleLowpass/cutoff_frequency";}
+            float value;
+        } cutoff;
+    } inputs;
+
+    // low pass implementation here ...
+};
+// @/
+```
+
+This obviously has some shortcomings, not least of all that the author has to
+manually repeat the name with however many spellings are required. Generating
+an address space, such as for Open Sound Control bindings, might be especially
+cumbersome. The various spelling conventions are reasonably regular, so it
+should be possible to do the conversion from one canonical natural language
+name to various technical spellings with an algorithm.
+
+Since the name is presumably known at compile time, these conversion might even
+be able to be performed at compile time, imposing no runtime cost, although
+this might increase the compiled binary program size. However, after two
+attempts to achieve such runtime manipulation of strings, it's been determined
+that this may not be worth the effort. The string information has to be initially
+specified at runtime, and a string literal is the most natural means for doing
+this. Unfortunately, string literals decay to pointers at the slightest
+provocation, losing crucial information about the length of the string in the
+process. It is feasible to capture this information immediately, but not
+at any point after the declaration of the literal.
+
+# Basic transformations
+
+Snake case is achieved by replacing spaces with underscores. Kebab case is achieved
+by replacing spaces with dashes. Lowercase is achieved by replacing uppercase
+letters with their lowercase equivalent. Uppercase, also called all caps, also
+called yelling, does the inverse of lowercase. These are all simple one-to-one
+transformations that are easily defined on a character by character basis.
+
+```c++
+// @='mappings'
+constexpr char snake(char c) {return c == ' ' ? '_' : c;}
+constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
+constexpr char lower(char c)
+{
+    if ('A' <= c && c <= 'Z') return c+('a'-'A');
+    return c;
+}
+constexpr char upper(char c)
+{
+    if ('a' <= c && c <= 'z') return c-('a'-'A');
+    return c;
+}
+// @/
+```
+
+Taking one or more of these mappings as template arguments, we can
+generate a mapping that composes them sequentially:
+
+```c++
+// @='compose'
+typedef char (*char_mapping)(char);
+template<char_mapping...mappings> struct compose;
+
+template<char_mapping mapping> struct compose<mapping>
+{
+    constexpr char operator()(char c) { return mapping(c); }
+};
+
+template<char_mapping mapping, char_mapping... mappings> struct compose<mapping, mappings...>
+{
+    constexpr char operator()(char c) { return compose<mappings...>{}(mapping(c)); }
+};
+// @/
+```
+
+Using the `string_literal` utility defined elsewhere, we can exploit the fact that
+our mappings are one-to-one to generate compile-time computable functions that
+implement the mappings:
+
+```c++
+// @='respell'
+template<string_literal in, char_mapping...mappings>
+constexpr auto respell()
+{
+    string_literal out{in.data};
+    compose<mappings...> m;
+    for (std::size_t i = 0; i < in.size(); ++i)
+        out.data[i] = m(in.data[i]);
+    return out;
+}
+// @/
+```
+
+Then to save the user from having to write out the template arguments for
+common cases, we provide some simple wrappers over the raw respell function.
+In addition to an overload taking a `string_literal`, we also provide one
+that takes a named type and gets its name.
+
+```c++
+// @='respell wrappers'
+#define define_respeller(RESPELLER_NAME, ...) template<string_literal in>\
+constexpr auto RESPELLER_NAME()\
+{\
+    return respell<in, __VA_ARGS__>();\
+}
+
+define_respeller(      snake_case, snake)
+define_respeller(upper_snake_case, snake, upper)
+define_respeller(lower_snake_case, snake, lower)
+define_respeller(      kebab_case, kebab)
+define_respeller(upper_kebab_case, kebab, upper)
+define_respeller(lower_kebab_case, kebab, lower)
+
+#undef define_respeller
+// @/
+```
+
+# Tests
+
+```c++
+// @#'tests/spelling/tests.cpp'
+#include <string_view>
+#include <catch2/catch_test_macros.hpp>
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
+
+using std::string_view;
+using namespace sygaldry::utilities::spelling;
+
+TEST_CASE("Snake Case", "[utilities][names][snake]")
+{
+    REQUIRE(string_view(snake_case<"snake case example">()) == string_view("snake_case_example"));
+}
+
+TEST_CASE("Kebab Case")
+{
+    CHECK(string_view(kebab_case<"kebab case example">()) == string_view("kebab-case-example"));
+}
+
+TEST_CASE("Upper/lower")
+{
+    CHECK(string_view(upper_snake_case<"a basic example">()) == string_view("A_BASIC_EXAMPLE"));
+    CHECK(string_view(lower_kebab_case<"A Title Perhaps">()) == string_view("a-title-perhaps"));
+}
+// @/
+```
+
+```cmake
+# @#'tests/spelling/CMakeLists.txt'
+add_executable(spelling-tests tests.cpp)
+target_link_libraries(spelling-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(spelling-tests)
+# @/
+```
+
+# Future Work
+
+The respellers defined above assumes that the textual mapping functions are
+one-to-one, e.g. spaces become underscores, lower case becomes uppercase, etc.
+However, some common spelling conventions, e.g. `CamelCase` and `dromedaryCase`
+can reduce the length of the output string. This will require some modification
+of our approach, to allocate the correct string length, and to iterate through
+the input string. In the most general framework, it might be useful to replace
+arbitrary regular expression matches with given replacements, or to add strings
+where matches are located. It also remains as future work to implement
+compile-time generation of OSC address strings, which may be handled here or
+in a different document.
+
+# Summary
+
+```c++
+// @#'spelling.hpp'
+#pragma once
+#include <array>
+#include "utilities/consteval.hpp"
+#include "components/endpoints/inspectors.hpp"
+
+namespace sygaldry::utilities::spelling
+{
+
+@{mappings}
+@{compose}
+@{respell}
+@{respell wrappers}
+
+}
+// @/
+```
