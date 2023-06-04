@@ -3,7 +3,7 @@
 #include <tuple>
 #include <string_view>
 #include "utilities/consteval.hpp"
-#include "matcher.hpp"
+#include "bindings/name_dispatch.hpp"
 #include "commands/list.hpp"
 #include "commands/help.hpp"
 #include "commands/describe.hpp"
@@ -35,7 +35,7 @@ struct Cli
 
     int _try_to_match_and_execute()
     {
-        return try_to_match_and_execute(argv[0], commands, 127, [this](auto& command)
+        return dispatch(argv[0], commands, 127, [this](auto& command)
             {
                 if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
                 {

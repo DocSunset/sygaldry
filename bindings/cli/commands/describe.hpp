@@ -4,7 +4,7 @@
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 #include "components/endpoints/concepts.hpp"
-#include "../matcher.hpp"
+#include "bindings/name_dispatch.hpp"
 
 namespace sygaldry
 {
@@ -48,7 +48,7 @@ struct Describe
     int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         if (argc < 2) return 2;
-        else return try_to_match_and_execute_with_wildcard(argv[1], components, 2, [&](auto component)
+        else return wildcard_dispatch(argv[1], components, 2, [&](auto component)
         {
 
             describe_component(component);

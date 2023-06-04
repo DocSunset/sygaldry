@@ -434,91 +434,23 @@ if (_overflow())
 // @/
 ```
 
-### Match and execute
-
 At the end of each line, we compare the first argument to the names of all the
 available commands, and execute the first match. If it returns a non-zero error
 code, we print a message. Then, regardless of the command's exit status, we
 print a new prompt and return to the normal process loop.
 
-We assume that the commands are stored as a tuple. Because we need to
-short-circuit the iteration in case we find a matching command, the only
-adequate method for iterating over the commands is using a recursive variadic
-function. This can't be a lambda, since it's obnoxious to try to `std::apply` a
-tuple to a lambda that has to recursively call itself. Instead, we define a
-template function for the purpose.
-
-The logic for iterating over the tuple of commands in order to do something
-with one of them is also required by component commands described later. To
-avoid repeating ourselves, we will implement this logic in a way that can
-be generically leveraged by both the CLI iterating over a list of commands,
-and by commands iterating over lists of components. As it will be useful
-to some commands and follows a very similar implementation, we also define
-at this time a matcher that accepts a wildcard to match all elements of
-the tuple.
-
-Notice again that we convert command and component names to lower kebab case to
-permit a simpler implementation of the command line parser.
-
-```c++
-// @#'matcher.hpp'
-#pragma once
-#include "utilities/spelling.hpp"
-
-namespace sygaldry
-{
-namespace bindings::cli
-{
-
-template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
-auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
-{
-    if (std::string_view(name) == std::string_view(spelling::lower_kebab_case(t)))
-        return f(t);
-    else if constexpr (sizeof...(NamedTs) == 0)
-        return d;
-    else
-        return _try_to_match_and_execute_impl(name, d, f, ts...);
-}
-
-template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
-{
-    if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d; // no impl if no t
-    else return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
-    {
-        return _try_to_match_and_execute_impl(name, d, f, ts...);
-    }, tup);
-}
-
-template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto try_to_match_and_execute_with_wildcard(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
-{
-    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d;
-    else if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
-    {
-        return f(t);
-    }, tup);
-    else return try_to_match_and_execute(name, tup, d, f);
-}
-
-}
-}
-// @/
-```
-
-For the CLI, we invoke the matcher subroutine as follows, accounting for `help`
+We invoke the matcher subroutine as follows, accounting for `help`
 as a special case in our callback lambda.
 
 ```c++
 // @+'cli includes'
-#include "matcher.hpp"
+#include "bindings/name_dispatch.hpp"
 // @/
 
 // @+'cli implementation details'
 int _try_to_match_and_execute()
 {
-    return try_to_match_and_execute(argv[0], commands, 127, [this](auto& command)
+    return dispatch(argv[0], commands, 127, [this](auto& command)
         {
             if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
             {
@@ -962,7 +894,7 @@ to Boost PFR's `structure_to_tuple(aggregate)` function.
 ```c++
 // @='describe main'
 if (argc < 2) return 2;
-else return try_to_match_and_execute_with_wildcard(argv[1], components, 2, [&](auto component)
+else return wildcard_dispatch(argv[1], components, 2, [&](auto component)
 {
 
     describe_component(component);
@@ -1027,7 +959,7 @@ void list_endpoints(Component& component)
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 #include "components/endpoints/concepts.hpp"
-#include "../matcher.hpp"
+#include "bindings/name_dispatch.hpp"
 
 namespace sygaldry
 {
