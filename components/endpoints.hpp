@@ -16,11 +16,21 @@ struct string_literal
     }
 };
 
-template<string_literal str>
-struct named
-{
-    static _consteval auto name() {return str.value;}
-};
+#define text_struct(STRUCT_NAME, METHOD_NAME) template<string_literal str>\
+struct STRUCT_NAME\
+{\
+    static _consteval auto METHOD_NAME() {return str.value;}\
+}
+
+text_struct(name_, name);
+text_struct(author_, author);
+text_struct(description_, description);
+text_struct(uuid_, uuid);
+text_struct(unit_, unit);
+text_struct(version_, version);
+text_struct(date_, date);
+
+#undef text_struct
 template<typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 template<arithmetic T>
@@ -32,7 +42,7 @@ struct num_literal
     operator T() {return value;}
 };
 template<num_literal _min, num_literal _max, num_literal _init = _min>
-struct ranged
+struct range_
 {
     static _consteval auto range()
     {
@@ -58,13 +68,13 @@ template <typename T>
 using occasional = std::optional<T>;
 
 template<string_literal str, bool init = false>
-struct button : occasional<bool>, named<str>, ranged<false, true, init>
+struct button : occasional<bool>, name_<str>, range_<false, true, init>
 {
     using occasional<bool>::operator=;
 };
 
 template<string_literal str, bool init = false>
-struct toggle : persistent<bool>, named<str>, ranged<false, true, init>
+struct toggle : persistent<bool>, name_<str>, range_<false, true, init>
 {
     using persistent<bool>::operator=;
 };
@@ -75,12 +85,12 @@ template<string_literal str
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min
         >
-struct slider : persistent<float>, named<str>, ranged<min, max, init>
+struct slider : persistent<float>, name_<str>, range_<min, max, init>
 {
     using persistent<float>::operator=;
 };
 template<string_literal str>
-struct bng : persistent<bool>, named<str>
+struct bng : persistent<bool>, name_<str>
 {
     using persistent<bool>::operator=;
     enum {bang, impulse};

@@ -10,7 +10,7 @@ using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;
 using std::string_view;
 
-struct struct_with_name : named<"foo"> {};
+struct struct_with_name : name_<"foo"> {};
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
 TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
 {
@@ -24,8 +24,8 @@ TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
     REQUIRE(string_view(get_name(yup)) == string_view("yup"));
     REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }
-struct struct_with_range : ranged<0, 127> {};
-struct struct_with_init : ranged<0.0f, 100.0f, 42.0f> {};
+struct struct_with_range : range_<0, 127> {};
+struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
 TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
 {
     static_assert(Ranged<struct_with_range>);

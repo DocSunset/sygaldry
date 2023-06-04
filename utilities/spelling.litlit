@@ -321,7 +321,7 @@ TEST_CASE("Upper/lower")
 TEST_CASE("Spelling with helpers")
 {
     using namespace sygaldry::endpoints;
-    struct example_t : named<"Helper Example"> {} x;
+    struct example_t : name_<"Helper Example"> {} x;
     CHECK(string_view(upper_snake_case(x)) == string_view("HELPER_EXAMPLE"));
     CHECK(string_view(lower_kebab_case(x)) == string_view("helper-example"));
     CHECK(string_view(upper_kebab_case(x)) == string_view("HELPER-EXAMPLE"));

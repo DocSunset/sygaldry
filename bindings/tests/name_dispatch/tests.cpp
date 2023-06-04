@@ -18,8 +18,8 @@ struct Config
 
 struct Named1 { static _consteval auto name() {return "name1";} int value;};
 struct Named2 { static _consteval auto name() {return "a longer name";} float value;};
-struct Named3 : named<"name3">, persistent<int> {};
-struct Named4 : named<"name4">, persistent<float> {};
+struct Named3 : name_<"name3">, persistent<int> {};
+struct Named4 : name_<"name4">, persistent<float> {};
 
 struct PseudoComponent1
 {

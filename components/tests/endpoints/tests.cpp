@@ -20,13 +20,13 @@ TEST_CASE("String literal", "[endpoints][string_literal]")
     REQUIRE(name<"test">() == "test");
 }
 
-struct struct_with_name : named<"foo"> {};
+struct struct_with_name : name_<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
 }
-struct struct_with_range : ranged<0, 127> {};
-struct struct_with_init : ranged<0.0f, 100.0f, 42.0f> {};
+struct struct_with_range : range_<0, 127> {};
+struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
 
 TEST_CASE("Range", "[endpoints][bases][range]")
 {

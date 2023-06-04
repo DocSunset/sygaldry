@@ -1,10 +1,10 @@
 #pragma once
 #include "components/endpoints.hpp"
 
-namespace sygaldry::components
-{
+namespace sygaldry { namespace components {
+
 using namespace sygaldry::endpoints;
-struct TestComponent : endpoints::named<"Test Component 1">
+struct TestComponent : name_<"Test Component 1">
 {
     struct inputs_t {
         button<"button in"> bttn;
@@ -28,4 +28,5 @@ struct TestComponent : endpoints::named<"Test Component 1">
         out.bang = in.bang;
     }
 };
-}
+
+} } // namespaces
