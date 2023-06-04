@@ -25,8 +25,8 @@ TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
 }
-struct struct_with_range : with<range{0, 127}> {};
-struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
+struct struct_with_range : ranged<0, 127> {};
+struct struct_with_init : ranged<0.0f, 100.0f, 42.0f> {};
 
 TEST_CASE("Range", "[endpoints][bases][range]")
 {

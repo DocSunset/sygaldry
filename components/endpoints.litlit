@@ -145,68 +145,61 @@ initial value should be seperate. Similar to the `named` class, we define a
 helper class that endpoints can inherit to specify their range.
 
 Ideally, we would like to specify initial values and the minimum and maximum
-boundaries of the range as non-type template parameters, e.g. `struct myendpoint :
-ranged<0.0f, 1.0f>, inited<0.5f>`. Unfortunately, many compilers such as
-`clang` still do not support floating point numbers as non-type template
-parameters. 
+boundaries of the range as non-type template parameters, e.g. `struct
+myendpoint : ranged<0.0f, 1.0f, 0.5f>`. Unfortunately, many compilers
+such as `clang` still do not support floating point numbers as non-type
+template parameters.
 
-I first considered to define helper structs to hold the min and max, so that I
-would write `struct myendpoint : ranged<{0.0f, 1.0f}>`. For reasons beyond my
-comprehension, template constructor argument deduction failed with this syntax
-despite that it works find for `named<"name">`. I believe the difference lies
-in special properties of string literals that mean a literal string is a valid
-expression, whereas a brace-inclosed initializer list is not.
+So it was that after going through several possible solutions--
 
-This lead me to consider a more explicit syntax, such as `struct myendpoint :
-ranged<range{0.0f, 1.0f}`, however the redundancy of writing `ranged<range...>`
-is rather unpleasant. I settled on the following approach using template
-specialization, where we instead specialize a template class `with` on the type
-of its non-type template parameter, so that the specialization for a parameter
-of type `range` produces the required method for our endpoints to inherit. This
-doesn't actually save any lines of code compared to defining a `ranged` class,
-but it does lead to a more agreeable spelling when we declare the metadata. It
-also leaves open the possibility that we may eventually incorporate other kinds
-of numeric metadata by specializing `with` on a different parameter type.
-Examples don't spring to mind, but this is at least one way of associating
-arbitrary floating-point metadata with an endpoint at compile time.
+```c++
+struct myendpoint : ranged<0.0f, 1.0f> {} // compiler error with clang
+struct myendpoint : ranged<{0.0f, 1.0f}> {} // init list is not an expression
+struct myendpoint : ranged<range{0.0f, 1.0f} {}; // redundant and ugly
+struct myendpoint : with<range{0.0f, 1.0f} {}; // not bad, but we can do better
+```
+
+--it occurred to me while proofreading the previous section that the same
+strategy could likely be employed with numbers as well as strings. Although
+this is redundant for integral types, which are allowed in template parameters,
+it's a minor tradeoff to accept both floats and integers in order to have a
+single way of annotating a range. This gives us the ideal syntax in a way that
+doesn't upset clang.
 
 ```c++
 // @+'endpoint bases'
 template<typename T>
-struct range
+concept arithmetic = std::integral<T> || std::floating_point<T>;
+template<arithmetic T>
+struct num_literal
 {
-    const T min;
-    const T max;
-    const T init;
-
-    _consteval range(const T _min, const T _max) noexcept
-    : min{_min < _max ? _min : _max}
-    , max{_min > _max ? _min : _max}
-    , init{min}
-    { }
-
-    _consteval range(const T _min, const T _max, const T _init) noexcept
-    : min{_min < _max ? _min : _max}
-    , max{_min > _max ? _min : _max}
-    , init{_init}
-    { }
+    using type = T;
+    T value;
+    _consteval num_literal(T f) : value{f} {}
+    operator T() {return value;}
 };
+// @/
 
-template<auto arg>
-struct with {};
-
-template<range r>
-struct with<r>
+// @+'endpoint bases'
+template<num_literal _min, num_literal _max, num_literal _init = _min>
+struct ranged
 {
-    static _consteval auto range() {
+    static _consteval auto range()
+    {
+        struct {
+            decltype(_min.value) min = _min.value;
+            decltype(_max.value) max = _max.value;
+            decltype(_init.value) init = _init.value;
+        } r;
         return r;
     }
 };
 // @/
+```
 
 // @+'tests'
-struct struct_with_range : with<range{0, 127}> {};
-struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
+struct struct_with_range : ranged<0, 127> {};
+struct struct_with_init : ranged<0.0f, 100.0f, 42.0f> {};
 
 TEST_CASE("Range", "[endpoints][bases][range]")
 {
@@ -338,22 +331,24 @@ from them.
 ```c++
 // @+'helpers'
 template<string_literal str, bool init = false>
-struct _btn : named<str>, with<range{false, true, init}> { };
-
-template<string_literal str, bool init = false>
-struct button : occasional<bool>, _btn<str, init>
+struct button : occasional<bool>, named<str>, ranged<false, true, init>
 {
     using occasional<bool>::operator=;
 };
 
 template<string_literal str, bool init = false>
-struct toggle : persistent<bool>, _btn<str, init>
+struct toggle : persistent<bool>, named<str>, ranged<false, true, init>
 {
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
-struct slider : persistent<float>, named<str>, with<range_arg>
+template<string_literal str
+        , arithmetic T = float
+        , num_literal<T> min = 0.0f
+        , num_literal<T> max = 1.0f
+        , num_literal<T> init = min
+        >
+struct slider : persistent<float>, named<str>, ranged<min, max, init>
 {
     using persistent<float>::operator=;
 };

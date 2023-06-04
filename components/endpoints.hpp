@@ -22,32 +22,25 @@ struct named
     static _consteval auto name() {return str.value;}
 };
 template<typename T>
-struct range
+concept arithmetic = std::integral<T> || std::floating_point<T>;
+template<arithmetic T>
+struct num_literal
 {
-    const T min;
-    const T max;
-    const T init;
-
-    _consteval range(const T _min, const T _max) noexcept
-    : min{_min < _max ? _min : _max}
-    , max{_min > _max ? _min : _max}
-    , init{min}
-    { }
-
-    _consteval range(const T _min, const T _max, const T _init) noexcept
-    : min{_min < _max ? _min : _max}
-    , max{_min > _max ? _min : _max}
-    , init{_init}
-    { }
+    using type = T;
+    T value;
+    _consteval num_literal(T f) : value{f} {}
+    operator T() {return value;}
 };
-
-template<auto arg>
-struct with {};
-
-template<range r>
-struct with<r>
+template<num_literal _min, num_literal _max, num_literal _init = _min>
+struct ranged
 {
-    static _consteval auto range() {
+    static _consteval auto range()
+    {
+        struct {
+            decltype(_min.value) min = _min.value;
+            decltype(_max.value) max = _max.value;
+            decltype(_init.value) init = _init.value;
+        } r;
         return r;
     }
 };
@@ -65,22 +58,24 @@ template <typename T>
 using occasional = std::optional<T>;
 
 template<string_literal str, bool init = false>
-struct _btn : named<str>, with<range{false, true, init}> { };
-
-template<string_literal str, bool init = false>
-struct button : occasional<bool>, _btn<str, init>
+struct button : occasional<bool>, named<str>, ranged<false, true, init>
 {
     using occasional<bool>::operator=;
 };
 
 template<string_literal str, bool init = false>
-struct toggle : persistent<bool>, _btn<str, init>
+struct toggle : persistent<bool>, named<str>, ranged<false, true, init>
 {
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
-struct slider : persistent<float>, named<str>, with<range_arg>
+template<string_literal str
+        , arithmetic T = float
+        , num_literal<T> min = 0.0f
+        , num_literal<T> max = 1.0f
+        , num_literal<T> init = min
+        >
+struct slider : persistent<float>, named<str>, ranged<min, max, init>
 {
     using persistent<float>::operator=;
 };

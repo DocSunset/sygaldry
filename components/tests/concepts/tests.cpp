@@ -24,8 +24,8 @@ TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
     REQUIRE(string_view(get_name(yup)) == string_view("yup"));
     REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }
-struct struct_with_range : with<range{0, 127}> {};
-struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
+struct struct_with_range : ranged<0, 127> {};
+struct struct_with_init : ranged<0.0f, 100.0f, 42.0f> {};
 TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
 {
     static_assert(Ranged<struct_with_range>);
