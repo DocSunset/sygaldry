@@ -1,0 +1,339 @@
+# Introduction
+
+Although many components of digital musical instruments are commonly employed
+across different designs, their implementation and representation in computer
+programs tends to vary in incompatible ways. In `components/endpoints.litlit`
+we have defined a particular set of helper classes that allow components and
+endpoints to be conveniently annotated with useful metadata that can guide
+binding authors in how to interpret these entities. This document describes
+a set of abstract concepts that components and endpoints are expected to
+adhere to, as well as providing generic subroutines that allow the signals
+and metadata from these entities to be accessed, even when the underlying
+representation of this information may vary. It is recommended to read
+this document second, after `components/endpoints.litlit`.
+
+In the interminable future, we can imagine that the whole music technology
+community might band together to define a set of standard concepts that are
+used to build digital musical applications, enabling widespread compatibility
+between implementations of components and runtime environments. We aspire
+towards this goal, but acknowledge the limited time and resources available to
+this project's development, and compromise on the goal of totally generic
+compatibility for the sake of completing other necessary objectives with the
+available resources. This means that the concepts and accessors defined here
+are expected to be fairly minimal, and the only representations that they are
+intended to support as those used in this project. Nevertheless, these
+reprsentations are developed with widespread applicability in mind, and it is
+hoped that the overall approach can still demonstrate the advantages of this
+generic component-oriented development model.
+
+# Information Representations
+
+As discussed in `endpoints.litlit`, there are three main methods of associating
+information with an endpoint or component: through its member functions,
+through its member variables, and through its member types (including
+enumerations). In all three cases, the format of the information is as
+boundless as what can be represented by a C++ structure with its own methods,
+data, and types. However, in most practical cases, it is sufficient to use
+methods and enumerators, and their the names of these things within a class.
+Further, of all the built in types available, in most cases it suffices to use
+only string literals, signed and unsigned integers of 32 or 64 bits, floats,
+doubles, and booleans, returned from methods. For a few common special cases,
+it makes sense to use structures of the above types, and it is also helpful to
+make use of `std::optional` as described in `endpoints.litlit`. For our
+purposes, we focus on these resources. Eventually, it will be useful to augment
+the above with complex numbers, vectors, and even matrices and tensors as
+primitive types, as well as function objects and other means of passing around
+subroutines and the thread of execution. But as a starting point, the basic
+representations described are enough to achieve a great deal of useful work.
+
+# Name
+
+An entity is considered `Named` if it's type has a static method that returns
+something that is convertible to some string reprsentation. Two similar blocks
+of checks are used, where the latter tries to access the name after decaying
+the type; this is required to allow cv-ref qualified types to be recognized
+as having a name.
+
+```c++
+// @+'concepts'
+template<typename T>
+concept Named = requires
+{
+    {T::name()} -> std::convertible_to<std::string>;
+    {T::name()} -> std::convertible_to<std::string_view>;
+    {T::name()} -> std::convertible_to<const char *>;
+} || requires
+{
+    {std::decay_t<T>::name()} -> std::convertible_to<std::string>;
+    {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
+    {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
+};
+// @/
+```
+
+```c++
+// @+'concepts'
+// todo: this should probably be constexpr
+template<Named T>
+_consteval auto get_name(const T&) { return T::name(); }
+
+template<Named T>
+_consteval auto get_name() { return T::name(); }
+// @/
+
+// @+'tests'
+struct struct_with_name : named<"foo"> {};
+struct base_struct_with_name {static _consteval auto name() {return "yup";}};
+TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
+{
+    static_assert(Named<base_struct_with_name>);
+    static_assert(Named<struct_with_name>);
+    struct_with_name foo{};
+    // TODO: add checks passing cv-ref qualified foo
+    base_struct_with_name yup{};
+    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
+    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
+    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+}
+// @/
+```
+
+# Range
+
+A range is represented by a structure with min, max, and init member variables
+of the same underlying type. An entity is considered to have a range if it
+possesses a static member function that returns such a structure. The use
+of `std::decay_t` and the accessor subroutines follow the logic seen in the
+previous section.
+
+```c++
+// @+'concepts'
+template<typename T>
+concept Ranged = requires
+{
+    T::range().min;
+    T::range().max;
+    T::range().init;
+} || requires
+{
+    std::decay_t<T>::range().min;
+    std::decay_t<T>::range().max;
+    std::decay_t<T>::range().init;
+};
+
+template<Ranged T>
+constexpr auto get_range(const T&) { return T::range(); }
+
+template<Ranged T>
+_consteval auto get_range() { return std::decay_t<T>::range(); }
+// @/
+
+// @+'tests'
+struct struct_with_range : with<range{0, 127}> {};
+struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
+TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
+{
+    static_assert(Ranged<struct_with_range>);
+    struct_with_range foo{};
+    SECTION("T")
+    {
+        REQUIRE(get_range(foo).min == 0);
+        REQUIRE(get_range(foo).max == 127);
+        REQUIRE(get_range(foo).init == 0);
+        REQUIRE(get_range<struct_with_range>().min == 0);
+        REQUIRE(get_range<struct_with_range>().max == 127);
+        REQUIRE(get_range<struct_with_range>().init == 0);
+        auto r1 = get_range(foo);
+        auto r2 = get_range<struct_with_range>();
+    }
+    SECTION("T&")
+    {
+        auto& bar = foo;
+        REQUIRE(get_range(bar).min == 0);
+        REQUIRE(get_range(bar).max == 127);
+        REQUIRE(get_range(bar).init == 0);
+        REQUIRE(get_range<struct_with_range&>().min == 0);
+        REQUIRE(get_range<struct_with_range&>().max == 127);
+        REQUIRE(get_range<struct_with_range&>().init == 0);
+        auto r3 = get_range(bar);
+        auto r4 = get_range<struct_with_range&>();
+    }
+    SECTION("constT&")
+    {
+        const auto& baz = foo;
+        REQUIRE(get_range(baz).min == 0);
+        REQUIRE(get_range(baz).max == 127);
+        REQUIRE(get_range(baz).init == 0);
+        REQUIRE(get_range<struct_with_range&>().min == 0);
+        REQUIRE(get_range<struct_with_range&>().max == 127);
+        REQUIRE(get_range<struct_with_range&>().init == 0);
+        auto r5 = get_range(baz);
+        auto r6 = get_range<const struct_with_range&>();
+    }
+}
+// @/
+```
+
+# Persistent Values
+
+A type is considered as a value if it meets four criteria: it can be default
+initialized, it has a `value` member variable, it can be initialized or
+assigned by another instance of the same type or that instances value, and the
+type's `value` can be initialized or assigned from the same sources.
+TODO: is there any reason to require that it has a value member?
+
+```c++
+// @+'concepts'
+template <typename T>
+concept value_like = requires (T t) // TODO: T a, T b
+{
+    t.value;
+    // TODO: t{t}
+    t = t;
+    T{t.value};
+    t = t.value;
+    // TODO: t.value{t}
+    t.value = t;
+    // TODO: t.value{t.value}
+    t.value = t.value;
+};
+
+template <typename T>
+concept _persistent_value
+    =  value_like<T>
+    && std::default_initializable<T>;
+
+template <typename T>
+concept PersistentValue = _persistent_value<T> || _persistent_value<std::decay_t<T>>;
+// @/
+
+It's unnecessary to define accessors for a persistent value, since it can
+be treated as though it is its value. However, it is useful to be able to
+query the underlying type of the value. TODO: write such accessors.
+
+# Occasional Values
+
+A value is considered to be occasional if it has pointer semantics. We also
+rely on a definition that we will examine later when we define concepts for our
+`bang` type.
+
+```c++
+// @+'concepts'
+@{clearable flag}
+
+template<typename T>
+concept _occasional_value = requires (T t)
+{
+    *t;
+    T{*t};
+    *t = *t;
+} && ClearableFlag<T>;
+
+template<typename T>
+concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t<T>>;
+// @/
+```
+
+TODO: write tests for value type concepts
+
+## Tags
+
+We can introduce arbitrary symbols into the scope of a class through a bare
+`enum` declaration e.g. `enum { bang };`. TODO: define accessors for checking
+if a certain symbol is defined in a class's scope.
+
+# Bang
+
+Our `bang` concept essentially just checks that the type has an enum value
+called `bang` in its scope, and that it is a clearable flag, a concept we
+also required for our `OccasionalValue` concept.
+
+```c++
+// @+'concepts'
+template<typename T>
+concept Bang = requires (T t)
+{
+    requires std::is_enum_v<decltype(T::bang)>;
+} && ClearableFlag<T>;
+// @/
+```
+
+The `ClearableFlag` concept requires that we can convert a type to bool, and
+that the boolean interpretation of a default constructed value of the type is
+`false`. This is true of `std::optional`, `bool`, and also pointer types, if
+I'm not mistaken. We assume that by assigning a value of this type to a
+default-constructed value that we can set its boolean interpretation to
+`false`, and check at least that constructing the type in this way has the
+expected effect. This allows us to define a generic method for clearing values
+that meet the requirements of `ClearableFlag`.
+
+A client using the `bng` class defined above may prefer to use a different,
+perhaps more expressive, method of clearing it. But for a binding author,
+it's useful to have a way to clear a flag without having to know anything
+about it other than that it is a valid flag; this is especially pertinent
+given the assumption that occasional values and bangs should be cleared by
+the environment between calls to a component's main subroutine.
+
+```c++
+// @+'clearable flag'
+template<typename T>
+concept ClearableFlag = requires (T t)
+{
+    bool(t);
+    requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
+    requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
+    t = T{};
+};
+
+template<ClearableFlag T>
+constexpr void clear_flag(T& t)
+{
+    t = T{};
+}
+// @/
+```
+
+TODO: write tests for bang and clearable flag concepts
+
+# Summary
+
+```c++
+// @#'concepts.hpp'
+#pragma once
+
+#include <concepts>
+#include "utilities/consteval.hpp"
+
+namespace sygaldry { namespace concepts {
+
+    @{concepts}
+
+} } // namespaces
+// @/
+
+// @#'tests/concepts/tests.cpp'
+
+#include <catch2/catch_test_macros.hpp>
+#include <string_view>
+#include <type_traits>
+#include <boost/pfr.hpp>
+#include "components/endpoints.hpp"
+#include "components/concepts.hpp"
+
+using namespace sygaldry::endpoints;
+using namespace sygaldry::concepts;
+using std::string_view;
+
+@{tests}
+// @/
+```
+
+```cmake
+# @#'tests/concepts/CMakeLists.txt'
+add_executable(concepts-tests tests.cpp)
+target_link_libraries(concepts-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(concepts-tests)
+# @/
+```
+

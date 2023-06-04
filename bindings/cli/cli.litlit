@@ -815,7 +815,7 @@ different components. They are simply not the same.
 ## Describe
 
 First, a test case, using the test component provided in
-`components/testcomponent.hpp`:
+`components/tests/testcomponent.hpp`:
 
 ```c++
 // @+'tests'
@@ -990,7 +990,7 @@ void describe_entity(auto preface, auto& entity, auto ... indents)
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/endpoints/concepts.hpp"
+#include "components/concepts.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
@@ -1109,7 +1109,7 @@ int main()
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
-#include "components/testcomponent.hpp"
+#include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 

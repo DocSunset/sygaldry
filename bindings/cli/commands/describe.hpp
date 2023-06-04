@@ -3,7 +3,7 @@
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/endpoints/concepts.hpp"
+#include "components/concepts.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {

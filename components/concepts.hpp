@@ -3,8 +3,8 @@
 #include <concepts>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry::concepts
-{
+namespace sygaldry { namespace concepts {
+
     template<typename T>
     concept Named = requires
     {
@@ -17,7 +17,7 @@ namespace sygaldry::concepts
         {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
         {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
     };
-
+    // todo: this should probably be constexpr
     template<Named T>
     _consteval auto get_name(const T&) { return T::name(); }
 
@@ -36,21 +36,23 @@ namespace sygaldry::concepts
         std::decay_t<T>::range().init;
     };
 
-
     template<Ranged T>
     constexpr auto get_range(const T&) { return T::range(); }
 
     template<Ranged T>
     _consteval auto get_range() { return std::decay_t<T>::range(); }
     template <typename T>
-    concept value_like = requires (T t)
+    concept value_like = requires (T t) // TODO: T a, T b
     {
         t.value;
+        // TODO: t{t}
+        t = t;
         T{t.value};
         t = t.value;
+        // TODO: t.value{t}
         t.value = t;
+        // TODO: t.value{t.value}
         t.value = t.value;
-        t = t;
     };
 
     template <typename T>
@@ -90,4 +92,5 @@ namespace sygaldry::concepts
     {
         requires std::is_enum_v<decltype(T::bang)>;
     } && ClearableFlag<T>;
-}
+
+} } // namespaces

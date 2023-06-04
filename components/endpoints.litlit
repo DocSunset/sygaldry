@@ -2,11 +2,11 @@
 
 A digital musical instrument is an assemblage of components that generate,
 process, and output various forms of information with numerous different
-structures and temporal characteristics. We define a *port* as a
-point in the flow of data that is associated with a certain component,
-and can be said to be a source or destination of data flowing through
-the assemblage, and an *endpoint* as a port with which metadata is
-readily associated.
+structures and temporal characteristics. We define a *port* as a point in the
+flow of data that is associated with a certain component, and can be said to be
+a source or destination of data flowing through the assemblage. We define an
+*endpoint* as a port with which metadata is readily associated, such as a name
+and range.
 
 Imagine we have two components, `A` and `B`, where `A` is connected directly to
 `B`. We call the endpoints of `A` from which data originate its *source
@@ -21,6 +21,12 @@ its *inputs*. Notice that the data that `A` sees as outputs is the same data
 that `B` sees as inputs. The interpretation of endpoints depends only on the
 component with which they are associated.
 
+This document is concerned with providing a convenient means for definine
+endpoints that adhere to certain concepts. The concepts themselves, along with
+generic functions for accessing the signals and metadata associated with
+endpoints, are defined seperately in `endpoints/concepts.litlit`. It is advised
+to read this document first.
+
 # Endpoint Bases
 
 There are many common kinds of endpoints in a digital musical instrument that
@@ -33,12 +39,16 @@ and to ensure consistency between instances of similar endpoints.
 Similarly, certain forms of metadata are shared across numerous different types
 of endpoint. Metadata associated with endpoints can be used to guide binding
 authors towards the intended interpretation of a component. Some metadata are
-required, others are optional. Considering Avendish as a point of reference, we
-can identify three different kinds of metadata. There are compile-time
-functions, such as the one used to get an endpoint's name. There are types with
+required, others are optional.
+
+Considering Avendish as a point of reference, we can identify three different
+physical (i.e. C++ source code-level) mechanisms for associating metadata with
+a type. There are compile-time methods, such as a `static _consteval auto
+name()` method that returns the epynomous label. There are sub-types with
 standardized names and structures, such as a `struct range` with members `min`,
-`max`, and `init`. And there are names within the scope of the endpoint (or
-component?) such as those introduced by a bare `enum` declaration.
+`max`, and `init`. And there are other names within the scope of the endpoint
+(or component?) such as those introduced by a bare `enum` declaration, or a
+`using` declared type alias.
 
 Here we rely mainly on function calls, as this allows metadata and other common
 features of endpoints to be composed through inheritance. This provides a
@@ -46,17 +56,20 @@ convenient declarative method for users to define their own endpoint types by
 combining the basic building blocks themselves. In general, users are
 anticipated to use the higher-level helpers and not the base classs, but the
 latter remain available for users spinning up a custom type of endpoint.
+In general, these helpers can also be used with components, e.g. `struct
+mycomponent : named<"Lowpass Filter">` or what have you.
 
-Note that there is no problem with inheritance for endpoints, but collections
-of endpoints such as the `inputs` and `outputs` structures of a component are
-not allowed to have base classes. Such collections must be simple aggregates in
-order to work with `boost::pfr`. The endpoints within these aggregates,
-however, have no such restrictions, so component authors are, in principle,
-free to employ whatever design methods they prefer for endpoints. Indeed, even
-a bare `float` or similar is perfectly allowed, although it is challenging to
-associate metadata with such an endpoint.
+Note that there is no problem with inheritance for endpoints or components, but
+collections of endpoints such as the `inputs` and `outputs` structures of a
+component are not allowed to have base classes. Such collections must be simple
+aggregates in order to work with `boost::pfr`, which is our chosen reflection
+method for the time being. The endpoints within these aggregates, however, have
+no such restrictions, so component authors are, in principle, free to employ
+whatever design methods they prefer for endpoints. Indeed, even a bare `float`
+or similar is perfectly allowed, although it is challenging to associate
+metadata with such an endpoint.
 
-## With
+## Name
 
 All endpoints are required to have a name. To facilitate setting this conveniently,
 we define a thin wrapper around a string literal that allows us to pass string
@@ -80,17 +93,6 @@ struct string_literal
 };
 // @/
 
-// @+'tests'
-template<string_literal str>
-_consteval auto name() {return string_view{str.value};}
-
-TEST_CASE("String literal", "[endpoints][string_literal]")
-{
-    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
-    REQUIRE(name<"test">() == "test");
-}
-// @/
-
 // @+'endpoint bases'
 template<string_literal str>
 struct named
@@ -100,6 +102,15 @@ struct named
 // @/
 
 // @+'tests'
+template<string_literal str>
+_consteval auto name() {return string_view{str.value};}
+
+TEST_CASE("String literal", "[endpoints][string_literal]")
+{
+    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
+    REQUIRE(name<"test">() == "test");
+}
+
 struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
@@ -108,47 +119,21 @@ TEST_CASE("Named", "[endpoints][bases][named]")
 // @/
 ```
 
-We encourage bindings to access the name through an intermediate function
-rather than directly through the endpoint's name method, so that we can eventually
-easily support other conventions for storing and accessing the name besides
-a method call.
+The above `string_literal` may also be useful for associating other kinds of
+textual metadata with an endpoint or component, such as a unit, author, or
+description. We might employ a macro to define useful base classes for such
+purposes, should the need arise:
 
 ```c++
-// @+'concepts'
-template<typename T>
-concept Named = requires
-{
-    {T::name()} -> std::convertible_to<std::string>;
-    {T::name()} -> std::convertible_to<std::string_view>;
-    {T::name()} -> std::convertible_to<const char *>;
-} || requires
-{
-    {std::decay_t<T>::name()} -> std::convertible_to<std::string>;
-    {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
-    {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
-};
-
-template<Named T>
-_consteval auto get_name(const T&) { return T::name(); }
-
-template<Named T>
-_consteval auto get_name() { return T::name(); }
-// @/
-
-// @+'tests'
-struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
-{
-    static_assert(Named<base_struct_with_name>);
-    static_assert(Named<struct_with_name>);
-    struct_with_name foo{};
-    base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+#define text_struct(STRUCT_NAME, METHOD_NAME) template<string_literal str>\
+struct STRUCT_NAME\
+{\
+    static _consteval auto METHOD_NAME() {return str.value;}\
 }
-// @/
+
+text_struct(named, name);
+
+#undef text_struct
 ```
 
 ## Range and Initial Value
@@ -166,14 +151,24 @@ ranged<0.0f, 1.0f>, inited<0.5f>`. Unfortunately, many compilers such as
 parameters. 
 
 I first considered to define helper structs to hold the min and max, so that I
-would write `struct myendpoint : ranged<range{0.0f, 1.0f}>`, however the redundancy
-of writing `ranged<range...>` is rather unpleasant. This lead me to the
-following approach using template specialization, where we instead specialize a
-template class depending on the type of its non-type template parameter. This
+would write `struct myendpoint : ranged<{0.0f, 1.0f}>`. For reasons beyond my
+comprehension, template constructor argument deduction failed with this syntax
+despite that it works find for `named<"name">`. I believe the difference lies
+in special properties of string literals that mean a literal string is a valid
+expression, whereas a brace-inclosed initializer list is not.
+
+This lead me to consider a more explicit syntax, such as `struct myendpoint :
+ranged<range{0.0f, 1.0f}`, however the redundancy of writing `ranged<range...>`
+is rather unpleasant. I settled on the following approach using template
+specialization, where we instead specialize a template class `with` on the type
+of its non-type template parameter, so that the specialization for a parameter
+of type `range` produces the required method for our endpoints to inherit. This
 doesn't actually save any lines of code compared to defining a `ranged` class,
 but it does lead to a more agreeable spelling when we declare the metadata. It
 also leaves open the possibility that we may eventually incorporate other kinds
 of numeric metadata by specializing `with` on a different parameter type.
+Examples don't spring to mind, but this is at least one way of associating
+arbitrary floating-point metadata with an endpoint at compile time.
 
 ```c++
 // @+'endpoint bases'
@@ -228,98 +223,31 @@ TEST_CASE("Range", "[endpoints][bases][range]")
 }
 // @/
 
-// @+'concepts'
-template<typename T>
-concept Ranged = requires
-{
-    T::range().min;
-    T::range().max;
-    T::range().init;
-} || requires
-{
-    std::decay_t<T>::range().min;
-    std::decay_t<T>::range().max;
-    std::decay_t<T>::range().init;
-};
-
-
-template<Ranged T>
-constexpr auto get_range(const T&) { return T::range(); }
-
-template<Ranged T>
-_consteval auto get_range() { return std::decay_t<T>::range(); }
-// @/
-
-// @+'tests'
-void range_ref_check(struct_with_range& bar)
-{
-}
-
-TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
-{
-    static_assert(Ranged<struct_with_range>);
-    struct_with_range foo{};
-    SECTION("T")
-    {
-        REQUIRE(get_range(foo).min == 0);
-        REQUIRE(get_range(foo).max == 127);
-        REQUIRE(get_range(foo).init == 0);
-        REQUIRE(get_range<struct_with_range>().min == 0);
-        REQUIRE(get_range<struct_with_range>().max == 127);
-        REQUIRE(get_range<struct_with_range>().init == 0);
-        auto r1 = get_range(foo);
-        auto r2 = get_range<struct_with_range>();
-    }
-    SECTION("T&")
-    {
-        auto& bar = foo;
-        REQUIRE(get_range(bar).min == 0);
-        REQUIRE(get_range(bar).max == 127);
-        REQUIRE(get_range(bar).init == 0);
-        REQUIRE(get_range<struct_with_range&>().min == 0);
-        REQUIRE(get_range<struct_with_range&>().max == 127);
-        REQUIRE(get_range<struct_with_range&>().init == 0);
-        auto r3 = get_range(bar);
-        auto r4 = get_range<struct_with_range&>();
-    }
-    SECTION("constT&")
-    {
-        const auto& baz = foo;
-        REQUIRE(get_range(baz).min == 0);
-        REQUIRE(get_range(baz).max == 127);
-        REQUIRE(get_range(baz).init == 0);
-        REQUIRE(get_range<struct_with_range&>().min == 0);
-        REQUIRE(get_range<struct_with_range&>().max == 127);
-        REQUIRE(get_range<struct_with_range&>().init == 0);
-        auto r5 = get_range(baz);
-        auto r6 = get_range<const struct_with_range&>();
-    }
-}
-// @/
-```
-
 ## Persistent Values
 
-An endpoint that has a persistent value across activations of a component is well
-modelled by storing the value as a persistent member variable. Unfortunately,
-to maintain reflectability this value has to be stored inside a struct, which
-makes accessing it cumbersome, as in e.g. `outputs.parameter.value =
-inputs.parameter.value`. To ease this discomfort, we provide a class that
-sweetens access to the value allowing the endpoint to be treated direclty
-as though it were the value itself rather than a container for it. We call
-these endpoint `persistent` in contrast with the next kind.
+An endpoint that has a persistent value across activations of a component is
+well modelled by storing the value as a persistent member variable. It's
+convenient to store this inside a struct to enable metadata to be associated
+with the value in the form of compile-time evaluated methods, types, and
+enumerators, but this makes accessing the value of the variable it cumbersome,
+as in e.g. `outputs.parameter.value = inputs.parameter.value`. To ease this
+discomfort, we provide a class that sweetens access to a member variable value
+allowing the endpoint inheriting this syntax sugar to be treated direclty as
+though it were the value itself rather than a container for it, while also
+retaining the benefit of providing a convenient containment point for metadata.
+We call these endpoints `persistent` in contrast with the next kind.
 
 Unfortunately, assignment operators are tricky to inherit due to C++'s
-automatically generated default assignment operators. For this reason, the
-`persistent` type needs to be treated directly as an endpoint type (i.e. not
-merely inherited), or the assignment operators need to be explictly drawn into
-the derived class with a `using` declaration in public scope, e.g. `using
-persistent::operator=`.
+automatically generated default assignment operators, which shadow the
+explicitly defined ones on our persistent value base class. For this reason,
+the assignment operators need to be explictly drawn into the derived class with
+a `using` declaration in public scope, e.g. `using persistent::operator=`.
 
-Note that we could define a specialization for the `persistent` class in case
-`std::is_trivial_v<T>`; this allows us to avoid defining a move assignment
-operator, and to use the slightly cheaper version of the copy assignment that
-takes `T` instead of `const T&`. For now this is deemed premature optimization.
+Note that we could define a specialization for the `persistent<T>` class in
+case `std::is_trivial_v<T>` is true; this allows us to avoid defining a move
+assignment operator, and to use the slightly cheaper version of the copy
+assignment that takes `T` instead of `const T&`. For now this is deemed
+premature optimization.
 
 ```c++
 // @+'endpoint bases'
@@ -333,33 +261,6 @@ struct persistent
     constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
     constexpr auto& operator=(const T& t) noexcept {value = t; return *this;}
 };
-// @/
-```
-
-We define a concept for detecting persistent value endpoints. We take
-the opportunity to lay some ground work that will also be useful for our
-occasional value endpoints in the next section.
-
-```c++
-// @+'concepts'
-template <typename T>
-concept value_like = requires (T t)
-{
-    t.value;
-    T{t.value};
-    t = t.value;
-    t.value = t;
-    t.value = t.value;
-    t = t;
-};
-
-template <typename T>
-concept _persistent_value
-    =  value_like<T>
-    && std::default_initializable<T>;
-
-template <typename T>
-concept PersistentValue = _persistent_value<T> || _persistent_value<std::decay_t<T>>;
 // @/
 
 // @+'tests'
@@ -375,49 +276,31 @@ TEST_CASE("Persistent Value", "[endpoints][helpers][persistent]")
 // @/
 ```
 
+
 ## Occasional Values
 
 Sometimes updating a value should initiate activation of the processor, and
 sometimes the processor outputs values that should be propagated immediately. A
-convenient way to represent this, borrowed from Avendish, is using
-`std::optional` to represent the temporal semantics of these updates. The
-platform is expected to clear `std::optional` valued endpoints before
-activating a component so that it can signal hot outputs and recognize hot
-inputs. Afterwards, the platform is expected to inspect hot outputs and take
-appropriate action if any are present. An important consequence of this
-semantics is that, unlike a regular value endpoint, the state of hot outputs is not
-expected to be persistent across invocations of a component, and so cannot be
-used to carry state across invocations as with a regular value endpoint.
+convenient way to represent this, seen in Avendish, is using `std::optional` to
+represent the temporal semantics of these updates. The platform is expected to
+clear `std::optional` valued endpoints before activating a component so that it
+can signal hot outputs and recognize hot inputs. Afterwards, the platform is
+expected to inspect hot outputs and take appropriate action if any are present.
+An important consequence of this semantics is that, unlike a persistent value
+endpoint, the state of hot outputs is not expected to be the unaltered by the
+platform across invocations of a component, and so cannot be used to carry
+state across invocations as with a persistent value endpoint.
 
 For now, we wholesale subsume `std::optional` by defining our occasional value
-class as an alias for the former.
+class as an alias for the former. There are probably good reasons not to do
+this, not least of all that it gives us no control over the API for our
+optional values, but it's a lowly hack that gets us moving on quickly, so we'll
+take it for now.
 
 ```c++
 // @+'endpoint bases'
 template <typename T>
 using occasional = std::optional<T>;
-// @/
-```
-
-For the related concept, we take the minimum requirements that seem satisfying,
-focusing on the pointer-style syntax enabled by std::optional and momentarily
-ignoring the rest that it offers. We rely on a definition that we will examine
-later when we define concepts for our `bang` type.
-
-```c++
-// @+'concepts'
-@{clearable flag}
-
-template<typename T>
-concept _occasional_value = requires (T t)
-{
-    *t;
-    T{*t};
-    *t = *t;
-} && ClearableFlag<T>;
-
-template<typename T>
-concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t<T>>;
 // @/
 
 // @+'tests'
@@ -435,6 +318,7 @@ TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
 }
 // @/
 ```
+
 
 ## Tags
 
@@ -475,6 +359,12 @@ struct slider : persistent<float>, named<str>, with<range_arg>
 };
 // @/
 
+As all of the functionality of these endpoints has been tested above where the
+base classes were defined, we take the opportunity instead to make sure that
+our helper endpoints adhere to the expected concepts defined elsewhere. We
+also check that our helper endpoints have the expected sizes, equivalent to
+their value types.
+
 // @+'tests'
 TEST_CASE("Basic Endpoints", "[endpoints][basic]")
 {
@@ -505,6 +395,9 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(Named<const button<"foo">&>);
     static_assert(Named<const toggle<"bar">&>);
     static_assert(Named<const slider<"baz">&>);
+    static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
+    static_assert(sizeof(toggle<"baz">) == sizeof(bool));
+    static_assert(sizeof(slider<"baz">) == sizeof(float));
 }
 // @/
 ```
@@ -542,54 +435,7 @@ struct bng : persistent<bool>, named<str>
 // @/
 ```
 
-Our `bang` concept essentially just checks that the type has an enum value
-called `bang` in its scope, and that it is a clearable flag, a concept we
-also required for our `OccasionalValue` concept.
-
 ```c++
-// @+'concepts'
-template<typename T>
-concept Bang = requires (T t)
-{
-    requires std::is_enum_v<decltype(T::bang)>;
-} && ClearableFlag<T>;
-// @/
-```
-
-The `ClearableFlag` concept requires that we can convert a type to bool, and
-that the boolean interpretation of a default constructed value of the type is
-`false`. This is true of `std::optional`, `bool`, and also pointer types, if
-I'm not mistaken. We assume that by assigning a value of this type to a
-default-constructed value that we can set its boolean interpretation to
-`false`, and check at least that constructing the type in this way has the
-expected effect. This allows us to define a generic method for clearing values
-that meet the requirements of `ClearableFlag`.
-
-A client using the `bng` class defined above may prefer to use a different,
-perhaps more expressive, method of clearing it. But for a binding author,
-it's useful to have a way to clear a flag without having to know anything
-about it other than that it is a valid flag; this is especially pertinent
-given the assumption that occasional values and bangs should be cleared by
-the environment between calls to a component's main subroutine.
-
-```c++
-// @+'clearable flag'
-template<typename T>
-concept ClearableFlag = requires (T t)
-{
-    bool(t);
-    requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
-    requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
-    t = T{};
-};
-
-template<ClearableFlag T>
-constexpr void clear_flag(T& t)
-{
-    t = T{};
-}
-// @/
-
 // @+'tests'
 TEST_CASE("Bang", "[endpoints][bang]")
 {
@@ -604,7 +450,7 @@ TEST_CASE("Bang", "[endpoints][bang]")
     b = {};
     REQUIRE(bool(b) == false);
     static_assert(Bang<decltype(b)>);
-    static_assert(sizeof(decltype(b)) == 1);
+    static_assert(sizeof(decltype(b)) == sizeof(bool));
 }
 // @/
 ```
@@ -612,27 +458,14 @@ TEST_CASE("Bang", "[endpoints][bang]")
 # Summary
 
 ```c++
-// @#'concepts.hpp'
-#pragma once
-
-#include <concepts>
-#include "utilities/consteval.hpp"
-
-namespace sygaldry::concepts
-{
-    @{concepts}
-}
-// @/
-
-// @#'helpers.hpp'
+// @#'endpoints.hpp'
 #pragma once
 
 #include <string_view>
 #include <optional>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry::endpoints
-{
+namespace sygaldry { namespace endpoints {
 
 @{string literal}
 
@@ -640,17 +473,18 @@ namespace sygaldry::endpoints
 
 @{helpers}
 
-}
+} } // namespaces
 // @/
 
-// @#'tests.cpp'
+// @#'tests/endpoints/tests.cpp'
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 #include <type_traits>
+#include <optional>
 #include <boost/pfr.hpp>
-#include "helpers.hpp"
-#include "concepts.hpp"
+#include "components/endpoints.hpp"
+#include "components/concepts.hpp"
 
 using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;
@@ -661,7 +495,7 @@ using std::string_view;
 ```
 
 ```cmake
-# @#'CMakeLists.txt'
+# @#'tests/endpoints/CMakeLists.txt'
 add_executable(endpoints-tests tests.cpp)
 target_link_libraries(endpoints-tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(endpoints-tests)

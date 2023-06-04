@@ -2,9 +2,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 #include <type_traits>
+#include <optional>
 #include <boost/pfr.hpp>
-#include "helpers.hpp"
-#include "concepts.hpp"
+#include "components/endpoints.hpp"
+#include "components/concepts.hpp"
 
 using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;
@@ -18,22 +19,11 @@ TEST_CASE("String literal", "[endpoints][string_literal]")
     REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");
 }
+
 struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
-}
-struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
-{
-    static_assert(Named<base_struct_with_name>);
-    static_assert(Named<struct_with_name>);
-    struct_with_name foo{};
-    base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }
 struct struct_with_range : with<range{0, 127}> {};
 struct struct_with_init : with<range{0.0f, 100.0f, 42.0f}> {};
@@ -49,50 +39,6 @@ TEST_CASE("Range", "[endpoints][bases][range]")
     SECTION("With init")
     {
         REQUIRE(struct_with_init::range().init == 42.0f);
-    }
-}
-void range_ref_check(struct_with_range& bar)
-{
-}
-
-TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
-{
-    static_assert(Ranged<struct_with_range>);
-    struct_with_range foo{};
-    SECTION("T")
-    {
-        REQUIRE(get_range(foo).min == 0);
-        REQUIRE(get_range(foo).max == 127);
-        REQUIRE(get_range(foo).init == 0);
-        REQUIRE(get_range<struct_with_range>().min == 0);
-        REQUIRE(get_range<struct_with_range>().max == 127);
-        REQUIRE(get_range<struct_with_range>().init == 0);
-        auto r1 = get_range(foo);
-        auto r2 = get_range<struct_with_range>();
-    }
-    SECTION("T&")
-    {
-        auto& bar = foo;
-        REQUIRE(get_range(bar).min == 0);
-        REQUIRE(get_range(bar).max == 127);
-        REQUIRE(get_range(bar).init == 0);
-        REQUIRE(get_range<struct_with_range&>().min == 0);
-        REQUIRE(get_range<struct_with_range&>().max == 127);
-        REQUIRE(get_range<struct_with_range&>().init == 0);
-        auto r3 = get_range(bar);
-        auto r4 = get_range<struct_with_range&>();
-    }
-    SECTION("constT&")
-    {
-        const auto& baz = foo;
-        REQUIRE(get_range(baz).min == 0);
-        REQUIRE(get_range(baz).max == 127);
-        REQUIRE(get_range(baz).init == 0);
-        REQUIRE(get_range<struct_with_range&>().min == 0);
-        REQUIRE(get_range<struct_with_range&>().max == 127);
-        REQUIRE(get_range<struct_with_range&>().init == 0);
-        auto r5 = get_range(baz);
-        auto r6 = get_range<const struct_with_range&>();
     }
 }
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
@@ -145,6 +91,9 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(Named<const button<"foo">&>);
     static_assert(Named<const toggle<"bar">&>);
     static_assert(Named<const slider<"baz">&>);
+    static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
+    static_assert(sizeof(toggle<"baz">) == sizeof(bool));
+    static_assert(sizeof(slider<"baz">) == sizeof(float));
 }
 TEST_CASE("Bang", "[endpoints][bang]")
 {
@@ -159,5 +108,5 @@ TEST_CASE("Bang", "[endpoints][bang]")
     b = {};
     REQUIRE(bool(b) == false);
     static_assert(Bang<decltype(b)>);
-    static_assert(sizeof(decltype(b)) == 1);
+    static_assert(sizeof(decltype(b)) == sizeof(bool));
 }

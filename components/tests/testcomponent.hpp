@@ -1,13 +1,5 @@
-# Test Component
-
-A component is defined with one of every type of endpoint helper, as an input
-and output. It's functionality is to copy its input values to its output values.
-This component can be used to test bindings.
-
-```c++
-// @#'testcomponent.hpp'
 #pragma once
-#include "components/endpoints/helpers.hpp"
+#include "components/endpoints.hpp"
 
 namespace sygaldry::components
 {
@@ -37,5 +29,3 @@ struct TestComponent : endpoints::named<"Test Component 1">
     }
 };
 }
-// @/
-```

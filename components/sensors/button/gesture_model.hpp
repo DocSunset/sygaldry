@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utilities/consteval.hpp"
-#include "components/endpoints/helpers.hpp"
+#include "components/endpoints.hpp"
 
 namespace sygaldry
 {

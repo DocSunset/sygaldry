@@ -4,8 +4,7 @@
 #include <optional>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry::endpoints
-{
+namespace sygaldry { namespace endpoints {
 
 template<std::size_t N>
 struct string_literal
@@ -94,4 +93,4 @@ struct bng : persistent<bool>, named<str>
     void reset() {value = false;}
 };
 
-}
+} } // namespaces

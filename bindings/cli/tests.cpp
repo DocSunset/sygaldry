@@ -1,7 +1,7 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
-#include "components/testcomponent.hpp"
+#include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 

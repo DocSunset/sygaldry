@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/endpoints/helpers.hpp"
+#include "components/endpoints.hpp"
 
 using std::string_view;
 using namespace sygaldry::spelling;
