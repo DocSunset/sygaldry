@@ -1,4 +1,5 @@
 #pragma once
+#include <tuple>
 #include "utilities/spelling.hpp"
 
 namespace sygaldry
@@ -18,6 +19,7 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
 }
 
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
+    requires requires { std::tuple_size_v<TupleOfNamed>; }
 auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
     if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d; // no impl if no t
