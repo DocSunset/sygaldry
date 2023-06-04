@@ -44,12 +44,12 @@ struct Describe
     {
         using spelling::lower_kebab_case;
         using T = decltype(entity);
-        static_assert(Named<T>);
+        static_assert(has_name<T>);
         log.println(indents..., preface, (const char *)lower_kebab_case(entity));
         log.println(indents..., "  name: \"", entity.name(), "\"");
         log.print(indents...,   "  type:  ");
         describe_entity_type(entity);
-        if constexpr (Ranged<T>)
+        if constexpr (has_range<T>)
         {
             log.print(indents..., "  range: ");
             auto range = get_range<T>();

@@ -12,23 +12,44 @@ using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
+TEST_CASE("get_name", "[components][concepts][get_name]")
 {
-    static_assert(Named<base_struct_with_name>);
-    static_assert(Named<struct_with_name>);
+    static_assert(has_name<base_struct_with_name>);
+    static_assert(has_name<struct_with_name>);
     struct_with_name foo{};
-    // TODO: add checks passing cv-ref qualified foo
     base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    SECTION("T")
+    {
+        REQUIRE(string_view(get_name(foo)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(yup)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    }
+    SECTION("T&")
+    {
+        auto& bar = foo;
+        auto& baz = yup;
+        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name&>()) == string_view("yup"));
+    }
+    SECTION("const T&")
+    {
+        const auto& bar = foo;
+        const auto& baz = yup;
+        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    }
 }
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
-TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
+TEST_CASE("has_range", "[components][concepts][has_range]")
 {
-    static_assert(Ranged<struct_with_range>);
+    static_assert(has_range<struct_with_range>);
+    static_assert(has_range<struct_with_init>);
     struct_with_range foo{};
     SECTION("T")
     {

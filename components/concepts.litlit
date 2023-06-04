@@ -46,55 +46,118 @@ primitive types, as well as function objects and other means of passing around
 subroutines and the thread of execution. But as a starting point, the basic
 representations described are enough to achieve a great deal of useful work.
 
-# Name
+# Spelling Convention
 
-An entity is considered `Named` if it's type has a static method that returns
-something that is convertible to some string reprsentation. Two similar blocks
-of checks are used, where the latter tries to access the name after decaying
-the type; this is required to allow cv-ref qualified types to be recognized
-as having a name.
+As concepts are a relatively new addition to C++, there aren't necessarily as
+strong conventions established for their typography. Here we adopt the
+following approximate rules of thumb: A concept that establishes a type `T` as
+having a certain property is written in lower snake case, e.g. `has_name<T>`. A
+concept that establishes T as being alike to certain other type or typical API
+is written the same, e.g. `tuple_like`. Finally, if a concept establishes that
+a certain T is, for all intents and purposes, an instance of a certain sort of
+object, we use camel case, as in `OccasionalValue` or `Component`. As in the
+rest of the project, a leading underscore is used to signify a private
+implementation detail that the user should likely not access.
+
+Recap:
+
+- has a: `has_name`
+- alike: `tuple_like`
+- is a: `PersistentValue`
+- private: `_not_yours`
+
+# Name and Other Text
+
+An entity is considered to have a name if its type has a static method that
+returns something that is convertible to some string representation. The use of
+`std::decay` removes cv-ref qualifications on the type and seems to be
+necessary so that its name can be accessed and recognized when the type is a
+reference, although I'm not entirely sure why.
 
 ```c++
-// @+'concepts'
 template<typename T>
-concept Named = requires
-{
-    {T::name()} -> std::convertible_to<std::string>;
-    {T::name()} -> std::convertible_to<std::string_view>;
-    {T::name()} -> std::convertible_to<const char *>;
-} || requires
+concept has_name = requires
 {
     {std::decay_t<T>::name()} -> std::convertible_to<std::string>;
     {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
     {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
 };
+template<has_name T>
+constexpr auto get_name(const T&) { return T::name(); }
+
+template<has_name T>
+_consteval auto get_name() { return std::decay_t<T>::name(); }
+```
+
+In the same what that all textual metadata can be defined using the same
+pattern, so too can it be detected and accessed. So just as we use a
+macro is `endpoints.litlit` to generate metadata helpers, here we
+use one to generate their accessors.
+
+```c++
+// @+'concepts'
+#define text_concept(CONCEPT_NAME) template<typename T> \
+concept has_##CONCEPT_NAME = requires \
+{ \
+    {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<std::string>; \
+    {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<std::string_view>; \
+    {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<const char *>; \
+}; \
+template<has_##CONCEPT_NAME T> \
+constexpr auto get_##CONCEPT_NAME(const T&) { return T::CONCEPT_NAME(); } \
+ \
+template<has_##CONCEPT_NAME T> \
+_consteval auto get_##CONCEPT_NAME() { return std::decay_t<T>::CONCEPT_NAME(); }
+
+text_concept(name);
+text_concept(author);
+text_concept(email);
+text_concept(license);
+text_concept(description);
+text_concept(uuid);
+text_concept(unit);
+text_concept(version);
+text_concept(date);
+
+#undef text_concept
 // @/
 ```
 
 ```c++
-// @+'concepts'
-// todo: this should probably be constexpr
-template<Named T>
-_consteval auto get_name(const T&) { return T::name(); }
-
-template<Named T>
-_consteval auto get_name() { return T::name(); }
-// @/
-
 // @+'tests'
 struct struct_with_name : name_<"foo"> {};
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][endpoints][concepts][get_name]")
+TEST_CASE("get_name", "[components][concepts][get_name]")
 {
-    static_assert(Named<base_struct_with_name>);
-    static_assert(Named<struct_with_name>);
+    static_assert(has_name<base_struct_with_name>);
+    static_assert(has_name<struct_with_name>);
     struct_with_name foo{};
-    // TODO: add checks passing cv-ref qualified foo
     base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-    REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-    REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    SECTION("T")
+    {
+        REQUIRE(string_view(get_name(foo)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(yup)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    }
+    SECTION("T&")
+    {
+        auto& bar = foo;
+        auto& baz = yup;
+        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name&>()) == string_view("yup"));
+    }
+    SECTION("const T&")
+    {
+        const auto& bar = foo;
+        const auto& baz = yup;
+        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
+        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
+        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+    }
 }
 // @/
 ```
@@ -110,31 +173,27 @@ previous section.
 ```c++
 // @+'concepts'
 template<typename T>
-concept Ranged = requires
-{
-    T::range().min;
-    T::range().max;
-    T::range().init;
-} || requires
+concept has_range = requires
 {
     std::decay_t<T>::range().min;
     std::decay_t<T>::range().max;
     std::decay_t<T>::range().init;
 };
 
-template<Ranged T>
+template<has_range T>
 constexpr auto get_range(const T&) { return T::range(); }
 
-template<Ranged T>
+template<has_range T>
 _consteval auto get_range() { return std::decay_t<T>::range(); }
 // @/
 
 // @+'tests'
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
-TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
+TEST_CASE("has_range", "[components][concepts][has_range]")
 {
-    static_assert(Ranged<struct_with_range>);
+    static_assert(has_range<struct_with_range>);
+    static_assert(has_range<struct_with_init>);
     struct_with_range foo{};
     SECTION("T")
     {

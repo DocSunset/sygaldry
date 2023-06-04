@@ -5,41 +5,42 @@
 
 namespace sygaldry { namespace concepts {
 
-    template<typename T>
-    concept Named = requires
-    {
-        {T::name()} -> std::convertible_to<std::string>;
-        {T::name()} -> std::convertible_to<std::string_view>;
-        {T::name()} -> std::convertible_to<const char *>;
-    } || requires
-    {
-        {std::decay_t<T>::name()} -> std::convertible_to<std::string>;
-        {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
-        {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
-    };
-    // todo: this should probably be constexpr
-    template<Named T>
-    _consteval auto get_name(const T&) { return T::name(); }
+    #define text_concept(CONCEPT_NAME) template<typename T> \
+    concept has_##CONCEPT_NAME = requires \
+    { \
+        {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<std::string>; \
+        {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<std::string_view>; \
+        {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<const char *>; \
+    }; \
+    template<has_##CONCEPT_NAME T> \
+    constexpr auto get_##CONCEPT_NAME(const T&) { return T::CONCEPT_NAME(); } \
+     \
+    template<has_##CONCEPT_NAME T> \
+    _consteval auto get_##CONCEPT_NAME() { return std::decay_t<T>::CONCEPT_NAME(); }
 
-    template<Named T>
-    _consteval auto get_name() { return T::name(); }
+    text_concept(name);
+    text_concept(author);
+    text_concept(email);
+    text_concept(license);
+    text_concept(description);
+    text_concept(uuid);
+    text_concept(unit);
+    text_concept(version);
+    text_concept(date);
+
+    #undef text_concept
     template<typename T>
-    concept Ranged = requires
-    {
-        T::range().min;
-        T::range().max;
-        T::range().init;
-    } || requires
+    concept has_range = requires
     {
         std::decay_t<T>::range().min;
         std::decay_t<T>::range().max;
         std::decay_t<T>::range().init;
     };
 
-    template<Ranged T>
+    template<has_range T>
     constexpr auto get_range(const T&) { return T::range(); }
 
-    template<Ranged T>
+    template<has_range T>
     _consteval auto get_range() { return std::decay_t<T>::range(); }
     template <typename T>
     concept value_like = requires (T t) // TODO: T a, T b

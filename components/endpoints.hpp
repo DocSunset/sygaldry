@@ -24,6 +24,8 @@ struct STRUCT_NAME\
 
 text_struct(name_, name);
 text_struct(author_, author);
+text_struct(email_, email);
+text_struct(license_, license);
 text_struct(description_, description);
 text_struct(uuid_, uuid);
 text_struct(unit_, unit);

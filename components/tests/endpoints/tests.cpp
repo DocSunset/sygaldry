@@ -21,7 +21,7 @@ TEST_CASE("String literal", "[endpoints][string_literal]")
 }
 
 struct struct_with_name : name_<"foo"> {};
-TEST_CASE("Named", "[endpoints][bases][named]")
+TEST_CASE("name_", "[endpoints][bases][name_]")
 {
     REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
 }
@@ -67,30 +67,30 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(OccasionalValue<button<"foo">>);
     static_assert(PersistentValue<toggle<"baz">>);
     static_assert(PersistentValue<slider<"baz">>);
-    static_assert(Ranged<button<"foo">>);
-    static_assert(Ranged<toggle<"bar">>);
-    static_assert(Ranged<slider<"baz">>);
-    static_assert(Named<button<"foo">>);
-    static_assert(Named<toggle<"bar">>);
-    static_assert(Named<slider<"baz">>);
+    static_assert(has_range<button<"foo">>);
+    static_assert(has_range<toggle<"bar">>);
+    static_assert(has_range<slider<"baz">>);
+    static_assert(has_name<button<"foo">>);
+    static_assert(has_name<toggle<"bar">>);
+    static_assert(has_name<slider<"baz">>);
     static_assert(OccasionalValue<button<"foo">&>);
     static_assert(PersistentValue<toggle<"bar">&>);
     static_assert(PersistentValue<slider<"baz">&>);
-    static_assert(Ranged<button<"foo">&>);
-    static_assert(Ranged<toggle<"bar">&>);
-    static_assert(Ranged<slider<"baz">&>);
-    static_assert(Named<button<"foo">&>);
-    static_assert(Named<toggle<"bar">&>);
-    static_assert(Named<slider<"baz">&>);
+    static_assert(has_range<button<"foo">&>);
+    static_assert(has_range<toggle<"bar">&>);
+    static_assert(has_range<slider<"baz">&>);
+    static_assert(has_name<button<"foo">&>);
+    static_assert(has_name<toggle<"bar">&>);
+    static_assert(has_name<slider<"baz">&>);
     static_assert(OccasionalValue<const button<"foo">&>);
     static_assert(PersistentValue<const toggle<"bar">&>);
     static_assert(PersistentValue<const slider<"baz">&>);
-    static_assert(Ranged<const button<"foo">&>);
-    static_assert(Ranged<const toggle<"bar">&>);
-    static_assert(Ranged<const slider<"baz">&>);
-    static_assert(Named<const button<"foo">&>);
-    static_assert(Named<const toggle<"bar">&>);
-    static_assert(Named<const slider<"baz">&>);
+    static_assert(has_range<const button<"foo">&>);
+    static_assert(has_range<const toggle<"bar">&>);
+    static_assert(has_range<const slider<"baz">&>);
+    static_assert(has_name<const button<"foo">&>);
+    static_assert(has_name<const toggle<"bar">&>);
+    static_assert(has_name<const slider<"baz">&>);
     static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
     static_assert(sizeof(toggle<"baz">) == sizeof(bool));
     static_assert(sizeof(slider<"baz">) == sizeof(float));
