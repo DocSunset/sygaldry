@@ -96,3 +96,19 @@ TEST_CASE("Dispatch can mutate entities component", "[bindings][dispatch]")
     REQUIRE(ret == 888);
     REQUIRE(x.inputs.in2.value == 888);
 }
+
+struct CustomMatcher
+{
+    template<typename stringish, typename NamedT>
+    bool operator()(stringish name, const NamedT& candidate)
+    {
+        return std::string_view(NamedT::name()) == std::string_view("name4");
+    }
+};
+
+TEST_CASE("Dispatch with custom matcher", "[bindings][dispatch]")
+{
+    PseudoComponent1 x{};
+    auto ret = dispatch<CustomMatcher>("name1", x, "fail", [](auto& n) {return n.name();});
+    REQUIRE(string_view(ret) == string_view("name4"));
+}
