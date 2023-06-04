@@ -28,7 +28,7 @@ struct BasicLogger
                                               + std::numeric_limits<T>::max_exponent10 + 3
 
                 // ints: digits + sign
-                : std::numeric_limits<T>::digits10 + std::is_signed_v<T> ? 1 : 0
+                : (std::numeric_limits<T>::digits10 + std::is_signed_v<T>) ? 1 : 0
             );
 
             constexpr int buffer_size = max_num_digits + 16; // Extra padding for safety
