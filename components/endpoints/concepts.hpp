@@ -6,11 +6,17 @@
 namespace sygaldry::concepts
 {
     template<typename T>
-    concept Named
-        =  requires { {T::name()} -> std::convertible_to<std::string>; }
-        || requires { {T::name()} -> std::convertible_to<std::string_view>; }
-        || requires { {T::name()} -> std::convertible_to<const char *>; }
-        ;
+    concept Named = requires
+    {
+        {T::name()} -> std::convertible_to<std::string>;
+        {T::name()} -> std::convertible_to<std::string_view>;
+        {T::name()} -> std::convertible_to<const char *>;
+    } || requires
+    {
+        {std::decay_t<T>::name()} -> std::convertible_to<std::string>;
+        {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>;
+        {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
+    };
 
     template<Named T>
     _consteval auto get_name(const T&) { return T::name(); }
@@ -23,15 +29,21 @@ namespace sygaldry::concepts
         T::range().min;
         T::range().max;
         T::range().init;
+    } || requires
+    {
+        std::decay_t<T>::range().min;
+        std::decay_t<T>::range().max;
+        std::decay_t<T>::range().init;
     };
 
-    template<Ranged T>
-    _consteval auto get_range(const T&) { return T::range(); }
 
     template<Ranged T>
-    _consteval auto get_range() { return T::range(); }
+    constexpr auto get_range(const T&) { return T::range(); }
+
+    template<Ranged T>
+    _consteval auto get_range() { return std::decay_t<T>::range(); }
     template <typename T>
-    concept _value_like = requires (T t)
+    concept value_like = requires (T t)
     {
         t.value;
         T{t.value};
@@ -42,9 +54,12 @@ namespace sygaldry::concepts
     };
 
     template <typename T>
-    concept PersistentValue
-        =  _value_like<T>
+    concept _persistent_value
+        =  value_like<T>
         && std::default_initializable<T>;
+
+    template <typename T>
+    concept PersistentValue = _persistent_value<T> || _persistent_value<std::decay_t<T>>;
     template<typename T>
     concept ClearableFlag = requires (T t)
     {
@@ -61,12 +76,15 @@ namespace sygaldry::concepts
     }
 
     template<typename T>
-    concept OccasionalValue = requires (T t)
+    concept _occasional_value = requires (T t)
     {
         *t;
         T{*t};
         *t = *t;
     } && ClearableFlag<T>;
+
+    template<typename T>
+    concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t<T>>;
     template<typename T>
     concept Bang = requires (T t)
     {
