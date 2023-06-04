@@ -1,0 +1,435 @@
+# Motivation
+
+An important point of metadata about processors and endpoints are their names.
+Names are often required when generating bindings. For example, a processor
+that applies a one pole exponential moving average low pass filter to its input
+might be called "Simple Lowpass", and an endpoints called "cutoff frequency".
+In its Open Sound Control binding, these might have to be spelled differently,
+such as "SimpleLowpass" and "SimpleLowpass/cutoff_frequency". In a command-line
+style binding or as a Pure Data externail, it might be more convenient and
+idiomatic to spell them "simple-lowpass" and "cutoff-frequency". In other
+contexts, different spellings might be required.
+
+To support all these use cases, one approach is for the author of the processor
+to specify different spellings for alternative applications. For example, the
+name of the processor might be specified in this way:
+
+```c++
+struct SimpleLowpass
+{
+    static _consteval const char * name() {return "Simple Lowpass";}
+    static _consteval const char * camel_name() {return "SimpleLowpass";}
+    static _consteval const char * snake_name() {return "simple_lowpass";}
+    static _consteval const char * kebab_name() {return "simple-lowpass";}
+
+    struct inputs_t
+    {
+        struct cutoff_t
+        {
+            static _consteval const char * name() {return "cutoff frequency";}
+            static _consteval const char * camel_name() {return "cutoffFrequency";}
+            static _consteval const char * snake_name() {return "cutoff_frequency";}
+            static _consteval const char * kebab_name() {return "cutoff-frequency";}
+            static _consteval const char * osc_address() {return "SimpleLowpass/cutoff_frequency";}
+            float value;
+        } cutoff;
+    } inputs;
+
+    // low pass implementation here ...
+};
+// @/
+```
+
+This obviously has some shortcomings, not least of all that the author has to
+manually repeat the name with however many spellings are required. Generating
+an address space, such as for Open Sound Control bindings, might be especially
+cumbersome. The various spelling conventions are reasonably regular, so it
+should be possible to do the conversion from one canonical natural language
+name to various technical spellings with an algorithm. Since the name is
+presumably known at compile time, these conversion can be performed at compile
+time, imposing no runtime cost.
+
+# Basics: Snake Case
+
+Snake case is achieved by replacing spaces with underscores. Ideally we should
+like to have a function `snake_case("example name")` that converts an input
+string to snake case and returns the resulting string `"example_name"`.
+However, this poses challenges for the compile-time execution environment.
+We're not allowed to allocate memory and then return a pointer to that memory,
+so we can't return `const char *`. We could use `std::array` instead, but then
+the user would have to extract the character pointer anytime they want to use
+the data as a string, e.g. `snake_case("example name").data()`, which we would
+like to avoid. It's also not possible to use a template variable e.g.
+`snake_case<"example name">`, since string literals cannot be used as non-type
+template parameters.
+
+One solution comes from the fact that the strings we want to process are
+assumed to be `static _consteval` member functions of the named entities we are
+reflecting over. From this, we can use the type of the processor as a template
+parameter to a `struct` with its own `static constexpr` string data called `value`
+below. We can initialize this string with a lambda that applies the snake case
+mapping to the name of the processor, which gives us the following implementation:
+
+```c++
+template<typename NamedType>
+struct snake_case
+{
+    static constexpr size_t N = length(NamedType::name());
+    static constexpr std::array<char, N> value = [](const char * s)
+    {
+        std::array<char, N> ret{};
+        for (size_t i = 0; i < N; ++i)
+        {
+            char c = s[i];
+            ret[i] = c == ' ' ? '_' : c;
+        }
+        return ret;
+    }(NamedType::name());
+
+    @{snake case sugar}
+};
+```
+
+To avoid having to write `snake_case<example_t>::value.data()` to get at the
+string, we can provide a constructor and conversion operator so that a function-like
+syntax can be used:
+
+```c++
+// @='snake case sugar'
+snake_case(NamedType) {}
+constexpr operator const char *() { return value.data(); }
+// @/
+```
+
+This way, given a value of `NamedType` we can access its snake case name like this:
+
+```c++
+// @+'snake tests'
+SECTION("Snake Case Function-like Access")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "snake case example";}
+    } x;
+
+    REQUIRE(string(snake_case(x)) == string("snake_case_example"));
+}
+// @/
+```
+
+In case we don't have a value of `NamedType` and don't want to construct one
+(although doing so shouldn't actually do anything at runtime), we can also
+provide a template variable that gets the string, providing an alternative
+method of accessing the string:
+
+```c++
+// @='snake case template variable'
+template<typename NamedType>
+constexpr const char * snake_case_v = snake_case<NamedType>::value.data();
+// @/
+
+// @+'snake tests'
+SECTION("Snake Case Template Variable Access")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "snake case example";}
+    };
+
+    REQUIRE(string(snake_case_v<example_t>) == string("snake_case_example"));
+}
+// @/
+
+// @+'tests'
+TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
+{
+    @{snake tests}
+}
+// @/
+```
+
+In order to statically allocate enough memory for the transformed string, we
+need to know its size. We can write a simple compile-time evaluated function to
+count how many characters there are in the string. We trust that the compiler
+will catch if a non-null-terminated string is passed in, e.g. by recognizing
+out of bounds access on the compile-time constant input.
+
+```c++
+// @='string length function'
+template<typename Device>
+_consteval auto name_length()
+{
+    size_t ret = 0;
+    while (Device::name()[ret] != 0) ret++;
+    return ret;
+}
+// @/
+```
+
+# Generalizing: Kebab Case and Capitalization
+
+The mapping for kebab case (e.g. "a brief example" -> "a-brief-example") is
+almost identical to the one for snake case, substituting dashes instead of
+underscores. To avoid repeating a very similar implementation, the above snake
+case implementation can be generalized to accept a mapping function with which
+to modify the name. Indeed, it may be useful to accept several such functions,
+to allow a combination of different mappings, e.g. `ALL_CAPS_SNAKE`,
+`Title-Case-Kebab`, and so on. The most generic solution would be to accept a
+lambda, e.g. `respell<example_t>([](auto c){return c == ' ' ? '_' : c;}` to
+achieve snake case. However, since the required transformations are likely to
+be reused across different bindings, it may be more succinct and less error
+prone to supply the mapping functions (e.g. `snake`, `kebab`, `all_caps`, etc.)
+as parameters to a template variable. We can define a variadic functor template
+to allow the composition of functions passed as template parameters:
+
+```c++
+// @='composition functor'
+typedef char (*char_mapping)(char);
+template<char_mapping...mappings> struct compose;
+
+template<char_mapping mapping> struct compose<mapping>
+{
+    constexpr char operator()(char c) { return mapping(c); }
+};
+
+template<char_mapping mapping, char_mapping... mappings> struct compose<mapping, mappings...>
+{
+    constexpr char operator()(char c) { return compose<mappings...>{}(mapping(c)); }
+};
+// @/
+```
+
+Then the above `snake_case` struct can be slightly modified. The
+template parameter list is augmented to accept a variadic list of
+mappings.
+
+```diff
+< template<typename NamedType>
+< struct snake_case
+---
+> template<typename NamedType, char_mapping... Mappings>
+> struct respeller
+```
+
+The composition of these mappings is then constructed before the for loop.
+
+```diff
+> auto mapping = compose<Mappings...>{};
+```
+
+And rather than directly applying a specific mapping, the composition
+of mappings is used.
+
+```diff
+< ret[i] = c == ' ' ? '_' : c;
+---
+> ret[i] = mapping(c); // apply the mapping
+```
+
+Snake and kebab case are then easily defined in terms of their simple mappings,
+as are basic transformations to or from capital letters:
+
+```c++
+// @='mappings'
+constexpr char snake(char c) {return c == ' ' ? '_' : c;}
+constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
+constexpr char lower(char c)
+{
+    if ('A' <= c && c <= 'Z') return c+('a'-'A');
+    return c;
+}
+constexpr char upper(char c)
+{
+    if ('a' <= c && c <= 'z') return c-('a'-'A');
+    return c;
+}
+// @/
+
+To save the user having to write out `respeller` with all of its template
+arguments, we provide some "aliases" for expected use cases, so that
+the user can write `snake_case(x)` or `snake_case_v<T>` as seen above.
+
+My initial thought here was to literally use a template type alias for the
+function-like syntax--
+
+```c++
+template<typename NamedType> using snake_case = respeller<NamedType, snake>;
+```
+
+--and this works fine with `gcc`. Unfortunately, `clang` doesn't allow
+argument deduction for template aliases:
+
+```sh
+.../sygaldry/utilities/metadata/names/tests.cpp:18:24: error: alias template
+'snake_case' requires template arguments; argument deduction only allowed for
+class templates
+        REQUIRE(string(snake_case(x)) == string("snake_case_example"));
+                       ^
+```
+
+Instead, we can use derived classes. We have to re-define the constructor from `NamedType`,
+but it'll do.
+
+// @='template aliases'
+template<typename NamedType>
+struct snake_case : respeller<NamedType, snake>
+{
+    snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake>{x} {}
+};
+
+template<typename NamedType>
+struct upper_snake_case : respeller<NamedType, snake, upper>
+{
+    upper_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, upper>{x} {}
+};
+
+template<typename NamedType>
+struct lower_snake_case : respeller<NamedType, snake, lower>
+{
+    lower_snake_case([[maybe_unused]] NamedType x) : respeller<NamedType, snake, lower>{x} {}
+};
+
+template<typename NamedType>
+struct kebab_case : respeller<NamedType, kebab>
+{
+    kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab>{x} {}
+};
+
+template<typename NamedType>
+struct upper_kebab_case : respeller<NamedType, kebab, upper>
+{
+    upper_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, upper>{x} {}
+};
+
+template<typename NamedType>
+struct lower_kebab_case : respeller<NamedType, kebab, lower>
+{
+    lower_kebab_case([[maybe_unused]] NamedType x) : respeller<NamedType, kebab, lower>{x} {}
+};
+// @/
+
+// @='template variables'
+template<typename NamedType> constexpr const char * snake_case_v       =       snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_snake_case_v = upper_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_snake_case_v = lower_snake_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * kebab_case_v       =       kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
+template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
+// @/
+```
+
+```c++
+// @+'tests'
+TEST_CASE("Kebab Case")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "kebab case example";}
+    } x;
+
+    CHECK(string(kebab_case(x)) == string("kebab-case-example"));
+    CHECK(string(kebab_case_v<example_t>) == string("kebab-case-example"));
+}
+TEST_CASE("Upper/lower")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "A Basic Example";}
+    } x;
+    CHECK(string(upper_snake_case(x)) == string("A_BASIC_EXAMPLE"));
+    CHECK(string(lower_kebab_case(x)) == string("a-basic-example"));
+}
+// @/
+```
+
+And here is the final implementation:
+
+```c++
+// @='mapping composition respeller'
+@{composition functor}
+
+template<typename NamedType, char_mapping... Mappings>
+struct respeller
+{
+    static constexpr size_t N = name_length<NamedType>() + 1; // + 1 for null terminator
+    static constexpr std::array<char, N> value = [](const char * s)
+    {
+        auto mapping = compose<Mappings...>{}; // construct the composition of mappings
+        std::array<char, N> ret{};
+        for (size_t i = 0; i < N; ++i)
+        {
+            char c = s[i];
+            ret[i] = mapping(c); // apply the mapping
+        }
+        return ret;
+    }(NamedType::name());
+
+    respeller(NamedType) {}
+    constexpr operator const char *() { return value.data(); }
+};
+
+// @/
+```
+
+# Future Work
+
+The `respeller` defined above assumes that the textual mapping functions are
+one-to-one, e.g. spaces become underscores, lower case becomes uppercase, etc.
+However, some common spelling conventions, e.g. `CamelCase` and `dromedaryCase`
+can reduce the length of the output string. This will require some modification
+of our approach, to allocate the correct string length, and to iterate through
+the input string. In the most general framework, it might be useful to replace
+arbitrary regular expression matches with given replacements, or to add strings
+where matches are located. Such extensions should be added if these features
+become necessary.
+
+It remains as future work to implement compile-time generation of OSC address
+strings and capitalization mappings.
+
+# Summary
+
+```c++
+// @#'names.hpp'
+#pragma once
+#include <array>
+#include "utilities/consteval/consteval.hpp"
+
+namespace sygaldry::utilities::metadata::names
+{
+
+@{string length function}
+@{mapping composition respeller}
+@{mappings}
+@{template aliases}
+@{template variables}
+
+}
+// @/
+```
+
+## Tests
+
+```c++
+// @#'tests.cpp'
+#include <string>
+#include <array>
+#include <catch2/catch_test_macros.hpp>
+#include "utilities/consteval/consteval.hpp"
+#include "names.hpp"
+
+using std::string;
+using namespace sygaldry::utilities::metadata::names;
+
+@{tests}
+// @/
+```
+
+## Build
+
+```cmake
+# @#'CMakeLists.txt'
+add_executable(names-tests tests.cpp)
+target_link_libraries(names-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(names-tests)
+# @/
+```

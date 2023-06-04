@@ -1,18 +1,16 @@
 #pragma once
 #include <cstddef>
-#include "utilities/consteval.hpp"
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::utilities
 {
 template<std::size_t N>
 struct string_literal
 {
-    static _consteval auto size() {return N;}
-    char data[N];
+    char value[N];
     _consteval string_literal(const char (&str)[N]) noexcept
     {
-        for (std::size_t i = 0; i < N; ++i) data[i] = str[i];
+        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
     }
-    operator const char *() {return data;}
 };
 }

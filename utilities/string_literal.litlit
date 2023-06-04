@@ -9,7 +9,7 @@ construction from a (fully typed) string literal array. When an actual literal
 after the array part decays to a pointer) is passed as parameter to a template
 that takes a `string_literal` parameter, the compiler automatically deduces the
 size parameter of the string literal. The literal is then copied at compile time
-to the `string_literal`'s data array.
+to the `string_literal`'s value array.
 
 As well as being used to name endpoints and components, this helpful class is
 leveraged extensively in the name manipulation library at `utilites/names.hpp`.
@@ -18,20 +18,18 @@ leveraged extensively in the name manipulation library at `utilites/names.hpp`.
 // @#'string_literal.hpp'
 #pragma once
 #include <cstddef>
-#include "utilities/consteval.hpp"
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::utilities
 {
 template<std::size_t N>
 struct string_literal
 {
-    static _consteval auto size() {return N;}
-    char data[N];
+    char value[N];
     _consteval string_literal(const char (&str)[N]) noexcept
     {
-        for (std::size_t i = 0; i < N; ++i) data[i] = str[i];
+        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
     }
-    operator const char *() {return data;}
 };
 }
 // @/
@@ -45,11 +43,11 @@ using namespace sygaldry::utilities;
 using std::string_view;
 
 template<string_literal str>
-_consteval auto name() {return string_view{str.data};}
+_consteval auto name() {return string_view{str.value};}
 
 TEST_CASE("String literal", "[utilities][string_literal]")
 {
-    REQUIRE(string_view(string_literal{"Hello world"}.data) == "Hello world");
+    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");
 }
 // @/

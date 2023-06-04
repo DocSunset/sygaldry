@@ -56,13 +56,13 @@ free to employ whatever design methods they prefer for endpoints. Indeed, even
 a bare `float` or similar is perfectly allowed, although it is challenging to
 associate metadata with such an endpoint.
 
-## Name
+## With
 
 // @+'endpoint bases'
 template<string_literal str>
 struct named
 {
-    static _consteval auto name() {return str;}
+    static _consteval auto name() {return str.value;}
 };
 // @/
 
@@ -87,16 +87,16 @@ a method call.
 // @+'inspectors'
 template<typename T>
 concept Named
-    =  requires { {std::decay_t<T>::name()} -> std::convertible_to<std::string>; }
-    || requires { {std::decay_t<T>::name()} -> std::convertible_to<std::string_view>; }
-    || requires { {std::decay_t<T>::name()} -> std::convertible_to<const char *>; }
+    =  requires { {T::name()} -> std::convertible_to<std::string>; }
+    || requires { {T::name()} -> std::convertible_to<std::string_view>; }
+    || requires { {T::name()} -> std::convertible_to<const char *>; }
     ;
 
 template<Named T>
-constexpr auto get_name(const T&) { return std::decay_t<T>::name(); }
+_consteval auto get_name(const T&) { return T::name(); }
 
 template<Named T>
-_consteval auto get_name() { return std::decay_t<T>::name(); }
+_consteval auto get_name() { return T::name(); }
 // @/
 
 // @+'tests'
@@ -107,8 +107,8 @@ TEST_CASE("get_name", "[components][endpoints][inspectors][get_name]")
     static_assert(Named<struct_with_name>);
     struct_with_name foo{};
     base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+    REQUIRE(get_name(foo) == string_view("foo"));
+    REQUIRE(get_name<struct_with_name>() == string_view("foo"));
     REQUIRE(string_view(get_name(yup)) == string_view("yup"));
     REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }
@@ -591,8 +591,7 @@ type_or_value_accessors(outputs)
 #pragma once
 
 #include <concepts>
-#include <type_traits>
-#include "utilities/consteval.hpp"
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::endpoints
 {
@@ -606,7 +605,7 @@ namespace sygaldry::endpoints
 #include <string_view>
 #include <optional>
 #include "utilities/string_literal.hpp"
-#include "utilities/consteval.hpp"
+#include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::endpoints
 {

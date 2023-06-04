@@ -25,8 +25,8 @@ TEST_CASE("get_name", "[components][endpoints][inspectors][get_name]")
     static_assert(Named<struct_with_name>);
     struct_with_name foo{};
     base_struct_with_name yup{};
-    REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-    REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+    REQUIRE(get_name(foo) == string_view("foo"));
+    REQUIRE(get_name<struct_with_name>() == string_view("foo"));
     REQUIRE(string_view(get_name(yup)) == string_view("yup"));
     REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
 }

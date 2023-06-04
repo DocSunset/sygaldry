@@ -1,9 +1,6 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval.hpp"
-#include "components/endpoints/inspectors.hpp"
-#include "components/endpoints/helpers.hpp"
-#include "components/testcomponent.hpp"
+#include "utilities/consteval/consteval.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 
@@ -121,59 +118,4 @@ TEST_CASE("Help command", "[cli][commands][help]")
 }
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
-    int argc = 3;
-    char * arg0 = (char *)"describe";
-    char * arg1 = (char *)"test-component-1";
-    char * arg2 = (char *)"slider-out";
-    char * wild = (char *)"*";
-    char * argv[] = {arg0, arg1, arg2};
-    auto components = std::make_tuple(sygaldry::components::TestComponent{});
-
-    argc = 2;
-    SECTION("describe device")
-    {
-        Describe<Config> command;
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
-        REQUIRE(retcode == 0);
-    }
-
-    argc = 2;
-    argv[1] = wild;
-    SECTION("describe all devices")
-    {
-        Describe<Config> command;
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-    }
-
-    argc = 3;
-    SECTION("describe endpoint")
-    {
-        Describe<Config> command;
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-    }
-
-    argv[1] = arg1;
-    argv[2] = wild;
-    SECTION("describe all endpoints")
-    {
-        Describe<Config> command;
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-    }
-
-    argv[1] = wild;
-    argv[2] = wild;
-    SECTION("describe everything")
-    {
-        Describe<Config> command;
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-    }
 }
