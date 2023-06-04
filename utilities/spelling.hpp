@@ -24,6 +24,18 @@ template<char_mapping mapping, char_mapping... mappings> struct compose<mapping,
 {
     constexpr char operator()(char c) { return compose<mappings...>{}(mapping(c)); }
 };
+constexpr char snake(char c) {return c == ' ' ? '_' : c;}
+constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
+constexpr char lower(char c)
+{
+    if ('A' <= c && c <= 'Z') return c+('a'-'A');
+    return c;
+}
+constexpr char upper(char c)
+{
+    if ('a' <= c && c <= 'z') return c-('a'-'A');
+    return c;
+}
 
 template<typename NamedType, char_mapping... Mappings>
 struct respeller
@@ -45,18 +57,6 @@ struct respeller
     constexpr operator const char *() { return value.data(); }
 };
 
-constexpr char snake(char c) {return c == ' ' ? '_' : c;}
-constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
-constexpr char lower(char c)
-{
-    if ('A' <= c && c <= 'Z') return c+('a'-'A');
-    return c;
-}
-constexpr char upper(char c)
-{
-    if ('a' <= c && c <= 'z') return c-('a'-'A');
-    return c;
-}
 template<typename NamedType>
 struct snake_case : respeller<NamedType, snake>
 {
