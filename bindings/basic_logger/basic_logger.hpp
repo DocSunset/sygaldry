@@ -15,10 +15,12 @@ struct BasicLogger
     template<typename T> void _print(T x)
     {
         std::string_view string_message;
-        if constexpr (std::is_arithmetic_v<T>)
+        if constexpr (std::is_same_v<std::decay_t<T>, bool>)
         {
-            std::is_signed_v<T>;
-            ;
+            string_message = x ? "true" : "false";
+        }
+        else if constexpr (std::is_arithmetic_v<T>)
+        {
             constexpr int max_num_digits =
             (
                 // floats: mantissa digits + exponent digits + sign + e + exponent sign

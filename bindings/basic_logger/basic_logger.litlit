@@ -171,7 +171,9 @@ TEST_CASE("BasicLogger print") {
 
 At this stage, for ease of rapid prototyping, we'll simply make use of C++
 standard library functionality to implement the `print` template. For now, we
-will support only numeric conversions, string views, and string literals.
+will support only numeric conversions, string views, and string literals. As
+seen below, the conversion to string is reasonably trivial for boolean and
+string-like values:
 
 ```c++
 // @+'basic logger includes'
@@ -181,7 +183,11 @@ will support only numeric conversions, string views, and string literals.
 
 // @='convert message to a string'
 std::string_view string_message;
-if constexpr (std::is_arithmetic_v<T>)
+if constexpr (std::is_same_v<std::decay_t<T>, bool>)
+{
+    string_message = x ? "true" : "false";
+}
+else if constexpr (std::is_arithmetic_v<T>)
 {
     @{convert a number}
 }
@@ -211,8 +217,6 @@ augmented with additional padding space to be safe.
 // @/
 
 // @='convert a number'
-std::is_signed_v<T>;
-;
 constexpr int max_num_digits =
 (
     // floats: mantissa digits + exponent digits + sign + e + exponent sign
