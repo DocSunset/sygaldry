@@ -12,7 +12,7 @@ using sygaldry::utilities::string_literal;
 template<string_literal str>
 struct named
 {
-    static _consteval auto name() {return str.value;}
+    static _consteval auto name() {return std::string_view{str.value};}
 };
 template<typename T>
 struct range
