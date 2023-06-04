@@ -1,5 +1,5 @@
 #pragma once
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/spelling.hpp"
 
 namespace sygaldry
 {
@@ -9,8 +9,7 @@ namespace bindings::cli
 template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
-    using utilities::metadata::names::lower_kebab_case;
-    if (std::string_view(name) == std::string_view(lower_kebab_case(t)))
+    if (std::string_view(name) == std::string_view(spelling::lower_kebab_case(t)))
         return f(t);
     else if constexpr (sizeof...(NamedTs) == 0)
         return d;

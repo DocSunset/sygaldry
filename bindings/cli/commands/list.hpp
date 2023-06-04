@@ -1,9 +1,11 @@
 #pragma once
 
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
 
-namespace sygaldry::bindings::cli::commands
+namespace sygaldry
+{
+namespace bindings::cli::commands
 {
 
 template<typename Config>
@@ -18,10 +20,10 @@ struct List
     template<typename... Components>
     int main(int argc, char** argv, std::tuple<Components...>&)
     {
-        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
-        ( log.println(lower_kebab_case_v<Components>), ... );
+        ( log.println(spelling::lower_kebab_case_v<Components>), ... );
         return 0;
     }
 };
 
+}
 }

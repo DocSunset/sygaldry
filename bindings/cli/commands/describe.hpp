@@ -1,8 +1,8 @@
 #pragma once
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
 #include "matcher.hpp"
 
 namespace sygaldry

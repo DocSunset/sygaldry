@@ -1,8 +1,8 @@
 #pragma once
 #include <array>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
-namespace sygaldry::utilities::metadata::names
+namespace sygaldry::spelling
 {
 
 template<typename Device>

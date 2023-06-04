@@ -4,10 +4,10 @@
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "helpers.hpp"
-#include "inspectors.hpp"
+#include "concepts.hpp"
 
 using namespace sygaldry::endpoints;
-using namespace sygaldry::endpoints::inspectors;
+using namespace sygaldry::concepts;
 using std::string_view;
 using std::is_aggregate_v;
 
@@ -26,7 +26,7 @@ TEST_CASE("Named", "[endpoints][bases][named]")
     static_assert(is_aggregate_v<struct_with_name>);
 }
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("Named", "[components][endpoints][inspectors][named]")
+TEST_CASE("Named", "[components][endpoints][concepts][named]")
 {
     static_assert(Named<base_struct_with_name>);
     static_assert(Named<struct_with_name>);
@@ -55,7 +55,7 @@ TEST_CASE("Range", "[endpoints][bases][range]")
         static_assert(is_aggregate_v<struct_with_init>);
     }
 }
-TEST_CASE("Ranged", "[components][endpoints][inspectors][ranged]")
+TEST_CASE("Ranged", "[components][endpoints][concepts][ranged]")
 {
     static_assert(Ranged<struct_with_range>);
     struct_with_range foo{};

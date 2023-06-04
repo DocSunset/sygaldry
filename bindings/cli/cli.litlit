@@ -463,7 +463,7 @@ permit a simpler implementation of the command line parser.
 ```c++
 // @#'matcher.hpp'
 #pragma once
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/spelling.hpp"
 
 namespace sygaldry
 {
@@ -473,8 +473,7 @@ namespace bindings::cli
 template<typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _try_to_match_and_execute_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
-    using utilities::metadata::names::lower_kebab_case;
-    if (std::string_view(name) == std::string_view(lower_kebab_case(t)))
+    if (std::string_view(name) == std::string_view(spelling::lower_kebab_case(t)))
         return f(t);
     else if constexpr (sizeof...(NamedTs) == 0)
         return d;
@@ -650,7 +649,7 @@ void _complain_about_command_failure(int retcode)
 #include <memory>
 #include <tuple>
 #include <string_view>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 @{cli includes}
 @{commands headers}
 
@@ -722,10 +721,12 @@ expression and print each one's name using the injected logger.
 // @#'commands/list.hpp'
 #pragma once
 
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
 
-namespace sygaldry::bindings::cli::commands
+namespace sygaldry
+{
+namespace bindings::cli::commands
 {
 
 template<typename Config>
@@ -740,12 +741,12 @@ struct List
     template<typename... Components>
     int main(int argc, char** argv, std::tuple<Components...>&)
     {
-        using sygaldry::utilities::metadata::names::lower_kebab_case_v;
-        ( log.println(lower_kebab_case_v<Components>), ... );
+        ( log.println(spelling::lower_kebab_case_v<Components>), ... );
         return 0;
     }
 };
 
+}
 }
 // @/
 
@@ -806,7 +807,7 @@ and have a `main` method that takes a parameter pack of commands to describe.
 ```c++
 // @#'commands/help.hpp'
 #pragma once
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
 namespace sygaldry
 {
@@ -909,8 +910,8 @@ to Boost PFR's `structure_tie(aggregate)` function.
 #pragma once
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval/consteval.hpp"
-#include "utilities/metadata/names/names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
 #include "matcher.hpp"
 
 namespace sygaldry
@@ -998,7 +999,7 @@ The CLI class itself implements a fairly limited behavior.
 ```c++
 // @#'cli_app_demo.cpp'
 #include "cli_app.hpp"
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 
 struct Component1 {
@@ -1026,7 +1027,7 @@ int main()
 // @#'tests.cpp'
 #include <string>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "cli.hpp"
 

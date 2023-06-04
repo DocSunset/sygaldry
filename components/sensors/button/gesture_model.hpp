@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 #include "components/endpoints/helpers.hpp"
 
 namespace sygaldry

@@ -389,12 +389,12 @@ strings and capitalization mappings.
 # Summary
 
 ```c++
-// @#'names.hpp'
+// @#'spelling.hpp'
 #pragma once
 #include <array>
-#include "utilities/consteval/consteval.hpp"
+#include "utilities/consteval.hpp"
 
-namespace sygaldry::utilities::metadata::names
+namespace sygaldry::spelling
 {
 
 @{string length function}
@@ -410,26 +410,24 @@ namespace sygaldry::utilities::metadata::names
 ## Tests
 
 ```c++
-// @#'tests.cpp'
+// @#'tests/spelling/tests.cpp'
 #include <string>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval/consteval.hpp"
-#include "names.hpp"
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
 
 using std::string;
-using namespace sygaldry::utilities::metadata::names;
+using namespace sygaldry::spelling;
 
 @{tests}
 // @/
 ```
 
-## Build
-
 ```cmake
-# @#'CMakeLists.txt'
-add_executable(names-tests tests.cpp)
-target_link_libraries(names-tests PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(names-tests)
+# @#'tests/spelling/CMakeLists.txt'
+add_executable(spelling-tests tests.cpp)
+target_link_libraries(spelling-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(spelling-tests)
 # @/
 ```
