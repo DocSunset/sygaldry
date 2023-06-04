@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <boost/pfr.hpp>
 #include "utilities/spelling.hpp"
 
 namespace sygaldry
@@ -18,22 +19,50 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
         return _dispatch_impl(name, d, f, ts...);
 }
 
-template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-    requires requires { std::tuple_size_v<TupleOfNamed>; }
+
+template<typename T>
+concept tuple_like = requires (T tup)
+{
+    std::tuple_size<T>::value;
+    typename std::tuple_element<0, T>::type;
+
+};
+
+template <typename stringish, tuple_like TupleOfNamed, typename Default, typename Callback>
 auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d; // no impl if no t
-    else return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
+    if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d;
+    return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
     {
         return _dispatch_impl(name, d, f, ts...);
     }, tup);
 }
 
+template <typename T>
+concept Component = requires (T t) {t.inputs; t.outputs;};
+
+template <typename stringish, typename Entities, typename Default, typename Callback>
+auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
+{
+    if constexpr (Component<Entities>)
+    {
+        auto ins = boost::pfr::structure_tie(entities.inputs);
+        auto outs = boost::pfr::structure_tie(entities.outputs);
+        auto tup = std::tuple_cat(ins, outs);
+        return dispatch(name, tup, d, f);
+        return d;
+    }
+    else
+    {
+        auto tup = boost::pfr::structure_tie(entities);
+        return dispatch(name, tup, d, f);
+    }
+}
+
 template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
 auto wildcard_dispatch(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
 {
-    if constexpr (std::tuple_size_v<std::decay_t<TupleOfNamed>> == 0) return d;
-    else if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
+    if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
     {
         return f(t);
     }, tup);
