@@ -33,9 +33,19 @@ struct Cli
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
 
+    struct CommandMatcher
+    {
+        template<typename stringish, typename Command>
+        bool operator()(stringish arg0, const Command& command)
+        {
+            using spelling::lower_kebab_case;
+            return std::string_view(arg0) == std::string_view(lower_kebab_case(command));
+        }
+    };
+
     int _try_to_match_and_execute()
     {
-        return dispatch(argv[0], commands, 127, [this](auto& command)
+        return dispatch<CommandMatcher>(argv[0], commands, 127, [this](auto& command)
             {
                 if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
                 {

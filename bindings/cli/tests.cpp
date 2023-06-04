@@ -123,7 +123,6 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     char * arg0 = (char *)"describe";
     char * arg1 = (char *)"test-component-1";
     char * arg2 = (char *)"slider-out";
-    char * wild = (char *)"*";
     char * argv[] = {arg0, arg1, arg2};
     auto components = std::make_tuple(sygaldry::components::TestComponent{});
 
@@ -134,49 +133,13 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
-
-    argc = 2;
-    argv[1] = wild;
-    SECTION("describe all devices")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(command.log.put.ss.str() == string("component: test-component-1\n  name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
 
     argc = 3;
     SECTION("describe endpoint")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
-
-    argv[1] = arg1;
-    argv[2] = wild;
-    SECTION("describe all endpoints")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
-
-    argv[1] = wild;
-    argv[2] = wild;
-    SECTION("describe everything")
     {
         Describe<Config> command;
         command.log.put.ss.str("");

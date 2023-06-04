@@ -22,54 +22,77 @@ struct Describe
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename NamedT, typename ... Args>
-    void log_name(NamedT& t, Args ... args)
+    struct DescribeMatcher
     {
-        using sygaldry::spelling::lower_kebab_case_v;
-        log.println(lower_kebab_case_v<NamedT>, args...);
+        template<typename stringish, typename Entity>
+        bool operator()(stringish name, const Entity& entity)
+        {
+            using spelling::lower_kebab_case;
+            return std::string_view(name) == std::string_view(lower_kebab_case(entity));
+        }
+    };
+
+    void describe_component(auto& component, bool and_endpoints, auto ... indents)
+    {
+        using spelling::lower_kebab_case;
+        log.println(indents..., "component: ", (const char *)lower_kebab_case(component));
+        log.println(indents..., "  name: \"", component.name(), "\"");
+        if (and_endpoints) list_endpoints(component, "  ", indents...);
     }
 
-    template<typename Component>
-    void describe_component(Component& component)
+    void list_endpoints(auto& component, auto ... indents)
     {
-        log_name(component, ":");
+        // TODO: we should get the inputs and outputs generically
+        using spelling::lower_kebab_case;
+        auto list_it = [&](auto& endpoint){ describe_endpoint(endpoint, "  ", indents...); };
+        auto list_group = [&](auto& group, auto groupname)
+        {
+            log.println(indents..., groupname, ":");
+            boost::pfr::for_each_field(group,  list_it);
+        };
+        list_group(component.inputs, "inputs");
+        list_group(component.outputs, "outputs");
     }
 
-    template<typename Component>
-    void list_endpoints(Component& component)
+    void describe_endpoint_type(auto& endpoint)
     {
-        //auto& inputs  = get_inputs(component);
-        //auto& outputs = get_outputs(component);
-        //boost::pfr::for_each_field(inputs,  [&](auto& endpoint){ log_name(endpoint); });
-        //boost::pfr::for_each_field(outputs, [&](auto& endpoint){ log_name(endpoint); });
+        log.println("todo");
+    }
+
+    void describe_endpoint_range(auto& endpoint)
+    {
+        log.println("todo");
+    }
+
+    void describe_endpoint(auto& endpoint, auto ... indents)
+    {
+        using spelling::lower_kebab_case;
+        log.println(indents..., (const char *)lower_kebab_case(endpoint));
+        log.println(indents..., "  name: \"", endpoint.name(), "\"");
+        log.print(indents..., "  type: ");
+        describe_endpoint_type(endpoint);
+        if constexpr (concepts::Ranged<decltype(endpoint)>)
+        {
+            log.print(indents..., "  range: ");
+            describe_endpoint_range(endpoint);
+        }
     }
 
     template<typename... Components>
     int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         if (argc < 2) return 2;
-        else return dispatch(argv[1], components, 2, [&](auto component)
+        bool list_eps = argc == 2;
+        bool describe_eps = argc > 2;
+        return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
         {
-
-            describe_component(component);
-
-            if (argc > 2)
+            describe_component(component, list_eps);
+            if (describe_eps) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
             {
-                auto cb = [&](auto endpoint) { describe_endpoint(endpoint); return true; };
-                bool match = false;
-                if (match) return 0;
-                else 
-                {
-                    log.println(name(), ": cannot access '", argv[2], "': No such endpoint");
-                    return 2;
-                }
-            }
-            else /* argc == 2, no endpoint argument */
-            {
-                list_endpoints(component);
+                describe_endpoint(endpoint, "  ");
                 return 0;
-            }
-            return 0;
+            });
+            else return 0;
         });
     }
 };

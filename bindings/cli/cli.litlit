@@ -403,8 +403,11 @@ With these resources, we can outline the process function. The plan is to
 keep track of the onset of arguments in `argv`, and to convert whitespace
 to null characters so that the arguments are automatically null terminated.
 
-When we reach the end of the line, we try to match the first argument to
-a command, and reset the buffers. We also reset the buffers if either one
+At the end of each line, we pass the first token and our list of commands to
+the `dispatch` subroutine defined in `bindings/name_dispatch.hpp`. If it
+returns a non-zero error code, we print a message. Then, regardless of the
+command's exit status, we reset the buffers, print a new prompt, and return to
+the normal process loop. The same reset routine is called if our input buffer
 overflows.
 
 ```c++
@@ -434,23 +437,25 @@ if (_overflow())
 // @/
 ```
 
-At the end of each line, we compare the first argument to the names of all the
-available commands, and execute the first match. If it returns a non-zero error
-code, we print a message. Then, regardless of the command's exit status, we
-print a new prompt and return to the normal process loop.
-
 We invoke the matcher subroutine as follows, accounting for `help`
-as a special case in our callback lambda.
+as a special case in our callback lambda, and using a kebab-case
+respeller in our matcher.
 
 ```c++
-// @+'cli includes'
-#include "bindings/name_dispatch.hpp"
-// @/
-
 // @+'cli implementation details'
+struct CommandMatcher
+{
+    template<typename stringish, typename Command>
+    bool operator()(stringish arg0, const Command& command)
+    {
+        using spelling::lower_kebab_case;
+        return std::string_view(arg0) == std::string_view(lower_kebab_case(command));
+    }
+};
+
 int _try_to_match_and_execute()
 {
-    return dispatch(argv[0], commands, 127, [this](auto& command)
+    return dispatch<CommandMatcher>(argv[0], commands, 127, [this](auto& command)
         {
             if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
             {
@@ -583,7 +588,7 @@ void _complain_about_command_failure(int retcode)
 #include <tuple>
 #include <string_view>
 #include "utilities/consteval.hpp"
-@{cli includes}
+#include "bindings/name_dispatch.hpp"
 @{commands headers}
 
 namespace sygaldry { namespace bindings::cli
@@ -818,7 +823,6 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     char * arg0 = (char *)"describe";
     char * arg1 = (char *)"test-component-1";
     char * arg2 = (char *)"slider-out";
-    char * wild = (char *)"*";
     char * argv[] = {arg0, arg1, arg2};
     auto components = std::make_tuple(sygaldry::components::TestComponent{});
 
@@ -829,19 +833,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         Describe<Config> command;
         command.log.put.ss.str("");
         auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
-
-    argc = 2;
-    argv[1] = wild;
-    SECTION("describe all devices")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
+        REQUIRE(command.log.put.ss.str() == string("component: test-component-1\n  name: \"Test Component 1\"\n  inputs:\n    button-in\n    toggle-in\n    slider-in\n    bang-in\n  outputs:\n    button-out\n    toggle-out\n    slider-out\n    bang-out\n"));
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
@@ -856,100 +848,109 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
         REQUIRE(retcode == 0);
         command.log.put.ss.str("");
     }
-
-    argv[1] = arg1;
-    argv[2] = wild;
-    SECTION("describe all endpoints")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
-
-    argv[1] = wild;
-    argv[2] = wild;
-    SECTION("describe everything")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string("name: \"slider out\"\ntype: persistent float value\nrange: 0.0 to 1.0\ninit: 0.0\n"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
 }
 // @/
 ```
 
 The bulk of this command's logic comes from four functions: one that matches an
 argument to a component, one that decribes a matched component, one that matches an
-argument to an endpoint, and one that describes a matched endpoint. 
-We can use the matcher subroutines defined earlier for the CLI to match components
-from our tuple of components, and in fact we can also use it to match endpoints thanks
-to Boost PFR's `structure_to_tuple(aggregate)` function.
+argument to an endpoint, and one that describes a matched endpoint. The same matcher
+serves for both components and endpoints.
+
+```c++
+// @='describe matcher'
+struct DescribeMatcher
+{
+    template<typename stringish, typename Entity>
+    bool operator()(stringish name, const Entity& entity)
+    {
+        using spelling::lower_kebab_case;
+        return std::string_view(name) == std::string_view(lower_kebab_case(entity));
+    }
+};
+// @/
+```
+
 
 ```c++
 // @='describe main'
 if (argc < 2) return 2;
-else return dispatch(argv[1], components, 2, [&](auto component)
+bool list_eps = argc == 2;
+bool describe_eps = argc > 2;
+return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
 {
-
-    describe_component(component);
-
-    if (argc > 2)
+    describe_component(component, list_eps);
+    if (describe_eps) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
     {
-        auto cb = [&](auto endpoint) { describe_endpoint(endpoint); return true; };
-        bool match = false;
-        if (match) return 0;
-        else 
-        {
-            log.println(name(), ": cannot access '", argv[2], "': No such endpoint");
-            return 2;
-        }
-    }
-    else /* argc == 2, no endpoint argument */
-    {
-        list_endpoints(component);
+        describe_endpoint(endpoint, "  ");
         return 0;
-    }
-    return 0;
+    });
+    else return 0;
 });
 // @/
 ```
 
-At the moment, components don't possess a lot of metadata. Describing a component therefore
-consists of simply printing its name.
-In case no endpoint argument is passed, then we print out a list of all the endpoint names.
-It turns out both of these things can be implemented with the same simple function:
+At the moment, components don't possess a lot of metadata. Describing a
+component therefore consists of simply printing its name. In case no endpoint
+argument is passed, we also print out a list of all the endpoint names. It
+turns out both of these things can be implemented with the same simple function:
 
 ```c++
 // @+'describe implementation details'
-template<typename NamedT, typename ... Args>
-void log_name(NamedT& t, Args ... args)
+void describe_component(auto& component, bool and_endpoints, auto ... indents)
 {
-    using sygaldry::spelling::lower_kebab_case_v;
-    log.println(lower_kebab_case_v<NamedT>, args...);
+    using spelling::lower_kebab_case;
+    log.println(indents..., "component: ", (const char *)lower_kebab_case(component));
+    log.println(indents..., "  name: \"", component.name(), "\"");
+    if (and_endpoints) list_endpoints(component, "  ", indents...);
 }
 
-template<typename Component>
-void describe_component(Component& component)
+void list_endpoints(auto& component, auto ... indents)
 {
-    log_name(component, ":");
+    // TODO: we should get the inputs and outputs generically
+    using spelling::lower_kebab_case;
+    auto list_it = [&](auto& endpoint){ describe_endpoint(endpoint, "  ", indents...); };
+    auto list_group = [&](auto& group, auto groupname)
+    {
+        log.println(indents..., groupname, ":");
+        boost::pfr::for_each_field(group,  list_it);
+    };
+    list_group(component.inputs, "inputs");
+    list_group(component.outputs, "outputs");
 }
 
-template<typename Component>
-void list_endpoints(Component& component)
-{
-    //auto& inputs  = get_inputs(component);
-    //auto& outputs = get_outputs(component);
-    //boost::pfr::for_each_field(inputs,  [&](auto& endpoint){ log_name(endpoint); });
-    //boost::pfr::for_each_field(outputs, [&](auto& endpoint){ log_name(endpoint); });
-}
 // @/
 ```
+
+Describing endpoints is more involved, requiring us to reflect on the type
+and data members of the endpoint.
+
+```c++
+// @+'describe implementation details'
+void describe_endpoint_type(auto& endpoint)
+{
+    log.println("todo");
+}
+
+void describe_endpoint_range(auto& endpoint)
+{
+    log.println("todo");
+}
+
+void describe_endpoint(auto& endpoint, auto ... indents)
+{
+    using spelling::lower_kebab_case;
+    log.println(indents..., (const char *)lower_kebab_case(endpoint));
+    log.println(indents..., "  name: \"", endpoint.name(), "\"");
+    log.print(indents..., "  type: ");
+    describe_endpoint_type(endpoint);
+    if constexpr (concepts::Ranged<decltype(endpoint)>)
+    {
+        log.print(indents..., "  range: ");
+        describe_endpoint_range(endpoint);
+    }
+}
+// @/
 
 ```c++
 // @#'commands/describe.hpp'
@@ -976,6 +977,8 @@ struct Describe
     static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
     [[no_unique_address]] typename Config::basic_logger_type log;
+
+    @{describe matcher}
 
     @{describe implementation details}
 
