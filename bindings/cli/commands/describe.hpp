@@ -48,7 +48,7 @@ struct Describe
     int main(int argc, char** argv, std::tuple<Components...>& components)
     {
         if (argc < 2) return 2;
-        else return wildcard_dispatch(argv[1], components, 2, [&](auto component)
+        else return dispatch(argv[1], components, 2, [&](auto component)
         {
 
             describe_component(component);

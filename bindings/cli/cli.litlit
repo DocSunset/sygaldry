@@ -292,7 +292,7 @@ struct Echo
 
 As described above, the CLI provides a fairly limited amount of behavior. It's
 main role is to simply accumulate inputs until a full line is available,
-try match the first token in the line to a command, and execute it if a match
+try to match the first token in the line to a command, and execute it if a match
 is found.
 
 ## Tests
@@ -894,7 +894,7 @@ to Boost PFR's `structure_to_tuple(aggregate)` function.
 ```c++
 // @='describe main'
 if (argc < 2) return 2;
-else return wildcard_dispatch(argv[1], components, 2, [&](auto component)
+else return dispatch(argv[1], components, 2, [&](auto component)
 {
 
     describe_component(component);

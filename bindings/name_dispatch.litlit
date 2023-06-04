@@ -15,12 +15,6 @@ should eventually proceed generically rather than through direct access.
 The callback function must be able to access and modify the state of the
 matching entity or entities.
 
-To allow for idiomatic binding-specific spelling and matching rules, the
-dispatcher accepts a functor type parameter that is used to confirm a match.
-This matcher functor is pass the name string and the candidate named entity and
-must return a bool. A default is provided that does simple string comparison.
-
-```c++
 // @#'tests/name_dispatch/tests.cpp'
 #include <string_view>
 #include <tuple>
@@ -121,6 +115,38 @@ TEST_CASE("Dispatch can mutate entities component", "[bindings][dispatch]")
     REQUIRE(x.inputs.in2.value == 888);
 }
 
+@{tests}
+// @/
+```
+
+```cmake
+# @#'tests/name_dispatch/CMakeLists.txt'
+add_executable(dispatch-tests tests.cpp)
+target_link_libraries(dispatch-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(dispatch-tests)
+# @/
+```
+
+# Matchers
+
+To allow for idiomatic binding-specific spelling and matching rules, the
+dispatcher accepts a functor type parameter that is used to confirm a match.
+This matcher functor is pass the name string and the candidate named entity and
+must return a bool. A default is provided that does simple string comparison.
+
+```c++
+// @='default matcher'
+struct dispatch_default_matcher
+{
+    template<typename stringish, typename NamedT>
+    bool operator()(stringish name, const NamedT& candidate)
+    {
+        return std::string_view(name) == std::string_view(NamedT::name());
+    }
+};
+// @/
+
+// @+'tests'
 struct CustomMatcher
 {
     template<typename stringish, typename NamedT>
@@ -139,14 +165,6 @@ TEST_CASE("Dispatch with custom matcher", "[bindings][dispatch]")
 // @/
 ```
 
-```cmake
-# @#'tests/name_dispatch/CMakeLists.txt'
-add_executable(dispatch-tests tests.cpp)
-target_link_libraries(dispatch-tests PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(dispatch-tests)
-# @/
-```
-
 # Implementation
 
 We assume that the entities are stored as a tuple. Because we may need to
@@ -154,33 +172,11 @@ short-circuit the iteration in case we find a matching entity, the only
 adequate method for iterating over the commands is using a recursive variadic
 function. This can't be a lambda, since it's obnoxious to try to `std::apply` a
 tuple to a lambda that has to recursively call itself. Instead, we define a
-template function for the purpose.
-
-Many bindings will require names to be respelled according to a certain
-transformation, e.g. defined as a functor in `utilities/spelling.hpp`.
-We TODO will require such a transformation as a template parameter.
+template function for the purpose, and then apply a lambda that simply calls
+this function with the tuple elements expanded into the latter.
 
 ```c++
-// @#'name_dispatch.hpp'
-#pragma once
-#include <tuple>
-#include <boost/pfr.hpp>
-#include "utilities/spelling.hpp"
-
-namespace sygaldry
-{
-namespace bindings
-{
-
-struct dispatch_default_matcher
-{
-    template<typename stringish, typename NamedT>
-    bool operator()(stringish name, const NamedT& candidate)
-    {
-        return std::string_view(name) == std::string_view(NamedT::name());
-    }
-};
-
+// @='dispatch implementation'
 template<typename Matcher, typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
@@ -192,15 +188,6 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
         return _dispatch_impl<Matcher>(name, d, f, ts...);
 }
 
-
-template<typename T>
-concept tuple_like = requires (T tup)
-{
-    std::tuple_size<T>::value;
-    typename std::tuple_element<0, T>::type;
-
-};
-
 template <typename Matcher = dispatch_default_matcher, typename stringish, tuple_like TupleOfNamed, typename Default, typename Callback>
 auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
@@ -210,10 +197,17 @@ auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
         return _dispatch_impl<Matcher>(name, d, f, ts...);
     }, tup);
 }
+// @/
+```
 
-template <typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
+In case the caller passes in a simple aggregate of entities or a component
+with inputs and outputs, the above `dispatch` function is rejected by
+overload resolution, since these arguments don't meet the `tuple_like`
+concept requirements. An alternative entry point is provided that extracts
+a tuple from the input appropriately and forwards it to the above function.
 
+```c++
+// @='dispatch alternative entry point'
 template <typename Matcher = dispatch_default_matcher, typename stringish, typename Entities, typename Default, typename Callback>
 auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 {
@@ -231,16 +225,40 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
         return dispatch<Matcher>(name, tup, d, f);
     }
 }
+// @/
+```
 
-template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto wildcard_dispatch(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
+```c++
+// @#'name_dispatch.hpp'
+#pragma once
+#include <tuple>
+#include <string_view>
+#include <boost/pfr.hpp>
+#include "utilities/spelling.hpp"
+
+namespace sygaldry
 {
-    if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
-    {
-        return f(t);
-    }, tup);
-    else return dispatch(name, tup, d, f);
-}
+namespace bindings
+{
+
+@{default matcher}
+
+// TODO: these concept definitions probably don't belong here
+
+template <typename T>
+concept Component = requires (T t) {t.inputs; t.outputs;};
+
+template<typename T>
+concept tuple_like = requires (T tup)
+{
+    std::tuple_size<T>::value;
+    typename std::tuple_element<0, T>::type;
+
+};
+
+@{dispatch implementation}
+
+@{dispatch alternative entry point}
 
 }
 }

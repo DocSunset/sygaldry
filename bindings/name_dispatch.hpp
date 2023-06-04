@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <string_view>
 #include <boost/pfr.hpp>
 #include "utilities/spelling.hpp"
 
@@ -17,6 +18,19 @@ struct dispatch_default_matcher
     }
 };
 
+// TODO: these concept definitions probably don't belong here
+
+template <typename T>
+concept Component = requires (T t) {t.inputs; t.outputs;};
+
+template<typename T>
+concept tuple_like = requires (T tup)
+{
+    std::tuple_size<T>::value;
+    typename std::tuple_element<0, T>::type;
+
+};
+
 template<typename Matcher, typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
 {
@@ -28,15 +42,6 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
         return _dispatch_impl<Matcher>(name, d, f, ts...);
 }
 
-
-template<typename T>
-concept tuple_like = requires (T tup)
-{
-    std::tuple_size<T>::value;
-    typename std::tuple_element<0, T>::type;
-
-};
-
 template <typename Matcher = dispatch_default_matcher, typename stringish, tuple_like TupleOfNamed, typename Default, typename Callback>
 auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
@@ -46,9 +51,6 @@ auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
         return _dispatch_impl<Matcher>(name, d, f, ts...);
     }, tup);
 }
-
-template <typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
 
 template <typename Matcher = dispatch_default_matcher, typename stringish, typename Entities, typename Default, typename Callback>
 auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
@@ -66,16 +68,6 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
         auto tup = boost::pfr::structure_tie(entities);
         return dispatch<Matcher>(name, tup, d, f);
     }
-}
-
-template <typename stringish, typename TupleOfNamed, typename Default, typename Callback>
-auto wildcard_dispatch(stringish name, TupleOfNamed&& tup, Default&& d, Callback&& f)
-{
-    if (std::string_view(name) == std::string_view("*")) return std::apply([&](auto& t)
-    {
-        return f(t);
-    }, tup);
-    else return dispatch(name, tup, d, f);
 }
 
 }
