@@ -58,6 +58,39 @@ associate metadata with such an endpoint.
 
 ## With
 
+All endpoints are required to have a name. To facilitate setting this conveniently,
+we define a thin wrapper around a string literal that allows us to pass string
+literals as template parameters. Then we define a base class that takes a string
+template parameter and synthesizes a compile-time evaluated name method.
+
+```c++
+// @+'endpoints includes'
+#include <cstddef>
+// @/
+
+// @+'string literal'
+template<std::size_t N>
+struct string_literal
+{
+    char value[N];
+    _consteval string_literal(const char (&str)[N]) noexcept
+    {
+        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
+    }
+};
+// @/
+
+// @+'tests'
+template<string_literal str>
+_consteval auto name() {return string_view{str.value};}
+
+TEST_CASE("String literal", "[endpoints][string_literal]")
+{
+    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
+    REQUIRE(name<"test">() == "test");
+}
+// @/
+
 // @+'endpoint bases'
 template<string_literal str>
 struct named
@@ -71,7 +104,6 @@ struct struct_with_name : named<"foo"> {};
 TEST_CASE("Named", "[endpoints][bases][named]")
 {
     REQUIRE(struct_with_name::name() == "foo");
-    constexpr auto n = struct_with_name::name();
     static_assert(is_aggregate_v<struct_with_name>);
 }
 // @/
@@ -108,11 +140,12 @@ TEST_CASE("Named", "[components][endpoints][inspectors][named]")
     base_struct_with_name yup{};
     REQUIRE(get_name(foo) == "foo");
     REQUIRE(get_name<struct_with_name>() == "foo");
-    REQUIRE(string_view(get_name(yup)) == "yup");
-    REQUIRE(string_view(get_name<base_struct_with_name>()) == "yup");
+    REQUIRE(get_name(yup) == "yup");
+    REQUIRE(get_name<base_struct_with_name>() == "yup");
 }
 // @/
 ```
+
 
 ## Range and Initial Value
 
@@ -390,7 +423,7 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, range<float> range_arg = range<float>{0.0f, 1.0f, 0.0f}>
+template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
 struct slider : persistent<float>, named<str>, with<range_arg>
 {
     using persistent<float>::operator=;
@@ -508,81 +541,6 @@ TEST_CASE("Bang", "[endpoints][bang]")
 // @/
 ```
 
-# Inputs and Outputs
-
-Endpoints are expected to be grouped by components as either inputs or outputs,
-held in respective simple aggregate structures. Depending on the intent of the
-component author, these may be instances of anonymous structs, named structs
-without instances, or named structs with instances. Bindings should not assume
-one or the other of these approaches to be prevalent, and so require a mechanism
-to get the type or value of these groups of endpoints generically.
-
-We make use of macros adapted from Avendish's public domain section
-(`<avnd/concepts/common.hpp>`) to generate appropriate accessors in our
-namespace. These give us `inputs_is_type<T>`, `inputs_is_value<T>`,
-`inputs_type<T>`, `get_inputs(t)`, and the same four functions for outputs,
-that will work whether there is a `struct inputs {};` or a `struct {} inputs;`.
-
-```c++
-// @+'inspectors'
-#define type_or_value_qualification(Name)                                         \
-  template <typename T>                                                           \
-  concept Name##_is_value = requires(T t) { decltype(std::decay_t<T>::Name){}; }; \
-                                                                                  \
-  template <typename T>                                                           \
-  concept Name##_is_type                                                          \
-      = requires(T t) { !std::is_void_v<typename std::decay_t<T>::Name>; };       \
-                                                                                  \
-  template <typename T>                                                           \
-  concept has_##Name = Name##_is_type<T> || Name##_is_value<T>;
-
-#define type_or_value_reflection(Name)                                             \
-  template <typename T>                                                            \
-  struct Name##_type                                                               \
-  {                                                                                \
-    using type = void;                                                             \
-  };                                                                               \
-                                                                                   \
-  template <Name##_is_type T>                                                      \
-  struct Name##_type<T>                                                            \
-  {                                                                                \
-    using type = typename std::decay_t<T>::Name;                                   \
-  };                                                                               \
-                                                                                   \
-  template <Name##_is_value T>                                                     \
-  struct Name##_type<T>                                                            \
-  {                                                                                \
-    using type                                                                     \
-        = std::remove_reference_t<decltype(std::declval<std::decay_t<T>>().Name)>; \
-  };                                                                               \
-  template <typename T>                                                            \
-  using Name##_type_t = Name##_type<T>;                                            
-
-#define type_or_value_accessors(Name)                 \
-  template <typename T>                               \
-    requires(Name##_is_type<T> || Name##_is_value<T>) \
-  auto&& get_##Name(T&& t)                            \
-  {                                                   \
-    if constexpr(Name##_is_type<T>)                   \
-      return typename std::decay_t<T>::Name{};        \
-    else if constexpr(Name##_is_value<T>)             \
-      return std::forward<T>(t).Name;                 \
-  }
-
-type_or_value_qualification(inputs)
-type_or_value_reflection(inputs)
-type_or_value_accessors(inputs)
-
-type_or_value_qualification(outputs)
-type_or_value_reflection(outputs)
-type_or_value_accessors(outputs)
-
-#undef type_or_value_qualification
-#undef type_or_value_reflection
-#undef type_or_value_accessors
-// @/
-```
-
 # Summary
 
 ```c++
@@ -592,7 +550,7 @@ type_or_value_accessors(outputs)
 #include <concepts>
 #include "utilities/consteval/consteval.hpp"
 
-namespace sygaldry::endpoints
+namespace sygaldry::endpoints::inspectors
 {
     @{inspectors}
 }
@@ -603,12 +561,12 @@ namespace sygaldry::endpoints
 
 #include <string_view>
 #include <optional>
-#include "utilities/string_literal.hpp"
 #include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::endpoints
 {
-using sygaldry::utilities::string_literal;
+
+@{string literal}
 
 @{endpoint bases}
 
@@ -627,6 +585,7 @@ using sygaldry::utilities::string_literal;
 #include "inspectors.hpp"
 
 using namespace sygaldry::endpoints;
+using namespace sygaldry::endpoints::inspectors;
 using std::string_view;
 using std::is_aggregate_v;
 

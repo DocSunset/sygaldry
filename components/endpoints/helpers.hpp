@@ -2,12 +2,20 @@
 
 #include <string_view>
 #include <optional>
-#include "utilities/string_literal.hpp"
 #include "utilities/consteval/consteval.hpp"
 
 namespace sygaldry::endpoints
 {
-using sygaldry::utilities::string_literal;
+
+template<std::size_t N>
+struct string_literal
+{
+    char value[N];
+    _consteval string_literal(const char (&str)[N]) noexcept
+    {
+        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
+    }
+};
 
 template<string_literal str>
 struct named
@@ -72,7 +80,7 @@ struct toggle : persistent<bool>, _btn<str, init>
     using persistent<bool>::operator=;
 };
 
-template<string_literal str, range<float> range_arg = range<float>{0.0f, 1.0f, 0.0f}>
+template<string_literal str, range<float> range_arg = {0.0f, 1.0f, 0.0f}>
 struct slider : persistent<float>, named<str>, with<range_arg>
 {
     using persistent<float>::operator=;
