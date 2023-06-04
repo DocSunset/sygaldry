@@ -61,3 +61,12 @@ TEST_CASE("Spelling with helpers")
     CHECK(string_view(upper_kebab_case(x)) == string_view("HELPER-EXAMPLE"));
     CHECK(string_view(lower_snake_case(x)) == string_view("helper_example"));
 }
+
+TEST_CASE("Passthrough spelling")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "A Basic Example";}
+    } x;
+    REQUIRE(string_view(passthrough_spelling(x)) == string_view("A Basic Example"));
+}

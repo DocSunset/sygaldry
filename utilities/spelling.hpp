@@ -54,7 +54,18 @@ struct respeller
     }(NamedType::name());
 
     respeller(NamedType) {}
-    constexpr operator const char *() { return value.data(); }
+    constexpr operator const char *() noexcept { return value.data(); }
+};
+template<typename NamedType>
+struct respeller<NamedType>
+{
+    respeller(NamedType) {}
+    constexpr operator const char *() noexcept { return NamedType::name(); }
+};
+template<typename NamedType>
+struct passthrough_spelling : respeller<NamedType>
+{
+    passthrough_spelling([[maybe_unused]] NamedType x) : respeller<NamedType>{x} {}
 };
 
 template<typename NamedType>

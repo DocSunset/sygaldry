@@ -143,11 +143,23 @@ struct respeller
     }(NamedType::name());
 
     respeller(NamedType) {}
-    constexpr operator const char *() { return value.data(); }
+    constexpr operator const char *() noexcept { return value.data(); }
 };
-
 // @/
 ```
+
+In case there are no mappings given, which may be useful for certain templates
+e.g. as a default parameter, we can save some space by providing a specialization:
+
+```c++
+// @+'respeller'
+template<typename NamedType>
+struct respeller<NamedType>
+{
+    respeller(NamedType) {}
+    constexpr operator const char *() noexcept { return NamedType::name(); }
+};
+// @/
 
 # Syntax sugar
 
@@ -195,6 +207,12 @@ Instead, we can use derived classes. We have to re-define the constructor from `
 but it'll do.
 
 // @='template aliases'
+template<typename NamedType>
+struct passthrough_spelling : respeller<NamedType>
+{
+    passthrough_spelling([[maybe_unused]] NamedType x) : respeller<NamedType>{x} {}
+};
+
 template<typename NamedType>
 struct snake_case : respeller<NamedType, snake>
 {
@@ -308,6 +326,15 @@ TEST_CASE("Spelling with helpers")
     CHECK(string_view(lower_kebab_case(x)) == string_view("helper-example"));
     CHECK(string_view(upper_kebab_case(x)) == string_view("HELPER-EXAMPLE"));
     CHECK(string_view(lower_snake_case(x)) == string_view("helper_example"));
+}
+
+TEST_CASE("Passthrough spelling")
+{
+    struct example_t
+    {
+        static _consteval const char * name() {return "A Basic Example";}
+    } x;
+    REQUIRE(string_view(passthrough_spelling(x)) == string_view("A Basic Example"));
 }
 // @/
 ```
