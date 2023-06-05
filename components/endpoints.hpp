@@ -61,6 +61,9 @@ struct persistent
 {
     using type = T;
     T value;
+    constexpr persistent() noexcept : value{} {}
+    constexpr persistent(T&& t) noexcept {value = std::move(t);}
+    constexpr persistent(const T& t) noexcept : value{t} {}
     constexpr operator T&() noexcept {return value;}
     constexpr operator const T&() const noexcept {return value;}
     constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
@@ -69,16 +72,16 @@ struct persistent
 template <typename T>
 using occasional = std::optional<T>;
 
-template<string_literal str, bool init = false>
-struct button : occasional<bool>, name_<str>, range_<false, true, init>
+template<string_literal str, char init = 0>
+struct button : occasional<char>, name_<str>, range_<0, 1, init>
 {
-    using occasional<bool>::operator=;
+    using occasional<char>::operator=;
 };
 
-template<string_literal str, bool init = false>
-struct toggle : persistent<bool>, name_<str>, range_<false, true, init>
+template<string_literal str, char init = 0>
+struct toggle : persistent<char>, name_<str>, range_<0, 1, init>
 {
-    using persistent<bool>::operator=;
+    using persistent<char>::operator=;
 };
 
 template<string_literal str

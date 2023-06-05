@@ -254,23 +254,26 @@ convenient to store this inside a struct to enable metadata to be associated
 with the value in the form of compile-time evaluated methods, types, and
 enumerators, but this makes accessing the value of the variable it cumbersome,
 as in e.g. `outputs.parameter.value = inputs.parameter.value`. To ease this
-discomfort, we provide a class that sweetens access to a member variable value
-allowing the endpoint inheriting this syntax sugar to be treated direclty as
-though it were the value itself rather than a container for it, while also
-retaining the benefit of providing a convenient containment point for metadata.
-We call these endpoints `persistent` in contrast with the next kind.
+discomfort, we with to provide conversion and assignment operators so that an
+instance of a value class can be treated direclty as though it were the value
+itself rather than a container for it, while also retaining the benefit of
+providing a convenient containment point for metadata.
 
-Unfortunately, assignment operators are tricky to inherit due to C++'s
-automatically generated default assignment operators, which shadow the
-explicitly defined ones on our persistent value base class. For this reason,
-the assignment operators need to be explictly drawn into the derived class with
-a `using` declaration in public scope, e.g. `using persistent::operator=`.
+Unfortunately, assignment operators in particular are tricky to inherit due to
+C++'s automatically generated default assignment operators, which shadow the
+explicitly defined ones on our persistent value base class. We could explictly
+drawn the base class's assignment into the derived class with a `using`
+declaration in public scope, e.g. `using persistent<T>::operator=`, but then
+assignment to the derived class would return a reference to the base class.
 
-Note that we could define a specialization for the `persistent<T>` class in
-case `std::is_trivial_v<T>` is true; this allows us to avoid defining a move
-assignment operator, and to use the slightly cheaper version of the copy
-assignment that takes `T` instead of `const T&`. For now this is deemed
-premature optimization.
+Another issue with conversion and assignment operators is that they should
+ideally be defined differently depending on whether the value type is trivial
+or not; in case of trivial value type, it's likely cheaper not to define move
+semantics, and to assign by copy instead of reference, whereas more complex
+containers may benefit from having these.
+
+For now we accept the tradeoffs of inherited assignment operators and ignore
+the performance optimizations associated with trivial types.
 
 ```c++
 // @+'endpoint bases'
@@ -279,6 +282,9 @@ struct persistent
 {
     using type = T;
     T value;
+    constexpr persistent() noexcept : value{} {}
+    constexpr persistent(T&& t) noexcept {value = std::move(t);}
+    constexpr persistent(const T& t) noexcept : value{t} {}
     constexpr operator T&() noexcept {return value;}
     constexpr operator const T&() const noexcept {return value;}
     constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
@@ -360,16 +366,16 @@ from them.
 
 ```c++
 // @+'helpers'
-template<string_literal str, bool init = false>
-struct button : occasional<bool>, name_<str>, range_<false, true, init>
+template<string_literal str, char init = 0>
+struct button : occasional<char>, name_<str>, range_<0, 1, init>
 {
-    using occasional<bool>::operator=;
+    using occasional<char>::operator=;
 };
 
-template<string_literal str, bool init = false>
-struct toggle : persistent<bool>, name_<str>, range_<false, true, init>
+template<string_literal str, char init = 0>
+struct toggle : persistent<char>, name_<str>, range_<0, 1, init>
 {
-    using persistent<bool>::operator=;
+    using persistent<char>::operator=;
 };
 
 template<string_literal str
@@ -423,6 +429,10 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
     static_assert(sizeof(toggle<"baz">) == sizeof(bool));
     static_assert(sizeof(slider<"baz">) == sizeof(float));
+
+    auto s1 = slider<"baz">{};
+    auto s2 = slider<"baz">{0.5f};
+    s2 = 0.0f;
 }
 // @/
 ```

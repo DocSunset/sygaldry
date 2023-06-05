@@ -42,29 +42,36 @@ namespace sygaldry { namespace concepts {
 
     template<has_range T>
     _consteval auto get_range() { return std::decay_t<T>::range(); }
+    template <typename T, typename Y>
+    concept strict_similar_to 
+        =  requires (T t) { static_cast<Y>(t); }
+        && requires (Y y) { T{y}; }
+        && requires (T t, Y y) { t = y; }
+        && requires (T a, T b, Y c) { a = b = c; }
+        ;
+
+    template<typename T, typename Y>
+    concept similar_to = strict_similar_to<std::remove_cvref_t<T>, std::remove_cvref_t<Y>>;
     template <typename T>
-    concept value_like = requires (T t) // TODO: T a, T b
+    concept has_value_variable = requires (T t)
     {
         t.value;
-        // TODO: t{t}
-        t = t;
-        T{t.value};
-        t = t.value;
-        // TODO: t.value{t}
-        t.value = t;
-        // TODO: t.value{t.value}
-        t.value = t.value;
+        requires similar_to<T, decltype(t.value)>;
     };
 
     template <typename T>
-    concept _persistent_value
-        =  value_like<T>
-        && std::default_initializable<T>;
+    concept has_value_method = requires (T t)
+    {
+        t.value();
+        requires similar_to<T, decltype(t.value())>;
+    };
 
     template <typename T>
-    concept PersistentValue = _persistent_value<T> || _persistent_value<std::decay_t<T>>;
+    concept PersistentValue
+        =  has_value_variable<T> || has_value_method<T>
+        && std::default_initializable<std::remove_cvref_t<T>>;
     template<typename T>
-    concept ClearableFlag = requires (T t)
+    concept Flag = requires (T t)
     {
         bool(t);
         requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
@@ -72,19 +79,13 @@ namespace sygaldry { namespace concepts {
         t = T{};
     };
 
-    template<ClearableFlag T>
-    constexpr void clear_flag(T& t)
-    {
-        t = T{};
-    }
-
     template<typename T>
     concept _occasional_value = requires (T t)
     {
         *t;
         T{*t};
         *t = *t;
-    } && ClearableFlag<T>;
+    } && Flag<T>;
 
     template<typename T>
     concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t<T>>;
@@ -92,6 +93,38 @@ namespace sygaldry { namespace concepts {
     concept Bang = requires (T t)
     {
         requires std::is_enum_v<decltype(T::bang)>;
-    } && ClearableFlag<T>;
+    } && Flag<T>;
+    template<typename T>
+    concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
+
+    template<ClearableFlag T>
+    constexpr void clear_flag(T& t)
+    {
+        t = T{};
+    }
+    // should return ref
+    template <typename T>
+        requires OccasionalValue<T> || PersistentValue<T>
+    auto& value_of(T& v)
+    {
+        if constexpr (PersistentValue<T>)
+        {
+            if constexpr (has_value_variable<T>) return v.value;
+            else if constexpr (has_value_method<T>) return v.value;
+            else static_assert(false, "value_of: PersistentValue with no method or variable. Did we add a new kind?");
+        }
+        else if constexpr (OccasionalValue<T>)
+        {
+            return *v;
+        }
+        else static_assert(false, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
+    }
+
+    template <typename T>
+        requires OccasionalValue<T> || PersistentValue<T>
+    const auto& value_of(const T& v)
+    {
+        return value_of(const_cast<T&>(v));
+    }
 
 } } // namespaces

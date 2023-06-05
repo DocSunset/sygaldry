@@ -154,9 +154,9 @@ TEST_CASE("get_name", "[components][concepts][get_name]")
         const auto& bar = foo;
         const auto& baz = yup;
         REQUIRE(string_view(get_name(bar)) == string_view("foo"));
-        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(get_name<const struct_with_name&>()) == string_view("foo"));
         REQUIRE(string_view(get_name(baz)) == string_view("yup"));
-        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+        REQUIRE(string_view(get_name<const base_struct_with_name&>()) == string_view("yup"));
     }
 }
 // @/
@@ -236,50 +236,149 @@ TEST_CASE("has_range", "[components][concepts][has_range]")
 
 # Persistent Values
 
-A type is considered as a value if it meets four criteria: it can be default
-initialized, it has a `value` member variable, it can be initialized or
-assigned by another instance of the same type or that instances value, and the
-type's `value` can be initialized or assigned from the same sources.
-TODO: is there any reason to require that it has a value member?
+A persistent value is one that should remain the same between invocations of a
+component's main subroutine. For now, we assume that a persistent value
+endpoint will be implemented such that is has a `value` variable or method that
+returns something that has a type that the endpoint can be treated as an
+instance of due to its conversion and assignment operators.
+
+We first model the notion that an endpoint can be treated as an instance of
+its value type with the concept `similar_to`, which asserts that for an endpoint
+type `T` with value type `Y`, `T` can be converted to a `Y`, initialized from
+one, or assigned from one, and that the result of said assignment can be used
+to assign another endoint of the same type.
+
+We could just as well have used the standard concepts `convertible_to`,
+`constructible_from`, and `assignable_from`, but these make more strict
+assertions that don't necessarily align with every hack and workaround that
+component authors may use to meet the described requirements. For instance, the
+fact that assignment operators are inherited from the `persistent<T>` base
+class helper in the endpoint helpers defined in `endpoints.litlit` is in
+violation of the requirements of `assignable_from`, which requires the
+assignment to `T` to return a reference to `T` (and not one of its bases).
+
+Indeed, the stated requirements are even perhaps too strict for our purposes.
+We are willing to fly fast and loose here, so our final `similar_to` concept
+also ignores any cv-ref qualifications on the types it checks. This makes
+it easier to use the concept with `decltype`, which in a function will
+faithfully report the cv-ref qualifications of an argument type even if
+those break our concepts.
+
+We check the validity of our concept by making sure that a `float` is similar
+to a `float`, and that a `const char *` is not.
+
+```c++
+// @+'concepts'
+template <typename T, typename Y>
+concept strict_similar_to 
+    =  requires (T t) { static_cast<Y>(t); }
+    && requires (Y y) { T{y}; }
+    && requires (T t, Y y) { t = y; }
+    && requires (T a, T b, Y c) { a = b = c; }
+    ;
+
+template<typename T, typename Y>
+concept similar_to = strict_similar_to<std::remove_cvref_t<T>, std::remove_cvref_t<Y>>;
+// @/
+
+// @+'persistent value tests'
+SECTION("similar_to")
+{
+    static_assert(similar_to<float, float>);
+    static_assert(similar_to<float&, float>);
+    static_assert(similar_to<const float&, float>);
+    static_assert(similar_to<float&&, float>);
+
+    static_assert(not similar_to<const char *, float>);
+    static_assert(not similar_to<const char *, int>);
+    static_assert(not similar_to<float, const char *>);
+    static_assert(not similar_to<int, const char *>);
+}
+// @/
+```
+
+Recalling our earlier summary, we say that an endpoint has a value if it has a
+member variable `value` or a member function `value()` whose return type the
+endpoint can be treated as an instance of. We additionally require that
+persistent values be default initializable, e.g. so that binding authors do not
+have to fuss over passing such values any constructor arguments.
 
 ```c++
 // @+'concepts'
 template <typename T>
-concept value_like = requires (T t) // TODO: T a, T b
+concept has_value_variable = requires (T t)
 {
     t.value;
-    // TODO: t{t}
-    t = t;
-    T{t.value};
-    t = t.value;
-    // TODO: t.value{t}
-    t.value = t;
-    // TODO: t.value{t.value}
-    t.value = t.value;
+    requires similar_to<T, decltype(t.value)>;
 };
 
 template <typename T>
-concept _persistent_value
-    =  value_like<T>
-    && std::default_initializable<T>;
+concept has_value_method = requires (T t)
+{
+    t.value();
+    requires similar_to<T, decltype(t.value())>;
+};
 
 template <typename T>
-concept PersistentValue = _persistent_value<T> || _persistent_value<std::decay_t<T>>;
+concept PersistentValue
+    =  has_value_variable<T> || has_value_method<T>
+    && std::default_initializable<std::remove_cvref_t<T>>;
 // @/
 
-It's unnecessary to define accessors for a persistent value, since it can
-be treated as though it is its value. However, it is useful to be able to
-query the underlying type of the value. TODO: write such accessors.
+// @+'tests'
+TEST_CASE("PersistentValue", "[components][concepts][PersistentValue]")
+{
+    @{persistent value tests}
+
+    SECTION("has_value_variable")
+    {
+        static_assert(has_value_variable<persistent<float>>);
+        static_assert(has_value_variable<persistent<float>&>);
+        static_assert(has_value_variable<const persistent<float>&>);
+        static_assert(has_value_variable<persistent<float>&&>);
+    }
+
+    SECTION("has_value_method")
+    {
+        static_assert(has_value_variable<slider<"foo">>);
+        static_assert(has_value_variable<slider<"foo">&>);
+        static_assert(has_value_variable<const slider<"foo">&>);
+        static_assert(has_value_variable<slider<"foo">&&>);
+    }
+
+    SECTION("persistent<T> produces persistent values")
+    {
+        static_assert(PersistentValue<persistent<float>>);
+        static_assert(PersistentValue<persistent<float>&>);
+        static_assert(PersistentValue<const persistent<float>&>);
+        static_assert(PersistentValue<persistent<float>&&>);
+    }
+
+    SECTION("PersistentValues are similar to their value type")
+    {
+        static_assert(similar_to<persistent<float>, float>);
+        static_assert(similar_to<persistent<float>&, float>);
+        static_assert(similar_to<const persistent<float>&, float>);
+        static_assert(similar_to<persistent<float>&&, float>);
+    }
+}
+// @/
+```
 
 # Occasional Values
 
-A value is considered to be occasional if it has pointer semantics. We also
-rely on a definition that we will examine later when we define concepts for our
-`bang` type.
+An endpoint is considered to be an occasional value if it has pointer semantics
+and can be initialized by an instance of its value type, such as a
+`std::optional`. We also rely on a definition that we will examine later when
+we define concepts for our `bang` type.
+
+Note that occasional values are not values in the sense defined above. They do
+not behave as though they are instances of their value type, since their
+current state must always be checked before accessing their values.
 
 ```c++
 // @+'concepts'
-@{clearable flag}
+@{flag}
 
 template<typename T>
 concept _occasional_value = requires (T t)
@@ -287,26 +386,26 @@ concept _occasional_value = requires (T t)
     *t;
     T{*t};
     *t = *t;
-} && ClearableFlag<T>;
+} && Flag<T>;
 
 template<typename T>
 concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t<T>>;
 // @/
+
+// @+'tests'
+TEST_CASE("OccasionalValue", "[components][concepts][OccasionalValue]")
+{
+    static_assert(OccasionalValue<std::optional<float>>);
+    static_assert(OccasionalValue<occasional<float>>);
+}
+// @/
 ```
-
-TODO: write tests for value type concepts
-
-## Tags
-
-We can introduce arbitrary symbols into the scope of a class through a bare
-`enum` declaration e.g. `enum { bang };`. TODO: define accessors for checking
-if a certain symbol is defined in a class's scope.
 
 # Bang
 
 Our `bang` concept essentially just checks that the type has an enum value
-called `bang` in its scope, and that it is a clearable flag, a concept we
-also required for our `OccasionalValue` concept.
+called `bang` in its scope, and that it is a flag, a concept we also required
+for our `OccasionalValue` concept.
 
 ```c++
 // @+'concepts'
@@ -314,36 +413,50 @@ template<typename T>
 concept Bang = requires (T t)
 {
     requires std::is_enum_v<decltype(T::bang)>;
-} && ClearableFlag<T>;
+} && Flag<T>;
+// @/
+
+// @+'tests'
+TEST_CASE("Bang", "[components][concepts][Bang]")
+{
+    static_assert(Bang<bng<"foo">>);
+}
 // @/
 ```
 
-The `ClearableFlag` concept requires that we can convert a type to bool, and
-that the boolean interpretation of a default constructed value of the type is
-`false`. This is true of `std::optional`, `bool`, and also pointer types, if
-I'm not mistaken. We assume that by assigning a value of this type to a
-default-constructed value that we can set its boolean interpretation to
-`false`, and check at least that constructing the type in this way has the
-expected effect. This allows us to define a generic method for clearing values
-that meet the requirements of `ClearableFlag`.
+# Flags
 
-A client using the `bng` class defined above may prefer to use a different,
-perhaps more expressive, method of clearing it. But for a binding author,
-it's useful to have a way to clear a flag without having to know anything
-about it other than that it is a valid flag; this is especially pertinent
-given the assumption that occasional values and bangs should be cleared by
-the environment between calls to a component's main subroutine.
+The `Flag` concept requires that we can convert a type to bool, and that the
+boolean interpretation of a default constructed value of the type is `false`.
+This is true of `std::optional`, `bool`, and also pointer types. We assume that
+by assigning a value of this type to a default-constructed value that we can
+set its boolean interpretation to `false`, and check at least that constructing
+the type in this way has the expected effect. This allows us to define a
+generic method for clearing values that meet the requirements of `Flag`. For a
+flag to be considered `Clearable`, we require that it model `OccasionalValue`
+or `Bang`; these are presently the only supported types with event-like
+semantics, and that should therefore be cleared by the platform. The
+`ClearableFlag` mechanism support binding authors in detecting and serving this
+requirement. A client using e.g. the `bng` class defined in `endpoints.litlit`
+may prefer to use a different, perhaps more expressive, method of clearing its
+state. But for a binding author, it's useful to have a way to clear a flag
+without having to know anything about it other than that it is a valid flag.
 
 ```c++
-// @+'clearable flag'
+// @='flag'
 template<typename T>
-concept ClearableFlag = requires (T t)
+concept Flag = requires (T t)
 {
     bool(t);
     requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
     requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
     t = T{};
 };
+// @/
+
+// @+'concepts'
+template<typename T>
+concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
 
 template<ClearableFlag T>
 constexpr void clear_flag(T& t)
@@ -351,9 +464,138 @@ constexpr void clear_flag(T& t)
     t = T{};
 }
 // @/
+
+// @+'tests'
+TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
+{
+    static_assert(Flag<bool>);
+    static_assert(Flag<float*>);
+    static_assert(Flag<persistent<bool>>);
+    static_assert(Flag<bng<"foo">>);
+    static_assert(Flag<occasional<float>>);
+
+    static_assert(not ClearableFlag<bool>);
+    static_assert(not ClearableFlag<float*>);
+    static_assert(not ClearableFlag<persistent<bool>>);
+    static_assert(ClearableFlag<bng<"foo">>);
+    static_assert(ClearableFlag<occasional<float>>);
+
+    SECTION("clear_flag")
+    {
+        SECTION("Bang")
+        {
+            bng<"foo"> flag{true};
+            REQUIRE(bool(flag));
+            clear_flag(flag);
+            REQUIRE(not bool(flag));
+        }
+        SECTION("OccasionalValue")
+        {
+            occasional<float> flag = 100.0f;
+            REQUIRE(bool(flag));
+            clear_flag(flag);
+            REQUIRE(not bool(flag));
+        }
+    }
+}
+// @/
 ```
 
-TODO: write tests for bang and clearable flag concepts
+# Value Access
+
+In case the accepted implementations of the above value types even changes,
+we encourage binding authors to access values using the following generic
+subroutines. A single main function called `value_of` is provided. It returns
+an appropriately `const` qualified reference to the value of an endpoint,
+allowing the binding author to read and write the value.
+
+```c++
+// @+'tests'
+TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
+{
+    SECTION("value_of")
+    {
+        SECTION("PersistentValue")
+        {
+            persistent<float> v{100.0f};
+            REQUIRE(value_of(v) == 100.0f);
+
+            const persistent<float> cv{100.0f};
+            REQUIRE(value_of(cv) == 100.0f);
+            static_assert(std::is_const_v<std::remove_reference_t<decltype(value_of(cv))>>);
+            static_assert(std::is_lvalue_reference_v<decltype(value_of(cv))>);
+        }
+        SECTION("OccasionalValue")
+        {
+            occasional<float> v = 100.0f;
+            REQUIRE(value_of(v) == 100.0f);
+
+            const occasional<float> cv = 100.0f;
+            REQUIRE(value_of(cv) == 100.0f);
+        }
+    }
+    SECTION("set_value")
+    {
+        SECTION("PersistentValue")
+        {
+            persistent<float> v = 100.0f;
+            value_of(v) = 200.0f;
+            REQUIRE(value_of(v) == 200.0f);
+        }
+        SECTION("OccasionalValue")
+        {
+            occasional<float> v = 100.0f;
+            value_of(v) = 200.0f;
+            REQUIRE(value_of(v) == 200.0f);
+        }
+    }
+}
+// @/
+```
+
+The subroutine itself is reasonably straightforward given the above concepts.
+The only thing that might be surprising is that the `const` version of the
+function is implemented in terms of the non-`const` version. This is considered
+a reasonable and idiomatic way of avoiding repeating ourselves, but we should
+remain suspicious of this function in case our assumptions about
+const-correctness ever seen to be violated. This is unlikely to ever be an
+issue though.
+
+```c++
+// @+'concepts'
+// should return ref
+template <typename T>
+    requires OccasionalValue<T> || PersistentValue<T>
+auto& value_of(T& v)
+{
+    if constexpr (PersistentValue<T>)
+    {
+        if constexpr (has_value_variable<T>) return v.value;
+        else if constexpr (has_value_method<T>) return v.value;
+        else static_assert(false, "value_of: PersistentValue with no method or variable. Did we add a new kind?");
+    }
+    else if constexpr (OccasionalValue<T>)
+    {
+        return *v;
+    }
+    else static_assert(false, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
+}
+
+template <typename T>
+    requires OccasionalValue<T> || PersistentValue<T>
+const auto& value_of(const T& v)
+{
+    return value_of(const_cast<T&>(v));
+}
+// @/
+```
+
+# Tags
+
+We can introduce arbitrary symbols into the scope of a class through a bare
+`enum` declaration e.g. `enum { bang };`. TODO: define accessors for checking
+if a certain symbol is defined in a class's scope.
+
 
 # Summary
 
@@ -390,6 +632,7 @@ using std::string_view;
 
 ```cmake
 # @#'tests/concepts/CMakeLists.txt'
+add_compile_options(-fconcepts-diagnostics-depth=2)
 add_executable(concepts-tests tests.cpp)
 target_link_libraries(concepts-tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(concepts-tests)

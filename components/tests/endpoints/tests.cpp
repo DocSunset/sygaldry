@@ -94,6 +94,10 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
     static_assert(sizeof(toggle<"baz">) == sizeof(bool));
     static_assert(sizeof(slider<"baz">) == sizeof(float));
+
+    auto s1 = slider<"baz">{};
+    auto s2 = slider<"baz">{0.5f};
+    s2 = 0.0f;
 }
 TEST_CASE("Bang", "[endpoints][bang]")
 {

@@ -167,11 +167,11 @@ R"DESCRIBEDEVICE(component: test-component-1
   input:   button-in
     name: "button in"
     type:  occasional value
-    range: false to true (init: false)
+    range: 0 to 1 (init: 0)
   input:   toggle-in
     name: "toggle in"
     type:  persistent value
-    range: false to true (init: false)
+    range: 0 to 1 (init: 0)
   input:   slider-in
     name: "slider in"
     type:  persistent value
@@ -182,11 +182,11 @@ R"DESCRIBEDEVICE(component: test-component-1
   output:  button-out
     name: "button out"
     type:  occasional value
-    range: false to true (init: false)
+    range: 0 to 1 (init: 0)
   output:  toggle-out
     name: "toggle out"
     type:  persistent value
-    range: false to true (init: false)
+    range: 0 to 1 (init: 0)
   output:  slider-out
     name: "slider out"
     type:  persistent value

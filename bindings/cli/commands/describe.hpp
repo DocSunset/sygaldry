@@ -36,8 +36,6 @@ struct Describe
         else if constexpr (PersistentValue<T>) log.println("persistent value");
         else if constexpr (OccasionalValue<T>) log.println("occasional value");
         else if constexpr (Bang<T>) log.println("bang");
-        else if constexpr (ClearableFlag<T>) log.println("clearable flag");
-        else if constexpr (value_like<T>) log.println("value-like");
         else log.println("unknown");
     }
 
