@@ -198,7 +198,7 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
             REQUIRE(value_of(cv) == 100.0f);
         }
     }
-    SECTION("set_value")
+    SECTION("set via value_of")
     {
         SECTION("PersistentValue")
         {
@@ -210,6 +210,23 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         {
             occasional<float> v = 100.0f;
             value_of(v) = 200.0f;
+            REQUIRE(value_of(v) == 200.0f);
+        }
+    }
+    SECTION("set_value")
+    {
+        SECTION("PersistentValue")
+        {
+            persistent<float> v = 100.0f;
+            set_value(v, 200.0f);
+            REQUIRE(value_of(v) == 200.0f);
+        }
+        SECTION("OccasionalValue")
+        {
+            occasional<float> v = {};
+            REQUIRE(not v);
+            set_value(v, 200.0f);
+            REQUIRE(v);
             REQUIRE(value_of(v) == 200.0f);
         }
     }

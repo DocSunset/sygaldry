@@ -503,11 +503,13 @@ TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
 
 # Value Access
 
-In case the accepted implementations of the above value types even changes,
-we encourage binding authors to access values using the following generic
-subroutines. A single main function called `value_of` is provided. It returns
-an appropriately `const` qualified reference to the value of an endpoint,
-allowing the binding author to read and write the value.
+In case the accepted implementations of the above value types even changes, we
+encourage binding authors to access values using the following generic
+subroutines. `value_of` returns an appropriately `const` qualified reference to
+the value of an endpoint, allowing the binding author to read and write the
+value. To allow setting of `OccasionalValue`s that don't already have a value,
+`set_value` is provided, which handles `OccasionalValue`s appropriately and
+is also usable with `PersistentValue`s.
 
 ```c++
 // @+'tests'
@@ -534,7 +536,7 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
             REQUIRE(value_of(cv) == 100.0f);
         }
     }
-    SECTION("set_value")
+    SECTION("set via value_of")
     {
         SECTION("PersistentValue")
         {
@@ -546,6 +548,23 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         {
             occasional<float> v = 100.0f;
             value_of(v) = 200.0f;
+            REQUIRE(value_of(v) == 200.0f);
+        }
+    }
+    SECTION("set_value")
+    {
+        SECTION("PersistentValue")
+        {
+            persistent<float> v = 100.0f;
+            set_value(v, 200.0f);
+            REQUIRE(value_of(v) == 200.0f);
+        }
+        SECTION("OccasionalValue")
+        {
+            occasional<float> v = {};
+            REQUIRE(not v);
+            set_value(v, 200.0f);
+            REQUIRE(v);
             REQUIRE(value_of(v) == 200.0f);
         }
     }
@@ -587,6 +606,13 @@ template<has_value T>
 const auto& value_of(const T& v)
 {
     return value_of(const_cast<T&>(v));
+}
+
+template <has_value T>
+auto& set_value(T& v, const auto& arg)
+{
+    v = arg;
+    return v;
 }
 // @/
 ```

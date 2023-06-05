@@ -19,15 +19,6 @@ struct Describe
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    struct DescribeMatcher
-    {
-        template<typename stringish, typename Entity>
-        bool operator()(stringish name, const Entity& entity)
-        {
-            using spelling::lower_kebab_case;
-            return std::string_view(name) == std::string_view(lower_kebab_case(entity));
-        }
-    };
 
     template<typename T>
     void describe_entity_type(T& entity)
@@ -92,14 +83,14 @@ struct Describe
         if (argc < 2) return 2;
         bool describe_component = argc == 2;
         bool describe_endpoint = argc > 2;
-        return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
+        return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
         {
             if (describe_component)
             {
                 describe_entity("component: ", component);
                 return 0;
             }
-            else if (describe_endpoint) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+            else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
             {
                 describe_entity("endpoint: ", endpoint);
                 return 0;

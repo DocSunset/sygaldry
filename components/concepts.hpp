@@ -127,4 +127,11 @@ namespace sygaldry { namespace concepts {
         return value_of(const_cast<T&>(v));
     }
 
+    template <has_value T>
+    auto& set_value(T& v, const auto& arg)
+    {
+        v = arg;
+        return v;
+    }
+
 } } // namespaces

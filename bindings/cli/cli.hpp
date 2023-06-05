@@ -3,9 +3,12 @@
 #include <string_view>
 #include "utilities/consteval.hpp"
 #include "bindings/name_dispatch.hpp"
+#include "matcher.hpp"
+
 #include "commands/list.hpp"
 #include "commands/help.hpp"
 #include "commands/describe.hpp"
+#include "commands/set.hpp"
 
 namespace sygaldry { namespace bindings::cli
 {
@@ -31,16 +34,6 @@ struct Cli
     char * argv[MAX_ARGS];
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
-
-    struct CommandMatcher
-    {
-        template<typename stringish, typename Command>
-        bool operator()(stringish arg0, const Command& command)
-        {
-            using spelling::lower_kebab_case;
-            return std::string_view(arg0) == std::string_view(lower_kebab_case(command));
-        }
-    };
 
     int _try_to_match_and_execute()
     {
@@ -124,6 +117,7 @@ struct DefaultCommands
     default_command(Help);
     default_command(List);
     default_command(Describe);
+    default_command(Set);
     #undef default_command
 };
 

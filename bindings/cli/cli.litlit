@@ -456,7 +456,14 @@ as a special case in our callback lambda, and using a kebab-case
 respeller in our matcher.
 
 ```c++
-// @+'cli implementation details'
+// @#'matcher.hpp'
+#pragma once
+
+#include <string_view>
+#include "utilities/spelling.hpp"
+
+namespace sygaldry { namespace bindings { namespace cli {
+
 struct CommandMatcher
 {
     template<typename stringish, typename Command>
@@ -467,6 +474,10 @@ struct CommandMatcher
     }
 };
 
+} } }
+// @/
+
+// @+'cli implementation details'
 int _try_to_match_and_execute()
 {
     return dispatch<CommandMatcher>(argv[0], commands, 127, [this](auto& command)
@@ -588,6 +599,8 @@ void _complain_about_command_failure(int retcode)
 #include <string_view>
 #include "utilities/consteval.hpp"
 #include "bindings/name_dispatch.hpp"
+#include "matcher.hpp"
+
 @{commands headers}
 
 namespace sygaldry { namespace bindings::cli
@@ -894,25 +907,6 @@ R"DESCRIBEENDPOINT(endpoint: slider-out
 // @/
 ```
 
-The bulk of this command's logic comes from four functions: one that matches an
-argument to a component, one that decribes a matched component, one that matches an
-argument to an endpoint, and one that describes a matched endpoint. The same matcher
-serves for both components and endpoints.
-
-```c++
-// @='describe matcher'
-struct DescribeMatcher
-{
-    template<typename stringish, typename Entity>
-    bool operator()(stringish name, const Entity& entity)
-    {
-        using spelling::lower_kebab_case;
-        return std::string_view(name) == std::string_view(lower_kebab_case(entity));
-    }
-};
-// @/
-```
-
 Depending on whether there is one or two arguments besides the name of the
 command, we either describe a component (recursively including its endpoints),
 or we describe a single endpoint.
@@ -922,14 +916,14 @@ or we describe a single endpoint.
 if (argc < 2) return 2;
 bool describe_component = argc == 2;
 bool describe_endpoint = argc > 2;
-return dispatch<DescribeMatcher>(argv[1], components, 2, [&](auto& component)
+return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
 {
     if (describe_component)
     {
         describe_entity("component: ", component);
         return 0;
     }
-    else if (describe_endpoint) return dispatch<DescribeMatcher>(argv[2], component, 2, [&](auto& endpoint)
+    else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
     {
         describe_entity("endpoint: ", endpoint);
         return 0;
@@ -1061,9 +1055,166 @@ done by the following command.
 // @+'tests'
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
+    auto components = TestComponents{};
+    SECTION("set slider")
+    {
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
+    }
 
+    SECTION("set toggle")
+    {
+        REQUIRE(components.tc.inputs.toggle_in.value == 0);
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        REQUIRE(components.tc.inputs.toggle_in.value == 1);
+    }
+
+    SECTION("set button")
+    {
+        REQUIRE(not components.tc.inputs.button_in);
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        REQUIRE(components.tc.inputs.button_in);
+        REQUIRE(components.tc.inputs.button_in.value() == 1);
+    }
+
+    SECTION("set bang")
+    {
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "bang-in");
+        REQUIRE(components.tc.inputs.bang_in.value == true);
+    }
 }
 // @/
+```
+
+The main subroutine simply checks the arguments and tries to dispatch to the
+right endpoint, deferring the main logic of the command to another subroutine.
+
+```c++
+// @='set main'
+if (argc < 3)
+{
+    log.println("usage: ", usage());
+    return 2;
+}
+auto component_name = argv[1];
+auto endpoint_name = argv[2];
+return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
+    return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
+        return set_endpoint_value(endpoint, argc-3, argv+3);
+    });
+});
+// @/
+```
+
+Setting the value depends on the type of value. Bangs are set no matter what the
+input. Otherwise, we require more information to parse in order to set the value.
+
+```c++
+// @='set implementation details'
+@{parse and set}
+
+template<typename T>
+int set_endpoint_value(T& endpoint, int argc, char ** argv)
+{
+    if constexpr (Bang<T>)
+    {
+        if (argc != 0) log.println("Note: no arguments are required to set a bang.");
+        set_value(endpoint, true);
+        return 0;
+    }
+    else if constexpr (has_value<T>)
+    {
+        // TODO: support values with more than one argument
+        if (argc < 1)
+        {
+            log.println("Not enough arguments to set this endpoint.");
+            return 2;
+        }
+        // TODO: we should determine the type of the value and use it here
+        else return parse_and_set<float>(endpoint, argv[0]);
+    }
+    else return 2;
+}
+// @/
+```
+
+`parse_and_set` is called in case a number needs to be parsed from the input
+tokens. We use the conversions from `<charconv>` as seen also in the basic
+logger. Most of the method consists of checking for errors and returning a
+failure code in case we can't parse the input token as a number.
+
+```c++
+// @='parse and set'
+template<typename T>
+int parse_and_set(auto& endpoint, char * argstart)
+{
+    T num{};
+    auto argend = argstart;
+
+    // search for the end of the token, with an arbitrary maximum upper bound
+    for (int i = 0; *argend != 0 && i < 256; ++i, ++argend) {}
+    if (*argend != 0) 
+    {
+        log.println("Unable to parse number, couldn't find end of token");
+        return 2;
+    }
+    auto [ptr, ec] = std::from_chars(argstart, argend, num);
+    if (ec == std::errc{})
+    {
+        set_value(endpoint, num);
+        if (ptr != argend)
+            log.println("Warning: couldn't parse the entire token '", argstart, "'");
+        return 0;
+    }
+    else
+    {
+        log.println("Unable to parse token '", argstart, "'");
+        return 2;
+    }
+}
+// @/
+```
+
+## Summary
+
+```c++
+// @#'commands/set.hpp'
+#pragma once
+
+#include "components/concepts.hpp"
+#include "bindings/name_dispatch.hpp"
+
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+
+template<typename Config>
+struct Set
+{
+    static _consteval auto name() { return "set"; }
+    static _consteval auto usage() { return "component-name endpoint-name [value] [value] [...]"; }
+    static _consteval auto description() { return "Change the current value of the given endoint"; }
+
+    [[no_unique_address]] typename Config::basic_logger_type log;
+
+    @{set implementation details}
+
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
+    {
+        @{set main}
+    }
+};
+
+} } } }
+// @/
+
+// @+'commands headers'
+#include "commands/set.hpp"
+// @/
+
+// @+'default commands'
+default_command(Set);
+// @/
+```
 
 ## Trigger
 

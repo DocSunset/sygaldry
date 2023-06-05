@@ -204,5 +204,31 @@ R"DESCRIBEENDPOINT(endpoint: slider-out
 }
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
+    auto components = TestComponents{};
+    SECTION("set slider")
+    {
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
+    }
 
+    SECTION("set toggle")
+    {
+        REQUIRE(components.tc.inputs.toggle_in.value == 0);
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        REQUIRE(components.tc.inputs.toggle_in.value == 1);
+    }
+
+    SECTION("set button")
+    {
+        REQUIRE(not components.tc.inputs.button_in);
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        REQUIRE(components.tc.inputs.button_in);
+        REQUIRE(components.tc.inputs.button_in.value() == 1);
+    }
+
+    SECTION("set bang")
+    {
+        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "bang-in");
+        REQUIRE(components.tc.inputs.bang_in.value == true);
+    }
 }
