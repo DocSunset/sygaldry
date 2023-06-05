@@ -553,19 +553,21 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
 // @/
 ```
 
-The subroutine itself is reasonably straightforward given the above concepts.
-The only thing that might be surprising is that the `const` version of the
-function is implemented in terms of the non-`const` version. This is considered
-a reasonable and idiomatic way of avoiding repeating ourselves, but we should
-remain suspicious of this function in case our assumptions about
-const-correctness ever seen to be violated. This is unlikely to ever be an
-issue though.
+We define a new concept `Value` as the union of occasional and persistent
+values. The `value_of` subroutine itself is reasonably straightforward given
+the above concepts. The only thing that might be surprising is that the `const`
+version of the function is implemented in terms of the non-`const` version.
+This is considered a reasonable and idiomatic way of avoiding repeating
+ourselves, but we should remain suspicious of this function in case our
+assumptions about const-correctness ever seen to be violated. This is unlikely
+to ever be an issue though.
 
 ```c++
 // @+'concepts'
-// should return ref
 template <typename T>
-    requires OccasionalValue<T> || PersistentValue<T>
+concept has_value = OccasionalValue<T> || PersistentValue<T>;
+
+template <has_value T>
 auto& value_of(T& v)
 {
     if constexpr (PersistentValue<T>)
@@ -581,8 +583,7 @@ auto& value_of(T& v)
     else static_assert(false, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
 }
 
-template <typename T>
-    requires OccasionalValue<T> || PersistentValue<T>
+template<has_value T>
 const auto& value_of(const T& v)
 {
     return value_of(const_cast<T&>(v));

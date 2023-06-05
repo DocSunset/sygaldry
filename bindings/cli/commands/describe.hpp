@@ -29,20 +29,33 @@ struct Describe
         }
     };
 
-    void describe_entity_type(auto& entity)
+    template<typename T>
+    void describe_entity_type(T& entity)
     {
-        using T = decltype(entity);
         if constexpr (Component<T>) log.println("component");
+        else if constexpr (Bang<T>) log.println("bang");
         else if constexpr (PersistentValue<T>) log.println("persistent value");
         else if constexpr (OccasionalValue<T>) log.println("occasional value");
-        else if constexpr (Bang<T>) log.println("bang");
         else log.println("unknown");
     }
 
-    void describe_entity(auto preface, auto& entity, auto ... indents)
+    template<typename T>
+    void describe_entity_value(T& entity)
+    {
+        if constexpr (Bang<T>)
+        {
+            if (entity) log.println("(bang!)");
+            else log.println("()");
+        }
+        else if constexpr (PersistentValue<decltype(entity)>) log.println(value_of(entity));
+        else if (entity) log.println("(", value_of(entity), ")");
+        else log.println("()");
+    }
+
+    template<typename T>
+    void describe_entity(auto preface, T& entity, auto ... indents)
     {
         using spelling::lower_kebab_case;
-        using T = decltype(entity);
         static_assert(has_name<T>);
         log.println(indents..., preface, (const char *)lower_kebab_case(entity));
         log.println(indents..., "  name: \"", entity.name(), "\"");
@@ -53,6 +66,11 @@ struct Describe
             log.print(indents..., "  range: ");
             auto range = get_range<T>();
             log.println(range.min, " to ", range.max, " (init: ", range.init, ")");
+        }
+        if constexpr (has_value<T>)
+        {
+            log.print(indents...,   "  value: ");
+            describe_entity_value(entity);
         }
         if constexpr (Component<T>)
         {

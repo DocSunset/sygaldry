@@ -102,9 +102,10 @@ namespace sygaldry { namespace concepts {
     {
         t = T{};
     }
-    // should return ref
     template <typename T>
-        requires OccasionalValue<T> || PersistentValue<T>
+    concept has_value = OccasionalValue<T> || PersistentValue<T>;
+
+    template <has_value T>
     auto& value_of(T& v)
     {
         if constexpr (PersistentValue<T>)
@@ -120,8 +121,7 @@ namespace sygaldry { namespace concepts {
         else static_assert(false, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
     }
 
-    template <typename T>
-        requires OccasionalValue<T> || PersistentValue<T>
+    template<has_value T>
     const auto& value_of(const T& v)
     {
         return value_of(const_cast<T&>(v));

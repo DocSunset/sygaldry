@@ -74,17 +74,18 @@ struct TestCommands
 };
 
 struct Component1 {
-    static _consteval auto name() { return "Test Component 1"; }
+    static _consteval auto name() { return "Test Component A"; }
 };
 
 struct Component2 {
-    static _consteval auto name() { return "Test Component 2"; }
+    static _consteval auto name() { return "Test Component B"; }
 };
 
 struct TestComponents
 {
     Component1 cpt1;
     Component2 cpt2;
+    sygaldry::components::TestComponent tc;
 };
 
 struct Config
@@ -126,7 +127,7 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
     command.log.put.ss.str("");
     auto retcode = command.main(argc, argv, components);
 
-    REQUIRE(command.log.put.ss.str() == string("test-component-1\ntest-component-2\n"));
+    REQUIRE(command.log.put.ss.str() == string("test-component-a\ntest-component-b\ntest-component-1\n"));
     REQUIRE(retcode == 0);
 }
 TEST_CASE("Help command", "[cli][commands][help]")
@@ -140,27 +141,23 @@ TEST_CASE("Help command", "[cli][commands][help]")
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
-struct DescribeComponents
+void test_describe(const char * arg1, const char * arg2, int returncode, const char * output)
 {
-    sygaldry::components::TestComponent tc;
-};
+    int argc = 1;
+    if (*arg1 != 0) ++argc;
+    if (*arg2 != 0) ++argc;
+    char * arg0 = (char *)"describe";
+    char * argv[] = {arg0, (char*)arg1, (char*)arg2};
+    Describe<Config> command;
+    auto components = TestComponents{};
+    command.log.put.ss.str("");
+    auto retcode = command.main(argc, argv, components);
+    REQUIRE(retcode == returncode);
+    REQUIRE(command.log.put.ss.str() == string(output));
+}
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
-    int argc = 3;
-    char * arg0 = (char *)"describe";
-    char * arg1 = (char *)"test-component-1";
-    char * arg2 = (char *)"slider-out";
-    char * argv[] = {arg0, arg1, arg2};
-    auto components = DescribeComponents{};
-
-
-    argc = 2;
-    SECTION("describe device")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string(
+    test_describe("test-component-1", "", 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -168,51 +165,47 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button in"
     type:  occasional value
     range: 0 to 1 (init: 0)
+    value: ()
   input:   toggle-in
     name: "toggle in"
     type:  persistent value
     range: 0 to 1 (init: 0)
+    value: 0
   input:   slider-in
     name: "slider in"
     type:  persistent value
     range: 0 to 1 (init: 0)
+    value: 0
   input:   bang-in
     name: "bang in"
-    type:  persistent value
+    type:  bang
+    value: ()
   output:  button-out
     name: "button out"
     type:  occasional value
     range: 0 to 1 (init: 0)
+    value: ()
   output:  toggle-out
     name: "toggle out"
     type:  persistent value
     range: 0 to 1 (init: 0)
+    value: 0
   output:  slider-out
     name: "slider out"
     type:  persistent value
     range: 0 to 1 (init: 0)
+    value: 0
   output:  bang-out
     name: "bang out"
-    type:  persistent value
-)DESCRIBEDEVICE"));
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
+    type:  bang
+    value: ()
+)DESCRIBEDEVICE");
 
-    argc = 3;
-    SECTION("describe endpoint")
-    {
-        Describe<Config> command;
-        command.log.put.ss.str("");
-        auto retcode = command.main(argc, argv, components);
-        REQUIRE(command.log.put.ss.str() == string(
+    test_describe("test-component-1", "slider-out", 0, 
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
   range: 0 to 1 (init: 0)
-)DESCRIBEENDPOINT"));
-
-        REQUIRE(retcode == 0);
-        command.log.put.ss.str("");
-    }
+  value: 0
+)DESCRIBEENDPOINT");
 }
