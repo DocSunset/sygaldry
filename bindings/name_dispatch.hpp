@@ -3,11 +3,14 @@
 #include <string_view>
 #include <boost/pfr.hpp>
 #include "utilities/spelling.hpp"
+#include "concepts/components.hpp"
 
 namespace sygaldry
 {
 namespace bindings
 {
+
+using namespace sygaldry::concepts;
 
 struct dispatch_default_matcher
 {
@@ -19,9 +22,6 @@ struct dispatch_default_matcher
 };
 
 // TODO: these concept definitions probably don't belong here
-
-template <typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
 
 template<typename T>
 concept tuple_like = requires (T tup)
@@ -57,8 +57,8 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 {
     if constexpr (Component<Entities>)
     {
-        auto ins = boost::pfr::structure_tie(entities.inputs);
-        auto outs = boost::pfr::structure_tie(entities.outputs);
+        auto ins = boost::pfr::structure_tie(inputs_of(entities));
+        auto outs = boost::pfr::structure_tie(outputs_of(entities));
         auto tup = std::tuple_cat(ins, outs);
         return dispatch_tuple<Matcher>(name, tup, d, f);
         return d;

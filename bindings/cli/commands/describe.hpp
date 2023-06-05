@@ -3,7 +3,7 @@
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/concepts.hpp"
+#include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
@@ -72,8 +72,8 @@ struct Describe
                     describe_entity(groupname, entity, "  ", indents...);
                 });
             };
-            describe_group(entity.inputs,  "input:   ");
-            describe_group(entity.outputs, "output:  ");
+            describe_group(inputs_of(entity),  "input:   ");
+            describe_group(outputs_of(entity), "output:  ");
         }
     }
 

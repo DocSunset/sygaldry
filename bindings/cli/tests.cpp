@@ -232,3 +232,7 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 }
+TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
+{
+    auto components = TestComponents{};
+}

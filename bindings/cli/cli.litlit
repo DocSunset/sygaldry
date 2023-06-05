@@ -992,11 +992,13 @@ void describe_entity(auto preface, T& entity, auto ... indents)
                 describe_entity(groupname, entity, "  ", indents...);
             });
         };
-        describe_group(entity.inputs,  "input:   ");
-        describe_group(entity.outputs, "output:  ");
+        describe_group(inputs_of(entity),  "input:   ");
+        describe_group(outputs_of(entity), "output:  ");
     }
 }
 // @/
+```
+### Boilerplate
 
 ```c++
 // @#'commands/describe.hpp'
@@ -1005,7 +1007,7 @@ void describe_entity(auto preface, T& entity, auto ... indents)
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/concepts.hpp"
+#include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
@@ -1175,13 +1177,14 @@ int parse_and_set(auto& endpoint, char * argstart)
 // @/
 ```
 
-## Summary
+### Boilerplate
 
 ```c++
 // @#'commands/set.hpp'
 #pragma once
 
-#include "components/concepts.hpp"
+#include <charconv>
+#include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
@@ -1217,6 +1220,76 @@ default_command(Set);
 ```
 
 ## Trigger
+
+```c++
+// @+'tests'
+TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
+{
+    auto components = TestComponents{};
+}
+// @/
+```
+
+```c++
+// @='trigger main'
+return 2;
+// @/
+```
+
+```c++
+// @='trigger implementation details'
+// @/
+```
+
+### Boilerplate
+
+```c++
+// @#'commands/trigger.hpp'
+#pragma once
+
+#include "concepts/endpoints.hpp"
+#include "concepts/components.hpp"
+#include "bindings/name_dispatch.hpp"
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+
+template<typename Config>
+struct Trigger
+{
+    static _consteval auto name() { return "trigger"; }
+    static _consteval auto usage() { return "component-name"; }
+    static _consteval auto description() { return "Activate the given component's main subroutine"; }
+
+    [[no_unique_address]] typename Config::basic_logger_type log;
+
+    @{trigger implementation details}
+
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
+    {
+        if (argc < 2)
+        {
+            log.println("Usage: ", usage());
+            return 2;
+        }
+        return dispatch<CommandMatcher>(argv[1], components, 2, [](auto& component)
+        {
+            activate(component);
+            return 0;
+        });
+    }
+};
+
+} } } }
+// @/
+
+// @+'commands headers'
+#include "commands/trigger.hpp"
+// @/
+
+// @+'default commands'
+default_command(Trigger);
+// @/
+```
 
 # Using the CLI
 
@@ -1273,10 +1346,14 @@ The CLI class itself implements a fairly limited behavior.
 
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
+    struct {} inputs;
+    struct {} outputs;
 };
 
 struct Component2 {
     static _consteval auto name() { return "Test Component 2"; }
+    struct {} inputs;
+    struct {} outputs;
 };
 
 using namespace sygaldry::components;

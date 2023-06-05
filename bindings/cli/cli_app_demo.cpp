@@ -5,10 +5,14 @@
 
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
+    struct {} inputs;
+    struct {} outputs;
 };
 
 struct Component2 {
     static _consteval auto name() { return "Test Component 2"; }
+    struct {} inputs;
+    struct {} outputs;
 };
 
 using namespace sygaldry::components;

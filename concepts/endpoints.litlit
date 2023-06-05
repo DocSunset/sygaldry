@@ -623,11 +623,10 @@ We can introduce arbitrary symbols into the scope of a class through a bare
 `enum` declaration e.g. `enum { bang };`. TODO: define accessors for checking
 if a certain symbol is defined in a class's scope.
 
-
 # Summary
 
 ```c++
-// @#'concepts.hpp'
+// @#'endpoints.hpp'
 #pragma once
 
 #include <concepts>
@@ -640,14 +639,14 @@ namespace sygaldry { namespace concepts {
 } } // namespaces
 // @/
 
-// @#'tests/concepts/tests.cpp'
+// @#'tests/endpoints/tests.cpp'
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "components/endpoints.hpp"
-#include "components/concepts.hpp"
+#include "concepts/endpoints.hpp"
 
 using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;
@@ -658,11 +657,11 @@ using std::string_view;
 ```
 
 ```cmake
-# @#'tests/concepts/CMakeLists.txt'
+# @#'tests/endpoints/CMakeLists.txt'
 add_compile_options(-fconcepts-diagnostics-depth=2)
-add_executable(concepts-tests tests.cpp)
-target_link_libraries(concepts-tests PRIVATE Catch2::Catch2WithMain)
-catch_discover_tests(concepts-tests)
+add_executable(concepts-endpoints-tests tests.cpp)
+target_link_libraries(concepts-endpoints-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(concepts-endpoints-tests)
 # @/
 ```
 

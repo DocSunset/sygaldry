@@ -9,6 +9,7 @@
 #include "commands/help.hpp"
 #include "commands/describe.hpp"
 #include "commands/set.hpp"
+#include "commands/trigger.hpp"
 
 namespace sygaldry { namespace bindings::cli
 {
@@ -118,6 +119,7 @@ struct DefaultCommands
     default_command(List);
     default_command(Describe);
     default_command(Set);
+    default_command(Trigger);
     #undef default_command
 };
 

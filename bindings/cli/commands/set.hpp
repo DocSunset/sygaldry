@@ -1,6 +1,7 @@
 #pragma once
 
-#include "components/concepts.hpp"
+#include <charconv>
+#include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {

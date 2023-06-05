@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "components/endpoints.hpp"
-#include "components/concepts.hpp"
+#include "concepts/endpoints.hpp"
 
 using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;

@@ -1,0 +1,74 @@
+# Components Concepts
+
+For now, we take a component as any type that has member variables for inputs
+and outputs. This is no doubt an incomplete specification of the requirements
+we have for components, but it'll do for now.
+
+Many components have endpoints with message semantics, e.g. by its value having
+semantics similar to a pointer or `std::optional`. These values are expected to
+be cleared so that they have a `false` interpretation unless the value has been
+set juse before or during the current call to the component's main subroutine.
+To facilitate bindings implementing this behavior in a consistent way, the
+following subroutine is implemented, that reflects over a component's endpoints
+and clears all of its endpoints with this semantics.
+
+A test is not provided for this function here, since its use in the CLI binding
+is well tested.
+
+```c++
+// @#'components.hpp'
+#pragma once
+
+#include <boost/pfr.hpp>
+#include "concepts/endpoints.hpp"
+
+namespace sygaldry { namespace concepts {
+
+template <typename T>
+concept Component = requires (T t) {t.inputs; t.outputs;};
+
+template<Component T>
+auto& inputs_of(T& component)
+{
+    return component.inputs;
+};
+
+template<Component T>
+auto& outputs_of(T& component)
+{
+    return component.outputs;
+};
+
+template<typename T>
+void clear_flags(T& entities)
+{
+    if constexpr (Component<T>)
+    {
+        clear_flags(inputs_of(entities));
+        clear_flags(outputs_of(entities));
+    }
+    else
+    {
+        boost::pfr::for_each_field(entities, []<typename Y>(Y& endpoint)
+        {
+            if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
+        });
+    }
+}
+
+template<Component T>
+void activate(T& component)
+{
+    clear_flags(outputs_of(component));
+    if constexpr (requires {component.main(component.inputs, component.outputs);})
+        component.main(component.inputs, component.outputs);
+    else if constexpr (requires {component(component.inputs, component.outputs);})
+        component(component.inputs, component.outputs);
+    else if constexpr (requires {component();})
+        component();
+    clear_flags(inputs_of(component));
+}
+
+} }
+// @/
+```
