@@ -88,6 +88,19 @@ struct TestComponents
     sygaldry::components::TestComponent tc;
 };
 
+void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)
+{
+    int argc = 0;
+    char * argv[sizeof...(args)];
+    auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
+    ( set_arg(args), ... );
+
+    command.log.put.ss.str("");
+    int retcode = command.main(argc, argv, components);
+    REQUIRE(retcode == expected_retcode);
+    REQUIRE(command.log.put.ss.str() == string(expected_output));
+};
+
 struct Config
 {
     using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
@@ -117,18 +130,9 @@ TEST_CASE("CLI", "[bindings][cli]")
 }
 TEST_CASE("List command outputs", "[cli][commands][list]")
 {
-    int argc = 1;
-    char * arg = (char *)"list";
-    char ** argv = &arg;
-
-    List<Config> command;
-
-    auto components = TestComponents{};
-    command.log.put.ss.str("");
-    auto retcode = command.main(argc, argv, components);
-
-    REQUIRE(command.log.put.ss.str() == string("test-component-a\ntest-component-b\ntest-component-1\n"));
-    REQUIRE(retcode == 0);
+    test_command(List<Config>{}, TestComponents{},
+                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
+                 "list");
 }
 TEST_CASE("Help command", "[cli][commands][help]")
 {
@@ -141,23 +145,12 @@ TEST_CASE("Help command", "[cli][commands][help]")
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
-void test_describe(const char * arg1, const char * arg2, int returncode, const char * output)
-{
-    int argc = 1;
-    if (*arg1 != 0) ++argc;
-    if (*arg2 != 0) ++argc;
-    char * arg0 = (char *)"describe";
-    char * argv[] = {arg0, (char*)arg1, (char*)arg2};
-    Describe<Config> command;
-    auto components = TestComponents{};
-    command.log.put.ss.str("");
-    auto retcode = command.main(argc, argv, components);
-    REQUIRE(retcode == returncode);
-    REQUIRE(command.log.put.ss.str() == string(output));
-}
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
-    test_describe("test-component-1", "", 0,
+    auto components = TestComponents{};
+    components.tc.inputs.button_in = 1;
+    components.tc.inputs.bang_in();
+    test_command(Describe<Config>{}, components, 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -165,7 +158,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button in"
     type:  occasional value
     range: 0 to 1 (init: 0)
-    value: ()
+    value: (1)
   input:   toggle-in
     name: "toggle in"
     type:  persistent value
@@ -179,7 +172,7 @@ R"DESCRIBEDEVICE(component: test-component-1
   input:   bang-in
     name: "bang in"
     type:  bang
-    value: ()
+    value: (bang!)
   output:  button-out
     name: "button out"
     type:  occasional value
@@ -199,13 +192,17 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "bang out"
     type:  bang
     value: ()
-)DESCRIBEDEVICE");
+)DESCRIBEDEVICE", "describe", "test-component-1");
 
-    test_describe("test-component-1", "slider-out", 0, 
+    test_command(Describe<Config>{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
   range: 0 to 1 (init: 0)
   value: 0
-)DESCRIBEENDPOINT");
+)DESCRIBEENDPOINT", "describe", "test-component-1", "slider-out");
+}
+TEST_CASE("Set", "[bindings][cli][commands][set]")
+{
+
 }

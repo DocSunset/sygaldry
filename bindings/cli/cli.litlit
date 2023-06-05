@@ -614,6 +614,31 @@ struct Cli
 // @/
 ```
 
+# Testing Commands
+
+The remainder of this document describes the commands available on the CLI. The
+tests for these commands generally follow the same format, so a single test
+function is provided to simplify the implementation and presentation of the
+tests. The command and components are passed by reference to allow the main
+test case to check for expected side-effects of running the command.
+
+```c++
+// @='test command subroutine'
+void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)
+{
+    int argc = 0;
+    char * argv[sizeof...(args)];
+    auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
+    ( set_arg(args), ... );
+
+    command.log.put.ss.str("");
+    int retcode = command.main(argc, argv, components);
+    REQUIRE(retcode == expected_retcode);
+    REQUIRE(command.log.put.ss.str() == string(expected_output));
+};
+// @/
+```
+
 # First Commands: `list` and `help`
 
 Recalling our earlier discussion of the basic functionality we require, two
@@ -628,18 +653,9 @@ The list command should output a new-line separated list of component names:
 // @+'tests'
 TEST_CASE("List command outputs", "[cli][commands][list]")
 {
-    int argc = 1;
-    char * arg = (char *)"list";
-    char ** argv = &arg;
-
-    List<Config> command;
-
-    auto components = TestComponents{};
-    command.log.put.ss.str("");
-    auto retcode = command.main(argc, argv, components);
-
-    REQUIRE(command.log.put.ss.str() == string("test-component-a\ntest-component-b\ntest-component-1\n"));
-    REQUIRE(retcode == 0);
+    test_command(List<Config>{}, TestComponents{},
+                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
+                 "list");
 }
 // @/
 ```
@@ -761,10 +777,7 @@ and have a `main` method that takes a parameter pack of commands to describe.
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli::commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 template<typename Config>
 struct Help
 {
@@ -795,8 +808,7 @@ struct Help
     }
 };
 
-}
-}
+} } } }
 // @/
 
 // @+'commands headers'
@@ -820,37 +832,14 @@ This command is used to get the metadata associated with an entity, as well as
 its current value if it has one. The first argument is the component to study.
 The second optional argument narrows the examination to a single endpoint.
 
-We setup a simple environment for testing:
-
-```c++
-// @+'tests'
-void test_describe(const char * arg1, const char * arg2, int returncode, const char * output)
-{
-    int argc = 1;
-    if (*arg1 != 0) ++argc;
-    if (*arg2 != 0) ++argc;
-    char * arg0 = (char *)"describe";
-    char * argv[] = {arg0, (char*)arg1, (char*)arg2};
-    Describe<Config> command;
-    auto components = TestComponents{};
-    command.log.put.ss.str("");
-    auto retcode = command.main(argc, argv, components);
-    REQUIRE(retcode == returncode);
-    REQUIRE(command.log.put.ss.str() == string(output));
-}
-// @/
-```
-
-And establish a couple basline tests showing the expected output format of the
-command. A few details of the output format are dependent on interaction with
-the runtime environment, such as the appearance of bangs and occasional values
-when they have been activated, but these are left to later tests.
-
 ```c++
 // @+'tests'
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
-    test_describe("test-component-1", "", 0,
+    auto components = TestComponents{};
+    components.tc.inputs.button_in = 1;
+    components.tc.inputs.bang_in();
+    test_command(Describe<Config>{}, components, 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -858,7 +847,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button in"
     type:  occasional value
     range: 0 to 1 (init: 0)
-    value: ()
+    value: (1)
   input:   toggle-in
     name: "toggle in"
     type:  persistent value
@@ -872,7 +861,7 @@ R"DESCRIBEDEVICE(component: test-component-1
   input:   bang-in
     name: "bang in"
     type:  bang
-    value: ()
+    value: (bang!)
   output:  button-out
     name: "button out"
     type:  occasional value
@@ -892,15 +881,15 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "bang out"
     type:  bang
     value: ()
-)DESCRIBEDEVICE");
+)DESCRIBEDEVICE", "describe", "test-component-1");
 
-    test_describe("test-component-1", "slider-out", 0, 
+    test_command(Describe<Config>{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
   range: 0 to 1 (init: 0)
   value: 0
-)DESCRIBEENDPOINT");
+)DESCRIBEENDPOINT", "describe", "test-component-1", "slider-out");
 }
 // @/
 ```
@@ -1070,6 +1059,10 @@ done by the following command.
 
 ```c++
 // @+'tests'
+TEST_CASE("Set", "[bindings][cli][commands][set]")
+{
+
+}
 // @/
 
 ## Trigger
@@ -1176,6 +1169,8 @@ using namespace sygaldry::bindings::cli;
 @{test commands}
 
 @{test components}
+
+@{test command subroutine}
 
 @{test config class}
 

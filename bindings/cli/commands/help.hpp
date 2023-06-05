@@ -2,10 +2,7 @@
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli::commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 template<typename Config>
 struct Help
 {
@@ -36,5 +33,4 @@ struct Help
     }
 };
 
-}
-}
+} } } }
