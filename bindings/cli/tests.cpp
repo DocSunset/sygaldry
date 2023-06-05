@@ -1,4 +1,5 @@
 #include <string>
+#include <memory>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "components/tests/testcomponent.hpp"
@@ -27,8 +28,8 @@ struct Echo
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Components>
-    int main(int argc, char ** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char ** argv, Components&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -47,8 +48,8 @@ struct HelloWorld
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Components>
-    int main(int argc, char ** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char ** argv, Components&)
     {
         log.println("Hello world!");
         return 0;
@@ -66,6 +67,12 @@ struct Command2 {
     static _consteval auto description() { return "Description 2"; }
 };
 
+struct TestCommands
+{
+    Command1 cmd1;
+    Command2 cmd2;
+};
+
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
 };
@@ -74,15 +81,28 @@ struct Component2 {
     static _consteval auto name() { return "Test Component 2"; }
 };
 
+struct TestComponents
+{
+    Component1 cpt1;
+    Component2 cpt2;
+};
+
 struct Config
 {
     using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
 };
 
+template<typename Config>
+struct CliCommands
+{
+    Echo<Config> echo;
+    HelloWorld<Config> hello;
+};
+
 TEST_CASE("CLI", "[bindings][cli]")
 {
-    auto components = std::make_shared<std::tuple<Component1, Component2>>();
-    auto cli = make_cli<Config, Echo, HelloWorld>(components);
+    auto cpts = std::make_shared<TestComponents>();
+    auto cli = make_cli<Config, CliCommands>(cpts);
 
     SECTION("Hello world")
     {
@@ -102,7 +122,7 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
 
     List<Config> command;
 
-    auto components = std::make_tuple(Component1{}, Component2{});
+    auto components = TestComponents{};
     command.log.put.ss.str("");
     auto retcode = command.main(argc, argv, components);
 
@@ -114,11 +134,16 @@ TEST_CASE("Help command", "[cli][commands][help]")
     Help<Config> command;
 
     command.log.put.ss.str("");
-    auto retcode = command.main(Command1{}, Command2{});
+    auto commands = TestCommands{};
+    auto retcode = command.main(commands);
 
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
+struct DescribeComponents
+{
+    sygaldry::components::TestComponent tc;
+};
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
     int argc = 3;
@@ -126,7 +151,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     char * arg1 = (char *)"test-component-1";
     char * arg2 = (char *)"slider-out";
     char * argv[] = {arg0, arg1, arg2};
-    auto components = std::make_tuple(sygaldry::components::TestComponent{});
+    auto components = DescribeComponents{};
 
 
     argc = 2;

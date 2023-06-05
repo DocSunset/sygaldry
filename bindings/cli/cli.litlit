@@ -273,8 +273,8 @@ struct Echo
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Components>
-    int main(int argc, char ** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char ** argv, Components&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -322,6 +322,12 @@ struct Component1 {
 struct Component2 {
     static _consteval auto name() { return "Test Component 2"; }
 };
+
+struct TestComponents
+{
+    Component1 cpt1;
+    Component2 cpt2;
+};
 // @/
 
 // @='test config class'
@@ -346,8 +352,8 @@ struct HelloWorld
 
     [[no_unique_address]] typename Config::basic_logger_type log; 
 
-    template<typename ... Components>
-    int main(int argc, char ** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char ** argv, Components&)
     {
         log.println("Hello world!");
         return 0;
@@ -356,10 +362,17 @@ struct HelloWorld
 // @/
 
 // @+'tests'
+template<typename Config>
+struct CliCommands
+{
+    Echo<Config> echo;
+    HelloWorld<Config> hello;
+};
+
 TEST_CASE("CLI", "[bindings][cli]")
 {
-    auto components = std::make_shared<std::tuple<Component1, Component2>>();
-    auto cli = make_cli<Config, Echo, HelloWorld>(components);
+    auto cpts = std::make_shared<TestComponents>();
+    auto cli = make_cli<Config, CliCommands>(cpts);
 
     @{cli tests}
     SECTION("Hello world")
@@ -459,10 +472,7 @@ int _try_to_match_and_execute()
         {
             if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
             {
-                return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
-                {
-                    return command.main(cmds...);
-                }, commands);
+                return command.main(commands);
             }
             else return command.main(argc, argv, *components);
         });
@@ -478,60 +488,49 @@ of its commands. Being able to instantiate such a template without having to nam
 all of the components and commands twice (e.g. in the template argument list
 and the constructor) is essential.
 
-We require the components to be wrapped in a
-`std::shared_ptr<std::tuple<Components...>>`; we assume that the client of the CLI
-will have already made such a container for the components that they can pass to
-the CLI constructor, and we insist that the user not have to name the list of
-`Components...` when instantiating the CLI. We further assume that the list of
-commands will, by default, be all available commands, but that (particularly
-for testing) some clients will want to specify their own list of commands.
-
-Unfortunately, we cannot rely on class template argument deduction (CTAD) to
-help us here, because the client will always need to specify the CLI `Config`
-type as a template argument, e.g. `auto cli = CLI<Config>(components,
-arguments...);`. CTAD is not attempted when a template argument is explicitly
-given, so this won't ever work. We would have to explicitly state all template
-arguments, e.g. `auto cli = CLI<Config, std::shared_ptr<std::tuple<Cpt1, Cpt2,
-..., CptN>>, Cmd1, Cmd2, ..., CmdN>(components, arguments...);` which is not
-acceptable. For the same reason, we cannot simply provide a template type
-alias to specify the default list of commands.
-
-The solution comes from defining factory functions for instantiating a CLI.
-Template function argument deduction can tolerate partial specification of the
-template parameters, so in this way we can have a function that takes a config
-and list of commands and deduces the components from the argument, and another
-than takes only a config, deduces the components, and uses the default set of all
-available commands. Unfortunately we must provide two seperate functions; since
-the arguments must be the same, overloading the same function would result in
-ambiguity that the compiler cannot resolve.
+We require the components to be wrapped in a reflectable struct. We further
+assume that the list of commands will, by default, be all available commands,
+but that (particularly for testing) some clients will want to specify their own
+list of commands. We provide factory functions for instantiating a CLI to
+simplify the API for users. In particular, this allows the user-provided
+`Config` to be (more or less) automatically propagated to all of the default
+commands, without the user having to write out `List<Config> list;
+Describe<Config> describe;` and so on.
 
 ```c++
 // @='cli default type alias'
-template<typename Config, template<typename>typename ... Commands, typename ... Cpts>
-auto make_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
+template<typename Config, template<typename>typename Commands, typename SuperComponent>
+auto make_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help, Commands...>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<SuperComponent>, Commands<Config>>(components, boot_message);
 }
 
-template<typename Config, typename ... Cpts>
-auto make_default_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
+template<typename Config>
+struct DefaultCommands
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help
-            , commands::@{default commands}
-            >(cpts, boot_message);
+    #define default_command(TYPENAME) commands::TYPENAME<Config> _##TYPENAME
+    default_command(Help);
+    @{default commands}
+    #undef default_command
+};
+
+template<typename Config, typename SuperComponent>
+auto make_default_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<SuperComponent>, DefaultCommands<Config>>(components, boot_message);
 }
 // @/
 ```
 
 The constructor simply copies the pointer to the components, writes a welcome
 message, and then prompts the user for input. The logger specified by the
-configuration and a tuple of commands with the same configuration are both
-default initialized.
+configuration and an instance of the command container are both default
+initialized.
 
 ```c++
 // @='cli instantiation'
 [[no_unique_address]] typename Config::basic_logger_type log{};
-std::tuple<Commands<Config>...> commands{};
+Commands commands{};
 cpts_t components;
 
 Cli(cpts_t cpts, const char * extra_boot_message)
@@ -585,7 +584,6 @@ void _complain_about_command_failure(int retcode)
 // @#'cli.hpp'
 #pragma once
 #include <memory>
-#include <tuple>
 #include <string_view>
 #include "utilities/consteval.hpp"
 #include "bindings/name_dispatch.hpp"
@@ -594,7 +592,7 @@ void _complain_about_command_failure(int retcode)
 namespace sygaldry { namespace bindings::cli
 {
 
-template<typename Config, typename cpts_t, template<typename> typename ... Commands>
+template<typename Config, typename cpts_t, typename Commands>
 struct Cli
 {
     @{cli instantiation}
@@ -635,7 +633,7 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
 
     List<Config> command;
 
-    auto components = std::make_tuple(Component1{}, Component2{});
+    auto components = TestComponents{};
     command.log.put.ss.str("");
     auto retcode = command.main(argc, argv, components);
 
@@ -660,6 +658,8 @@ expression and print each one's name using the injected logger.
 // @#'commands/list.hpp'
 #pragma once
 
+#include <type_traits>
+#include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
@@ -677,10 +677,13 @@ struct List
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
     {
-        ( log.println(spelling::lower_kebab_case_v<Components>), ... );
+        boost::pfr::for_each_field(components, [&](const auto& component)
+        {
+            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
+        });
         return 0;
     }
 };
@@ -694,7 +697,7 @@ struct List
 // @/
 
 // @+'default commands'
-List
+default_command(List);
 // @/
 ```
 
@@ -724,6 +727,12 @@ struct Command2 {
     // no arguments, no usage text
     static _consteval auto description() { return "Description 2"; }
 };
+
+struct TestCommands
+{
+    Command1 cmd1;
+    Command2 cmd2;
+};
 // @/
 
 // @+'tests'
@@ -732,7 +741,8 @@ TEST_CASE("Help command", "[cli][commands][help]")
     Help<Config> command;
 
     command.log.put.ss.str("");
-    auto retcode = command.main(Command1{}, Command2{});
+    auto commands = TestCommands{};
+    auto retcode = command.main(commands);
 
     REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
@@ -747,6 +757,7 @@ and have a `main` method that takes a parameter pack of commands to describe.
 ```c++
 // @#'commands/help.hpp'
 #pragma once
+#include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
 namespace sygaldry
@@ -762,8 +773,7 @@ struct Help
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename Cmd>
-    void _print(Cmd&& command)
+    void _print(auto&& command)
     {
         if constexpr (requires {command.usage();})
             log.println(command.name(), " ", command.usage());
@@ -772,10 +782,12 @@ struct Help
         log.println("    ", command.description());
     }
 
-    template<typename ... Commands>
-    int main(Commands&& ... commands)
+    int main(auto&& commands)
     {
-        ( _print(commands), ... );
+        boost::pfr::for_each_field(commands, [&](auto&& command)
+        {
+            _print(command);
+        });
         log.println(name());
         log.println("    ", description());
         return 0;
@@ -819,6 +831,10 @@ First, a test case, using the test component provided in
 
 ```c++
 // @+'tests'
+struct DescribeComponents
+{
+    sygaldry::components::TestComponent tc;
+};
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
     int argc = 3;
@@ -826,7 +842,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     char * arg1 = (char *)"test-component-1";
     char * arg2 = (char *)"slider-out";
     char * argv[] = {arg0, arg1, arg2};
-    auto components = std::make_tuple(sygaldry::components::TestComponent{});
+    auto components = DescribeComponents{};
 
 
     argc = 2;
@@ -913,7 +929,6 @@ struct DescribeMatcher
 // @/
 ```
 
-
 ```c++
 // @='describe main'
 if (argc < 2) return 2;
@@ -951,6 +966,7 @@ void describe_entity_type(auto& entity)
     else if constexpr (Bang<T>) log.println("bang");
     else if constexpr (ClearableFlag<T>) log.println("clearable flag");
     else if constexpr (value_like<T>) log.println("value-like");
+    else log.println("unknown");
 }
 
 void describe_entity(auto preface, auto& entity, auto ... indents)
@@ -1010,8 +1026,8 @@ struct Describe
 
     @{describe implementation details}
 
-    template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>& components)
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
     {
         @{describe main}
     }
@@ -1019,11 +1035,15 @@ struct Describe
 
 } } } } // namespaces
 // @/
-```
+
+// @+'default commands'
+default_command(Describe);
+// @/
 
 // @+'commands headers'
 #include "commands/describe.hpp"
 // @/
+```
 
 ## Get
 
@@ -1055,12 +1075,12 @@ struct Config
     using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
 };
 
-template<typename ... Components>
+template<typename SuperComponent>
 struct CliApp
 {
     int main()
     {
-        auto components = std::make_shared<std::tuple<Components...>>();
+        auto components = std::make_shared<SuperComponent>(SuperComponent{});
         auto cli = sygaldry::bindings::cli::make_default_cli<Config>(components, "Type Ctrl-D to exit.");
         for (;;)
         {
@@ -1082,6 +1102,7 @@ The CLI class itself implements a fairly limited behavior.
 #include "cli_app.hpp"
 #include "utilities/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
+#include "components/tests/testcomponent.hpp"
 
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
@@ -1091,10 +1112,18 @@ struct Component2 {
     static _consteval auto name() { return "Test Component 2"; }
 };
 
+using namespace sygaldry::components;
+
+struct AppComponents {
+    Component1 cpt1;
+    Component2 cpt2;
+    TestComponent tc;
+    ButtonGestureModel bgm;
+};
+
 int main()
 {
-    using namespace sygaldry::components;
-    CliApp<Component1, Component2, ButtonGestureModel> app{};
+    CliApp<AppComponents> app{};
     app.main();
 }
 // @/
@@ -1107,6 +1136,7 @@ int main()
 ```c++
 // @#'tests.cpp'
 #include <string>
+#include <memory>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "components/tests/testcomponent.hpp"

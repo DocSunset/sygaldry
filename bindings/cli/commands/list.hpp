@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+#include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
@@ -17,10 +19,13 @@ struct List
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>&)
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
     {
-        ( log.println(spelling::lower_kebab_case_v<Components>), ... );
+        boost::pfr::for_each_field(components, [&](const auto& component)
+        {
+            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
+        });
         return 0;
     }
 };

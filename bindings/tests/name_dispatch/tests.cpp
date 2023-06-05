@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "components/endpoints.hpp"
+#include "components/sensors/button/gesture_model.hpp"
+#include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/name_dispatch.hpp"
 
@@ -33,27 +35,6 @@ struct PseudoComponent1
         Named4 out2;
     } outputs;
 };
-
-TEST_CASE("Dispatch over tuple of named", "[bindings][dispatch]")
-{
-    std::tuple tup{Named1{}, Named2{}, Named3{}, Named4{}};
-    auto ret = dispatch("name1", tup, "fail", [](auto& n) {return n.name();});
-    REQUIRE(string_view(ret) == string_view("name1"));
-    ret = dispatch("name3", tup, "fail", [](auto& n) {return n.name();});
-    REQUIRE(string_view(ret) == string_view("name3"));
-}
-
-TEST_CASE("Dispatch can mutate entities in tuple", "[bindings][dispatch]")
-{
-    std::tuple tup{Named1{}, Named2{}, Named3{}, Named4{}};
-    REQUIRE(std::get<Named1>(tup).value == 0);
-    auto ret = dispatch("name1", tup, 0, [](auto& n) {n.value = 42; return (int)n.value;});
-    REQUIRE(ret == 42);
-    REQUIRE(std::get<Named1>(tup).value == 42);
-    ret = dispatch("name3", tup, 0, [](auto& n) {n.value = 888; return (int)n.value;});
-    REQUIRE(ret == 888);
-    REQUIRE(std::get<Named3>(tup).value == 888);
-}
 
 TEST_CASE("Dispatch over struct of endpoints", "[bindings][dispatch]")
 {

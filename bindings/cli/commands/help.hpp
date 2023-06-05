@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
 namespace sygaldry
@@ -14,8 +15,7 @@ struct Help
 
     [[no_unique_address]] typename Config::basic_logger_type log;
 
-    template<typename Cmd>
-    void _print(Cmd&& command)
+    void _print(auto&& command)
     {
         if constexpr (requires {command.usage();})
             log.println(command.name(), " ", command.usage());
@@ -24,10 +24,12 @@ struct Help
         log.println("    ", command.description());
     }
 
-    template<typename ... Commands>
-    int main(Commands&& ... commands)
+    int main(auto&& commands)
     {
-        ( _print(commands), ... );
+        boost::pfr::for_each_field(commands, [&](auto&& command)
+        {
+            _print(command);
+        });
         log.println(name());
         log.println("    ", description());
         return 0;

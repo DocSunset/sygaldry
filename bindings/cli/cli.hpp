@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <tuple>
 #include <string_view>
 #include "utilities/consteval.hpp"
 #include "bindings/name_dispatch.hpp"
@@ -11,11 +10,11 @@
 namespace sygaldry { namespace bindings::cli
 {
 
-template<typename Config, typename cpts_t, template<typename> typename ... Commands>
+template<typename Config, typename cpts_t, typename Commands>
 struct Cli
 {
     [[no_unique_address]] typename Config::basic_logger_type log{};
-    std::tuple<Commands<Config>...> commands{};
+    Commands commands{};
     cpts_t components;
 
     Cli(cpts_t cpts, const char * extra_boot_message)
@@ -49,10 +48,7 @@ struct Cli
             {
                 if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
                 {
-                    return std::apply([&]<typename ... Cmds>(Cmds&& ... cmds)
-                    {
-                        return command.main(cmds...);
-                    }, commands);
+                    return command.main(commands);
                 }
                 else return command.main(argc, argv, *components);
             });
@@ -115,18 +111,26 @@ struct Cli
     }
 };
 
-template<typename Config, template<typename>typename ... Commands, typename ... Cpts>
-auto make_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
+template<typename Config, template<typename>typename Commands, typename SuperComponent>
+auto make_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help, Commands...>(cpts, boot_message);
+    return Cli<Config, std::shared_ptr<SuperComponent>, Commands<Config>>(components, boot_message);
 }
 
-template<typename Config, typename ... Cpts>
-auto make_default_cli(std::shared_ptr<std::tuple<Cpts...>> cpts, const char * boot_message = "")
+template<typename Config>
+struct DefaultCommands
 {
-    return Cli<Config, std::shared_ptr<std::tuple<Cpts...>>, commands::Help
-            , commands::List
-            >(cpts, boot_message);
+    #define default_command(TYPENAME) commands::TYPENAME<Config> _##TYPENAME
+    default_command(Help);
+    default_command(List);
+    default_command(Describe);
+    #undef default_command
+};
+
+template<typename Config, typename SuperComponent>
+auto make_default_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
+{
+    return Cli<Config, std::shared_ptr<SuperComponent>, DefaultCommands<Config>>(components, boot_message);
 }
 
 } }

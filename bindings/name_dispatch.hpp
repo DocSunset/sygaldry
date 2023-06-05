@@ -42,11 +42,11 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
         return _dispatch_impl<Matcher>(name, d, f, ts...);
 }
 
-template <typename Matcher = dispatch_default_matcher, typename stringish, tuple_like TupleOfNamed, typename Default, typename Callback>
-auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+template <typename Matcher = dispatch_default_matcher, typename stringish, typename TupleOfNamed, typename Default, typename Callback>
+auto dispatch_tuple(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
     if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d;
-    return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
+    else return std::apply([&](auto&& ... ts)
     {
         return _dispatch_impl<Matcher>(name, d, f, ts...);
     }, tup);
@@ -60,13 +60,13 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
         auto ins = boost::pfr::structure_tie(entities.inputs);
         auto outs = boost::pfr::structure_tie(entities.outputs);
         auto tup = std::tuple_cat(ins, outs);
-        return dispatch<Matcher>(name, tup, d, f);
+        return dispatch_tuple<Matcher>(name, tup, d, f);
         return d;
     }
     else
     {
         auto tup = boost::pfr::structure_tie(entities);
-        return dispatch<Matcher>(name, tup, d, f);
+        return dispatch_tuple<Matcher>(name, tup, d, f);
     }
 }
 

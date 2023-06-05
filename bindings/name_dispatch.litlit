@@ -8,12 +8,12 @@ named entities such as components and endpoints.
 
 The dispatcher must accept a name, group of entities, default return value, and
 lambda function to apply when a matching name is found. The group of entities
-is allowed to be a `std::tuple` of entities, a simple aggregate of entities
-(i.e. one that can be operated on with `boost::pfr`), or a component with
-inputs and outputs. TODO: the extraction of the component's inputs and outputs
-should eventually proceed generically rather than through direct access.
-The callback function must be able to access and modify the state of the
-matching entity or entities.
+is allowed to be a simple aggregate of entities (i.e. one that can be operated
+on with `boost::pfr`), or a component with inputs and outputs that are simple
+aggregates of entities. TODO: the extraction of the component's inputs and
+outputs should eventually proceed generically rather than through direct
+access. The callback function must be able to access and modify the state of
+the matching entity or entities.
 
 // @#'tests/name_dispatch/tests.cpp'
 #include <string_view>
@@ -21,6 +21,8 @@ matching entity or entities.
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "components/endpoints.hpp"
+#include "components/sensors/button/gesture_model.hpp"
+#include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/name_dispatch.hpp"
 
@@ -51,27 +53,6 @@ struct PseudoComponent1
         Named4 out2;
     } outputs;
 };
-
-TEST_CASE("Dispatch over tuple of named", "[bindings][dispatch]")
-{
-    std::tuple tup{Named1{}, Named2{}, Named3{}, Named4{}};
-    auto ret = dispatch("name1", tup, "fail", [](auto& n) {return n.name();});
-    REQUIRE(string_view(ret) == string_view("name1"));
-    ret = dispatch("name3", tup, "fail", [](auto& n) {return n.name();});
-    REQUIRE(string_view(ret) == string_view("name3"));
-}
-
-TEST_CASE("Dispatch can mutate entities in tuple", "[bindings][dispatch]")
-{
-    std::tuple tup{Named1{}, Named2{}, Named3{}, Named4{}};
-    REQUIRE(std::get<Named1>(tup).value == 0);
-    auto ret = dispatch("name1", tup, 0, [](auto& n) {n.value = 42; return (int)n.value;});
-    REQUIRE(ret == 42);
-    REQUIRE(std::get<Named1>(tup).value == 42);
-    ret = dispatch("name3", tup, 0, [](auto& n) {n.value = 888; return (int)n.value;});
-    REQUIRE(ret == 888);
-    REQUIRE(std::get<Named3>(tup).value == 888);
-}
 
 TEST_CASE("Dispatch over struct of endpoints", "[bindings][dispatch]")
 {
@@ -188,11 +169,11 @@ auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, Named
         return _dispatch_impl<Matcher>(name, d, f, ts...);
 }
 
-template <typename Matcher = dispatch_default_matcher, typename stringish, tuple_like TupleOfNamed, typename Default, typename Callback>
-auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
+template <typename Matcher = dispatch_default_matcher, typename stringish, typename TupleOfNamed, typename Default, typename Callback>
+auto dispatch_tuple(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 {
     if constexpr (std::tuple_size_v<TupleOfNamed> == 0) return d;
-    return std::apply([&]<typename ... NamedTs>(NamedTs&& ... ts)
+    else return std::apply([&](auto&& ... ts)
     {
         return _dispatch_impl<Matcher>(name, d, f, ts...);
     }, tup);
@@ -200,14 +181,18 @@ auto dispatch(stringish name, TupleOfNamed& tup, Default&& d, Callback&& f)
 // @/
 ```
 
-In case the caller passes in a simple aggregate of entities or a component
-with inputs and outputs, the above `dispatch` function is rejected by
-overload resolution, since these arguments don't meet the `tuple_like`
-concept requirements. An alternative entry point is provided that extracts
-a tuple from the input appropriately and forwards it to the above function.
+Since the caller passes in a simple aggregate of entities or a component with
+inputs and outputs, we need to convert the group into a tuple so that we can
+pass it to the above `dispatch_tuple` subroutine. An entry point is provided
+that extracts a tuple from the input appropriately and forwards it to the above
+function.
+
+Note that the tuples returned from boost::pfr::structure_tie *must* be stored
+as lvalues, or else the compiler refuses to pass a reference to them into the
+lower-level implementation subroutines.
 
 ```c++
-// @='dispatch alternative entry point'
+// @='dispatch entry point'
 template <typename Matcher = dispatch_default_matcher, typename stringish, typename Entities, typename Default, typename Callback>
 auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 {
@@ -216,13 +201,13 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
         auto ins = boost::pfr::structure_tie(entities.inputs);
         auto outs = boost::pfr::structure_tie(entities.outputs);
         auto tup = std::tuple_cat(ins, outs);
-        return dispatch<Matcher>(name, tup, d, f);
+        return dispatch_tuple<Matcher>(name, tup, d, f);
         return d;
     }
     else
     {
         auto tup = boost::pfr::structure_tie(entities);
-        return dispatch<Matcher>(name, tup, d, f);
+        return dispatch_tuple<Matcher>(name, tup, d, f);
     }
 }
 // @/
@@ -258,7 +243,7 @@ concept tuple_like = requires (T tup)
 
 @{dispatch implementation}
 
-@{dispatch alternative entry point}
+@{dispatch entry point}
 
 }
 }

@@ -38,6 +38,7 @@ struct Describe
         else if constexpr (Bang<T>) log.println("bang");
         else if constexpr (ClearableFlag<T>) log.println("clearable flag");
         else if constexpr (value_like<T>) log.println("value-like");
+        else log.println("unknown");
     }
 
     void describe_entity(auto preface, auto& entity, auto ... indents)
@@ -69,8 +70,8 @@ struct Describe
         }
     }
 
-    template<typename... Components>
-    int main(int argc, char** argv, std::tuple<Components...>& components)
+    template<typename Components>
+    int main(int argc, char** argv, Components& components)
     {
         if (argc < 2) return 2;
         bool describe_component = argc == 2;
