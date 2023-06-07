@@ -5,7 +5,6 @@
 #include "bindings/name_dispatch.hpp"
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Logger>
 struct Trigger
 {
     static _consteval auto name() { return "trigger"; }
@@ -13,8 +12,7 @@ struct Trigger
     static _consteval auto description() { return "Activate the given component's main subroutine"; }
 
 
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
+    int main(int argc, char** argv, auto& log, auto& components)
     {
         if (argc < 2)
         {

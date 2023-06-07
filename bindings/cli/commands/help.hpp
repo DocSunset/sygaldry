@@ -3,7 +3,6 @@
 #include "utilities/consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
-template<typename Logger>
 struct Help
 {
     static _consteval auto name() { return "help"; }
@@ -19,7 +18,7 @@ struct Help
         log.println("    ", command.description());
     }
 
-    int main(Logger& log, auto& commands)
+    int main(auto& log, auto& commands)
     {
         boost::pfr::for_each_field(commands, [&](auto&& command)
         {

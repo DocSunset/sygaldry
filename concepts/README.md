@@ -19,13 +19,14 @@ functionality, or their whole functionality may directly derive from their
 subcomponents.
 
 We presently model two kinds of components depending on how they are
-structured. A regular component defines a main subroutine, and may optionally
-also define input/output structures and/or a parts structure. The functionality
-of a regular component is determined by its main subroutine. A pure assembly
-defines only a parts structure, and no input/output structures or main
-subroutine. Its functionality is defined by running the main subroutines of its
-parts. All components must define (or inherit) a static method `name()` that
-returns something like a string.
+structured. A regular component defines a main subroutine, and has at least one
+of the following: endpoints, throughpoints, parts, or plugins. The
+functionality of a regular component is determined by its main subroutine. A
+pure assembly defines only a parts structure, and no input/output structures or
+main subroutine. It may have internal plugins, but no throughpoints or external
+plugins. Its functionality is defined by running the main subroutines of its
+parts. Both regular components and pure assemblies must define (or inherit) a
+static method `name()` that returns something like a string.
 
 # Ports
 
@@ -79,8 +80,9 @@ according to `C`'s view of the data. `B`'s ports in this example are defined as
 passing endpoints, semantic interpretation flows unchanged past throughpoints.
 
 TODO A component's throughpoints are declared by first using class template
-parameters that accept `inputs` and `outputs` struct types, and then accepting
-structs of those types by reference as arguments to the component's main
+parameters that accept `outputs` and/or `inputs` struct types that represent
+the source and destination of the throughpoints. Then the component must accept
+structs of those types by reference as arguments to the its main
 subroutine. `outputs` originating from a source component should be accepted as
 constant reference arguments, while `inputs` to a destination component should
 be accepted as mutable reference arguments. TODO A variety of combinator

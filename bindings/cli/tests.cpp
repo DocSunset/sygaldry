@@ -34,14 +34,12 @@ void test_command(auto&& command, auto&& components, int expected_retcode, const
     REQUIRE(logger.put.ss.str() == string(expected_output));
 };
 
-template<typename Logger>
 struct Echo
 {
     static _consteval auto name() { return "echo"; }
     static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
-    template<typename Components>
-    int main(int argc, char ** argv, Logger& log, Components&)
+    int main(int argc, char ** argv, auto& log, auto&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -52,16 +50,12 @@ struct Echo
         return 0;
     };
 };
-template<typename Logger>
 struct HelloWorld
 {
     static _consteval auto name() { return "hello"; }
     static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
-    struct parts_t { Logger log; } parts;
-
-    template<typename Components>
-    int main(int argc, char ** argv, Logger& log, Components&)
+    int main(int argc, char ** argv, auto& log, auto&)
     {
         log.println("Hello world!");
         return 0;
@@ -101,11 +95,10 @@ struct TestComponents
 };
 
 
-template<typename Logger>
 struct CliCommands
 {
-    Echo<Logger> echo;
-    HelloWorld<Logger> hello;
+    Echo echo;
+    HelloWorld hello;
 };
 
 TEST_CASE("CLI", "[bindings][cli]")
@@ -123,15 +116,9 @@ TEST_CASE("CLI", "[bindings][cli]")
         test_cli(cli, components, "echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
-TEST_CASE("List command outputs", "[cli][commands][list]")
-{
-    test_command(List<decltype(logger)>{}, TestComponents{},
-                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
-                 "list");
-}
 TEST_CASE("Help command", "[cli][commands][help]")
 {
-    Help<decltype(logger)> command;
+    Help command;
 
     logger.put.ss.str("");
     auto commands = TestCommands{};
@@ -140,12 +127,18 @@ TEST_CASE("Help command", "[cli][commands][help]")
     REQUIRE(logger.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
+TEST_CASE("List command outputs", "[cli][commands][list]")
+{
+    test_command(List{}, TestComponents{},
+                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
+                 "list");
+}
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
     auto components = TestComponents{};
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
-    test_command(Describe<decltype(logger)>{}, components, 0,
+    test_command(Describe{}, components, 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -189,7 +182,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     value: ()
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
-    test_command(Describe<decltype(logger)>{}, TestComponents{}, 0,
+    test_command(Describe{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
@@ -202,28 +195,28 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "button-in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "bang-in");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "bang-in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 }

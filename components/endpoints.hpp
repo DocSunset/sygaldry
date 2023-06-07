@@ -16,21 +16,22 @@ struct string_literal
     }
 };
 
-#define text_struct(STRUCT_NAME, METHOD_NAME) template<string_literal str>\
-struct STRUCT_NAME\
+#define text_struct(NAME) template<string_literal str>\
+struct NAME##_\
 {\
-    static _consteval auto METHOD_NAME() {return str.value;}\
+    static _consteval auto NAME() {return str.value;}\
 }
 
-text_struct(name_, name);
-text_struct(author_, author);
-text_struct(email_, email);
-text_struct(license_, license);
-text_struct(description_, description);
-text_struct(uuid_, uuid);
-text_struct(unit_, unit);
-text_struct(version_, version);
-text_struct(date_, date);
+text_struct(name);
+text_struct(author);
+text_struct(email);
+text_struct(license);
+text_struct(copyright);
+text_struct(description);
+text_struct(uuid);
+text_struct(unit);
+text_struct(version);
+text_struct(date);
 
 #undef text_struct
 template<typename T>

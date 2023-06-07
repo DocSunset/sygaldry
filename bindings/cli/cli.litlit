@@ -268,14 +268,12 @@ conceptual design of the logger feature injection scheme from Avendish:
 
 ```c++
 // @+'test commands'
-template<typename Logger>
 struct Echo
 {
     static _consteval auto name() { return "echo"; }
     static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
-    template<typename Components>
-    int main(int argc, char ** argv, Logger& log, Components&)
+    int main(int argc, char ** argv, auto& log, auto&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -341,16 +339,12 @@ defined above, and the following:
 
 ```c++
 // @+'test commands'
-template<typename Logger>
 struct HelloWorld
 {
     static _consteval auto name() { return "hello"; }
     static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
-    struct parts_t { Logger log; } parts;
-
-    template<typename Components>
-    int main(int argc, char ** argv, Logger& log, Components&)
+    int main(int argc, char ** argv, auto& log, auto&)
     {
         log.println("Hello world!");
         return 0;
@@ -360,11 +354,10 @@ struct HelloWorld
 
 // @+'tests'
 
-template<typename Logger>
 struct CliCommands
 {
-    Echo<Logger> echo;
-    HelloWorld<Logger> hello;
+    Echo echo;
+    HelloWorld hello;
 };
 
 TEST_CASE("CLI", "[bindings][cli]")
@@ -485,11 +478,11 @@ struct CommandMatcher
 // @+'cli implementation details'
 int _try_to_match_and_execute(Logger& log, Components& components)
 {
-    return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
+    return dispatch<CommandMatcher>(argv[0], outputs.commands, 127, [&](auto& command)
         {
-            if constexpr (std::is_same_v<decltype(command), commands::Help<Logger>&>)
+            if constexpr (std::is_same_v<decltype(command), commands::Help&>)
             {
-                return command.main(log, parts.commands);
+                return command.main(log, outputs.commands);
             }
             else return command.main(argc, argv, log, components);
         });
@@ -520,13 +513,9 @@ custom command struct.
 
 ```c++
 // @='cli default type alias'
-template<typename Logger>
 struct DefaultCommands
 {
-    #define default_command(TYPENAME) commands::TYPENAME<Logger> _##TYPENAME
-    default_command(Help);
     @{default commands}
-    #undef default_command
 };
 
 template<typename Logger, typename Components>
@@ -540,10 +529,9 @@ the `Logger` type propagated in are both default initialized.
 
 ```c++
 // @='cli instantiation'
-struct parts_t
-{
-    [[no_unique_address]] Commands<Logger> commands;
-} parts;
+struct outputs_t {
+[[no_unique_address]] Commands commands;
+} outputs;
 
 void init(Logger& log)
 {
@@ -596,6 +584,7 @@ void _complain_about_command_failure(auto& log, int retcode)
 #include <memory>
 #include <string_view>
 #include "utilities/consteval.hpp"
+#include "components/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 #include "matcher.hpp"
 
@@ -603,8 +592,14 @@ void _complain_about_command_failure(auto& log, int retcode)
 
 namespace sygaldry { namespace bindings { namespace cli {
 
-template<typename Logger, typename Components, template<typename>typename Commands>
-struct CustomCli
+using namespace sygaldry::endpoints;
+
+template<typename Logger, typename Components, typename Commands>
+struct CustomCli : name_<"CLI">
+                 , author_<"Travis J. West">
+                 , description_<"Generate a simple command line interface for inspecting and sending data to the bound components.">
+                 , version_<"0.0.0">
+                 , copyright_<"Travis J. West <C) 2023">
 {
     @{cli instantiation}
 
@@ -653,73 +648,6 @@ Recalling our earlier discussion of the basic functionality we require, two
 commands, `list` and `help` stand out as particularly simple, since they don't
 need to actually interact much with the components.
 
-## List Command
-
-The list command should output a new-line separated list of component names:
-
-```c++
-// @+'tests'
-TEST_CASE("List command outputs", "[cli][commands][list]")
-{
-    test_command(List<decltype(logger)>{}, TestComponents{},
-                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
-                 "list");
-}
-// @/
-```
-
-Notice that we expect the component names to be converted to lower-kebab-case,
-since this is arguably the most idiomatic spelling for a CLI context, and
-easier to parse than a natural spelling with spaces.
-
-Since component names are `_consteval`, we can generate the whole expected output
-at compile time. However, doing so is noticeably more complicated than merely
-printing the correct output at runtime, and also imposes an increased program
-size to statically store the generated strings, which needlessly duplicates the
-names of components. Instead, we'll iterate over the component types using a fold
-expression and print each one's name using the injected logger.
-
-```c++
-// @#'commands/list.hpp'
-#pragma once
-
-#include <type_traits>
-#include <boost/pfr.hpp>
-#include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
-
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
-
-template<typename Logger>
-struct List
-{
-    static _consteval auto name() { return "list"; }
-    static _consteval auto usage() { return ""; }
-    static _consteval auto description() { return "List the components available to interact with through the CLI"; }
-
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
-    {
-        boost::pfr::for_each_field(components, [&](const auto& component)
-        {
-            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
-        });
-        return 0;
-    }
-};
-
-} } } }
-// @/
-
-// @+'commands headers'
-#include "commands/list.hpp"
-// @/
-
-// @+'default commands'
-default_command(List);
-// @/
-```
-
 ## Help Command
 
 The help command is a bit unusual, since it actually doesn't care about
@@ -757,7 +685,7 @@ struct TestCommands
 // @+'tests'
 TEST_CASE("Help command", "[cli][commands][help]")
 {
-    Help<decltype(logger)> command;
+    Help command;
 
     logger.put.ss.str("");
     auto commands = TestCommands{};
@@ -780,7 +708,6 @@ and have a `main` method that takes a parameter pack of commands to describe.
 #include "utilities/consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
-template<typename Logger>
 struct Help
 {
     static _consteval auto name() { return "help"; }
@@ -796,7 +723,7 @@ struct Help
         log.println("    ", command.description());
     }
 
-    int main(Logger& log, auto& commands)
+    int main(auto& log, auto& commands)
     {
         boost::pfr::for_each_field(commands, [&](auto&& command)
         {
@@ -814,12 +741,76 @@ struct Help
 // @+'commands headers'
 #include "commands/help.hpp"
 // @/
+
+// @+'default commands'
+commands::Help help;
+// @/
 ```
 
-Unlike with the list command, we don't append the help command to our
-code chunk for default commands; instead it is explicitly added by the
-factory methods described above so that it is always available even
-when the user does not use the default commands.
+## List Command
+
+The list command should output a new-line separated list of component names:
+
+```c++
+// @+'tests'
+TEST_CASE("List command outputs", "[cli][commands][list]")
+{
+    test_command(List{}, TestComponents{},
+                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
+                 "list");
+}
+// @/
+```
+
+Notice that we expect the component names to be converted to lower-kebab-case,
+since this is arguably the most idiomatic spelling for a CLI context, and
+easier to parse than a natural spelling with spaces.
+
+Since component names are `_consteval`, we can generate the whole expected output
+at compile time. However, doing so is noticeably more complicated than merely
+printing the correct output at runtime, and also imposes an increased program
+size to statically store the generated strings, which needlessly duplicates the
+names of components. Instead, we'll iterate over the component types using a fold
+expression and print each one's name using the injected logger.
+
+```c++
+// @#'commands/list.hpp'
+#pragma once
+
+#include <type_traits>
+#include <boost/pfr.hpp>
+#include "utilities/consteval.hpp"
+#include "utilities/spelling.hpp"
+
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+
+struct List
+{
+    static _consteval auto name() { return "list"; }
+    static _consteval auto usage() { return ""; }
+    static _consteval auto description() { return "List the components available to interact with through the CLI"; }
+
+    int main(int argc, char** argv, auto& log, auto& components)
+    {
+        boost::pfr::for_each_field(components, [&](const auto& component)
+        {
+            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
+        });
+        return 0;
+    }
+};
+
+} } } }
+// @/
+
+// @+'commands headers'
+#include "commands/list.hpp"
+// @/
+
+// @+'default commands'
+commands::List list;
+// @/
+```
 
 # Component Commands
 
@@ -839,7 +830,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     auto components = TestComponents{};
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
-    test_command(Describe<decltype(logger)>{}, components, 0,
+    test_command(Describe{}, components, 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -883,7 +874,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     value: ()
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
-    test_command(Describe<decltype(logger)>{}, TestComponents{}, 0,
+    test_command(Describe{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
@@ -900,8 +891,7 @@ or we describe a single endpoint.
 
 ```c++
 // @='describe main'
-template<typename Components>
-int main(int argc, char** argv, Logger& log, Components& components)
+int main(int argc, char** argv, auto& log, auto& components)
 {
     if (argc < 2) return 2;
     bool describe_component = argc == 2;
@@ -932,7 +922,7 @@ before others, since a `Bang` is currently implemented as a `PersistentValue`.
 ```c++
 // @+'describe implementation details'
 template<typename T>
-void describe_entity_type(Logger& log, T& entity)
+void describe_entity_type(auto& log, T& entity)
 {
     if constexpr (Component<T>) log.println("component");
     else if constexpr (Bang<T>) log.println("bang");
@@ -942,7 +932,7 @@ void describe_entity_type(Logger& log, T& entity)
 }
 
 template<typename T>
-void describe_entity_value(Logger& log, T& entity)
+void describe_entity_value(auto& log, T& entity)
 {
     if constexpr (Bang<T>)
     {
@@ -955,7 +945,7 @@ void describe_entity_value(Logger& log, T& entity)
 }
 
 template<typename T>
-void describe_entity(Logger& log, auto preface, T& entity, auto ... indents)
+void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 {
     using spelling::lower_kebab_case;
     static_assert(has_name<T>);
@@ -1005,7 +995,6 @@ namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
 using namespace sygaldry::concepts;
 
-template<typename Logger>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
@@ -1022,7 +1011,7 @@ struct Describe
 // @/
 
 // @+'default commands'
-default_command(Describe);
+commands::Describe describe;
 // @/
 
 // @+'commands headers'
@@ -1044,28 +1033,28 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "button-in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "bang-in");
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "bang-in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 }
@@ -1077,8 +1066,7 @@ right endpoint, deferring the main logic of the command to another subroutine.
 
 ```c++
 // @='set main'
-template<typename Components>
-int main(int argc, char** argv, Logger& log, Components& components)
+int main(int argc, char** argv, auto& log, auto& components)
 {
     if (argc < 3)
     {
@@ -1104,7 +1092,7 @@ input. Otherwise, we require more information to parse in order to set the value
 @{parse and set}
 
 template<typename T>
-int set_endpoint_value(Logger& log, T& endpoint, int argc, char ** argv)
+int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
 {
     if constexpr (Bang<T>)
     {
@@ -1177,7 +1165,6 @@ int parse_and_set(auto& log, auto& endpoint, char * argstart)
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Logger>
 struct Set
 {
     static _consteval auto name() { return "set"; }
@@ -1198,7 +1185,7 @@ struct Set
 // @/
 
 // @+'default commands'
-default_command(Set);
+commands::Set set;
 // @/
 ```
 
@@ -1238,7 +1225,6 @@ return 2;
 #include "bindings/name_dispatch.hpp"
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Logger>
 struct Trigger
 {
     static _consteval auto name() { return "trigger"; }
@@ -1247,8 +1233,7 @@ struct Trigger
 
     @{trigger implementation details}
 
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
+    int main(int argc, char** argv, auto& log, auto& components)
     {
         if (argc < 2)
         {
@@ -1271,7 +1256,7 @@ struct Trigger
 // @/
 
 // @+'default commands'
-default_command(Trigger);
+commands::Trigger trigger;
 // @/
 ```
 

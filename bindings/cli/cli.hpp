@@ -2,24 +2,30 @@
 #include <memory>
 #include <string_view>
 #include "utilities/consteval.hpp"
+#include "components/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 #include "matcher.hpp"
 
-#include "commands/list.hpp"
 #include "commands/help.hpp"
+#include "commands/list.hpp"
 #include "commands/describe.hpp"
 #include "commands/set.hpp"
 #include "commands/trigger.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli {
 
-template<typename Logger, typename Components, template<typename>typename Commands>
-struct CustomCli
+using namespace sygaldry::endpoints;
+
+template<typename Logger, typename Components, typename Commands>
+struct CustomCli : name_<"CLI">
+                 , author_<"Travis J. West">
+                 , description_<"Generate a simple command line interface for inspecting and sending data to the bound components.">
+                 , version_<"0.0.0">
+                 , copyright_<"Travis J. West <C) 2023">
 {
-    struct parts_t
-    {
-        [[no_unique_address]] Commands<Logger> commands;
-    } parts;
+    struct outputs_t {
+    [[no_unique_address]] Commands commands;
+    } outputs;
 
     void init(Logger& log)
     {
@@ -37,11 +43,11 @@ struct CustomCli
 
     int _try_to_match_and_execute(Logger& log, Components& components)
     {
-        return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
+        return dispatch<CommandMatcher>(argv[0], outputs.commands, 127, [&](auto& command)
             {
-                if constexpr (std::is_same_v<decltype(command), commands::Help<Logger>&>)
+                if constexpr (std::is_same_v<decltype(command), commands::Help&>)
                 {
-                    return command.main(log, parts.commands);
+                    return command.main(log, outputs.commands);
                 }
                 else return command.main(argc, argv, log, components);
             });
@@ -104,16 +110,13 @@ struct CustomCli
     }
 };
 
-template<typename Logger>
 struct DefaultCommands
 {
-    #define default_command(TYPENAME) commands::TYPENAME<Logger> _##TYPENAME
-    default_command(Help);
-    default_command(List);
-    default_command(Describe);
-    default_command(Set);
-    default_command(Trigger);
-    #undef default_command
+    commands::Help help;
+    commands::List list;
+    commands::Describe describe;
+    commands::Set set;
+    commands::Trigger trigger;
 };
 
 template<typename Logger, typename Components>

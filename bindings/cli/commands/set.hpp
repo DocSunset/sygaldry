@@ -6,7 +6,6 @@
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Logger>
 struct Set
 {
     static _consteval auto name() { return "set"; }
@@ -42,7 +41,7 @@ struct Set
     }
 
     template<typename T>
-    int set_endpoint_value(Logger& log, T& endpoint, int argc, char ** argv)
+    int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
     {
         if constexpr (Bang<T>)
         {
@@ -64,8 +63,7 @@ struct Set
         else return 2;
     }
 
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
+    int main(int argc, char** argv, auto& log, auto& components)
     {
         if (argc < 3)
         {

@@ -31,7 +31,7 @@ struct TStick { struct parts_t {
         } sensors; // a subassembly assemblage
         // TStickSynth<esp32::DacDriver<idf_config::blah blah blah>> synth; // a part with one internal plugin with configuration parameters
         // TStickCrossModalMapping<get_outputs_t<decltype(sensors)>, get_inputs_t<decltype(synth)>> mapping; // a part with two throughpoints
-    } parts; } api; // an sub-assemblage
+    } parts; } api; // a pure subassembly
     // esp32::GpioInterruptDriver< decltype(time)
     //                           , idf_config::button_pin
     //                           , idf_config::trill_interrupt_pin

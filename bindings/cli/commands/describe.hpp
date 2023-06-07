@@ -10,7 +10,6 @@ namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
 using namespace sygaldry::concepts;
 
-template<typename Logger>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
@@ -18,7 +17,7 @@ struct Describe
     static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
     template<typename T>
-    void describe_entity_type(Logger& log, T& entity)
+    void describe_entity_type(auto& log, T& entity)
     {
         if constexpr (Component<T>) log.println("component");
         else if constexpr (Bang<T>) log.println("bang");
@@ -28,7 +27,7 @@ struct Describe
     }
 
     template<typename T>
-    void describe_entity_value(Logger& log, T& entity)
+    void describe_entity_value(auto& log, T& entity)
     {
         if constexpr (Bang<T>)
         {
@@ -41,7 +40,7 @@ struct Describe
     }
 
     template<typename T>
-    void describe_entity(Logger& log, auto preface, T& entity, auto ... indents)
+    void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
     {
         using spelling::lower_kebab_case;
         static_assert(has_name<T>);
@@ -74,8 +73,7 @@ struct Describe
         }
     }
 
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
+    int main(int argc, char** argv, auto& log, auto& components)
     {
         if (argc < 2) return 2;
         bool describe_component = argc == 2;

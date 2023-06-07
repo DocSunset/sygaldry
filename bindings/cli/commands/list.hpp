@@ -7,15 +7,13 @@
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Logger>
 struct List
 {
     static _consteval auto name() { return "list"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "List the components available to interact with through the CLI"; }
 
-    template<typename Components>
-    int main(int argc, char** argv, Logger& log, Components& components)
+    int main(int argc, char** argv, auto& log, auto& components)
     {
         boost::pfr::for_each_field(components, [&](const auto& component)
         {
