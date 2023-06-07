@@ -1,0 +1,51 @@
+# T-Stick
+
+```c++
+//@#'t_stick.cpp'
+#include "concepts/components.hpp"
+#include "components/esp32/all.hpp"
+#include "bindings/esp32/all.hpp"
+
+@{idf preprocessor configuration}
+
+using namespace sygaldry::concepts;
+using namespace sygaldry::components;
+using namespace sygaldry::bindings;
+
+struct TStick
+{
+    struct api_t
+    {
+        esp32::WifiDriver wifi;
+        esp32::TimeProvider time;
+        esp32::GpioButton<idf_config::button_pin, decltype(time)> button;
+        esp32::AdcSensor<idf_config::fsr_pin, decltype(time)> fsr;
+        esp32::I2cDriver<idf_config::i2c_sda, idf_config::i2c_scl> i2c;
+        TStickTouch<decltype(i2c), decltype(time), Trill> touch;
+        Mimu<decltype(i2c), decltype(time), ICM20948> mimu;
+        //TStickSynth<esp32::DacDriver<idf_config::blah blah blah>> synth;
+        //TStickCrossModalMapping<decltype(touch), decltype(synth)> mapping;
+        //esp32::GpioInterruptDriver< idf_config::button_pin
+        //                          , idf_config::trill_interrupt_pin
+        //                          , idf_config::icm20948_interrupt_pin
+        //                          , decltype(time)
+        //                          > interrupts;
+    } api;
+    // HttpServer< ConfigWebpage<decltype(api), idf_config::config_page_url>
+    //           , ViewerWebpage<decltype(api), idf_config::viewer_page_url>
+    //           > http_server;
+    LibloServer<decltype(api)> liblo_server;
+    //LibmapperDevice<decltype(api)> libmapper_device;
+    StdioLogger log;
+    //Eeprom<decltype(log), decltype(api), JsonSerializer> eeprom;
+    Cli<decltype(log), decltype(api)> cli;
+} tstick;
+
+int main()
+{
+    init(tstick, tstick, tstick.api);
+    for (;;)
+        activate(tstick, tstick, tstick.api);
+}
+//@/
+```
