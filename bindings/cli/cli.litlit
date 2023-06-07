@@ -268,16 +268,14 @@ conceptual design of the logger feature injection scheme from Avendish:
 
 ```c++
 // @+'test commands'
-template<typename Config>
+template<typename Logger>
 struct Echo
 {
     static _consteval auto name() { return "echo"; }
     static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log; 
-
     template<typename Components>
-    int main(int argc, char ** argv, Components&)
+    int main(int argc, char ** argv, Logger& log, Components&)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -303,16 +301,20 @@ is found.
 We'll define a function to facilitate testing, inspired by chatGPT's failed
 attempt to generate tests for me, that accepts a string as input to the CLI and
 returns a string representing whatever the CLI prints in response. We also
-define some test components and a configuration.
+define some test components and a logger.
 
 ```c++
+// @='cli tests logger'
+sygaldry::bindings::basic_logger::TestLogger logger{};
+// @/
+
 // @='cli test wrapper'
 void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
-    cli.log.put.ss.str("");
+    logger.put.ss.str("");
     for (char c : input)
-        cli.process(c, components);
-    REQUIRE(cli.log.put.ss.str() == expected_output);
+        cli(c, logger, components);
+    REQUIRE(logger.put.ss.str() == expected_output);
 }
 // @/
 
@@ -332,14 +334,6 @@ struct TestComponents
     sygaldry::components::TestComponent tc;
 };
 // @/
-
-// @='test config class'
-struct Config
-{
-    using basic_logger_type = sygaldry::bindings::basic_logger::TestLogger;
-};
-// @/
-
 ```
 
 We can then test the CLI using a few trivial commands, such as the `echo` command
@@ -347,16 +341,16 @@ defined above, and the following:
 
 ```c++
 // @+'test commands'
-template<typename Config>
+template<typename Logger>
 struct HelloWorld
 {
     static _consteval auto name() { return "hello"; }
     static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log; 
+    struct parts_t { Logger log; } parts;
 
     template<typename Components>
-    int main(int argc, char ** argv, Components&)
+    int main(int argc, char ** argv, Logger& log, Components&)
     {
         log.println("Hello world!");
         return 0;
@@ -365,17 +359,18 @@ struct HelloWorld
 // @/
 
 // @+'tests'
-template<typename Config>
+
+template<typename Logger>
 struct CliCommands
 {
-    Echo<Config> echo;
-    HelloWorld<Config> hello;
+    Echo<Logger> echo;
+    HelloWorld<Logger> hello;
 };
 
 TEST_CASE("CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
-    auto cli = CustomCli<Config, TestComponents, CliCommands>{};
+    auto cli = CustomCli<decltype(logger), TestComponents, CliCommands>{};
 
     SECTION("Hello world")
     {
@@ -432,7 +427,7 @@ struct, which we will discuss further below.
 
 ```c++
 // @='cli process'
-void process(char c, Components& components)
+void operator()(char c, Logger& log, Components& components)
 {
     if (_is_whitespace(c))
         buffer[write_pos++] = 0;
@@ -446,15 +441,15 @@ void process(char c, Components& components)
 
     if (c == '\n')
     {
-        auto retcode = _try_to_match_and_execute(components);
-        if (retcode != 0) _complain_about_command_failure(retcode);
-        _reset();
+        auto retcode = _try_to_match_and_execute(log, components);
+        if (retcode != 0) _complain_about_command_failure(log, retcode);
+        _reset(log);
     }
 
     if (_overflow())
     {
         log.println("CLI line buffer overflow!");
-        _reset();
+        _reset(log);
     }
 }
 // @/
@@ -488,15 +483,15 @@ struct CommandMatcher
 // @/
 
 // @+'cli implementation details'
-int _try_to_match_and_execute(Components components)
+int _try_to_match_and_execute(Logger& log, Components& components)
 {
-    return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
+    return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
         {
-            if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
+            if constexpr (std::is_same_v<decltype(command), commands::Help<Logger>&>)
             {
-                return command.main(commands);
+                return command.main(log, parts.commands);
             }
-            else return command.main(argc, argv, components);
+            else return command.main(argc, argv, log, components);
         });
 }
 // @/
@@ -505,7 +500,7 @@ int _try_to_match_and_execute(Components components)
 ### Instantiation
 
 The CLI is a template that can accept an arbitrary number of components and
-commands, and requires a configuration that is passed through to all of its
+commands, and requires a logger that is passed through to all of its
 commands. Being able to instantiate the CLI without having to restate the names
 all of the components and commands is essential.
 
@@ -517,42 +512,43 @@ main CLI implementation is contained in a class `CustomCli`, for which a
 template alias is provided `Cli` that specifies the default list of commands.
 
 Notice that the list of commands should be a template class, so that the
-`Config` type of the CLI can be propagated to all of its commands. This is a
+`Logger` type of the CLI can be propagated to all of its commands. This is a
 bit inconvenient, but since we expect most users to use the default list of
 commands, we accept that users of custom commands will have to write
-`CommandType<Config> command;` for each command when they declare their
+`CommandType<Logger> command;` for each command when they declare their
 custom command struct.
 
 ```c++
 // @='cli default type alias'
-template<typename Config>
+template<typename Logger>
 struct DefaultCommands
 {
-    #define default_command(TYPENAME) commands::TYPENAME<Config> _##TYPENAME
+    #define default_command(TYPENAME) commands::TYPENAME<Logger> _##TYPENAME
     default_command(Help);
     @{default commands}
     #undef default_command
 };
 
-template<typename Config, typename Components>
-using Cli = CustomCli<Config, Components, DefaultCommands>;
+template<typename Logger, typename Components>
+using Cli = CustomCli<Logger, Components, DefaultCommands>;
 // @/
 ```
 
 The constructor writes a user-customizeable welcome message, and then prompts
-the user for input. The logger specified by the configuration and an instance
-of the command container, with the `Config` type propagated in, are both
-default initialized.
+the user for input. The logger and an instance of the command container with
+the `Logger` type propagated in are both default initialized.
 
 ```c++
 // @='cli instantiation'
-[[no_unique_address]] typename Config::basic_logger_type log{};
-Commands<Config> commands{};
+struct parts_t
+{
+    [[no_unique_address]] Commands<Logger> commands;
+} parts;
 
-void init()
+void init(Logger& log)
 {
     log.println("CLI enabled. Write `help` for a list of available commands.");
-    _prompt();
+    _prompt(log);
 }
 // @/
 
@@ -576,19 +572,19 @@ bool _overflow() const
     return argc == MAX_ARGS || write_pos == BUFFER_SIZE;
 }
 
-void _prompt()
+void _prompt(auto& log)
 {
     log.print("> ");
 }
 
-void _reset()
+void _reset(auto& log)
 {
     argc = 0;
     write_pos = 0;
-    _prompt();
+    _prompt(log);
 }
 
-void _complain_about_command_failure(int retcode)
+void _complain_about_command_failure(auto& log, int retcode)
 {} // TODO
 // @/
 
@@ -605,10 +601,9 @@ void _complain_about_command_failure(int retcode)
 
 @{commands headers}
 
-namespace sygaldry { namespace bindings::cli
-{
+namespace sygaldry { namespace bindings { namespace cli {
 
-template<typename Config, typename Components, template<typename>typename Commands>
+template<typename Logger, typename Components, template<typename>typename Commands>
 struct CustomCli
 {
     @{cli instantiation}
@@ -622,7 +617,7 @@ struct CustomCli
 
 @{cli default type alias}
 
-} }
+} } }
 // @/
 ```
 
@@ -636,7 +631,7 @@ are passed by reference to allow the main test case to check for expected
 side-effects of running the command.
 
 ```c++
-// @='test command subroutine'
+// @='command test wrapper'
 void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)
 {
     int argc = 0;
@@ -644,10 +639,10 @@ void test_command(auto&& command, auto&& components, int expected_retcode, const
     auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
     ( set_arg(args), ... );
 
-    command.log.put.ss.str("");
-    int retcode = command.main(argc, argv, components);
+    logger.put.ss.str("");
+    int retcode = command.main(argc, argv, logger, components);
     REQUIRE(retcode == expected_retcode);
-    REQUIRE(command.log.put.ss.str() == string(expected_output));
+    REQUIRE(logger.put.ss.str() == string(expected_output));
 };
 // @/
 ```
@@ -666,7 +661,7 @@ The list command should output a new-line separated list of component names:
 // @+'tests'
 TEST_CASE("List command outputs", "[cli][commands][list]")
 {
-    test_command(List<Config>{}, TestComponents{},
+    test_command(List<decltype(logger)>{}, TestComponents{},
                  0, "test-component-a\ntest-component-b\ntest-component-1\n",
                  "list");
 }
@@ -693,22 +688,17 @@ expression and print each one's name using the injected logger.
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli::commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Config>
+template<typename Logger>
 struct List
 {
     static _consteval auto name() { return "list"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "List the components available to interact with through the CLI"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
     template<typename Components>
-    int main(int argc, char** argv, Components& components)
+    int main(int argc, char** argv, Logger& log, Components& components)
     {
         boost::pfr::for_each_field(components, [&](const auto& component)
         {
@@ -718,8 +708,7 @@ struct List
     }
 };
 
-}
-}
+} } } }
 // @/
 
 // @+'commands headers'
@@ -734,15 +723,15 @@ default_command(List);
 ## Help Command
 
 The help command is a bit unusual, since it actually doesn't care about
-components, but rather commands. It should print each command's name, usage, and a
-brief description. The name is easy enough, as is the description, since it's
-reasonable to expect the command to provide both of these considering there's
-no reasonable way to deduce them. It would be ideal if the usage text could be
-derived by reflecting on the command, but enabling this would require us to
-make assumptions about the way commands are shaped, since it's not possible to
-deduce anything from the signature `int main(argc, argc, components)`. For now,
-we'll take the easiest route and require commands to provide their usage text
-if the command takes arguments.
+components, but rather commands. It should print each command's name, usage,
+and a brief description. The name is easy enough, as is the description, since
+it's reasonable to expect the command to provide both of these considering
+there's no reasonable way to deduce them. It would be ideal if the usage text
+could be derived by reflecting on the command, but enabling this would require
+us to make assumptions about the way commands are shaped, since it's not
+possible to deduce anything from the signature `int main(argc, argv, log,
+components)`. For now, we'll take the easiest route and require commands to
+provide their usage text if the command takes arguments.
 
 ```c++
 // @+'test commands'
@@ -768,13 +757,13 @@ struct TestCommands
 // @+'tests'
 TEST_CASE("Help command", "[cli][commands][help]")
 {
-    Help<Config> command;
+    Help<decltype(logger)> command;
 
-    command.log.put.ss.str("");
+    logger.put.ss.str("");
     auto commands = TestCommands{};
-    auto retcode = command.main(commands);
+    auto retcode = command.main(logger, commands);
 
-    REQUIRE(command.log.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
+    REQUIRE(logger.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
 // @/
@@ -791,16 +780,14 @@ and have a `main` method that takes a parameter pack of commands to describe.
 #include "utilities/consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
-template<typename Config>
+template<typename Logger>
 struct Help
 {
     static _consteval auto name() { return "help"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "Describe the available commands and their usage"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
-    void _print(auto&& command)
+    void _print(auto& log, auto&& command)
     {
         if constexpr (requires {command.usage();})
             log.println(command.name(), " ", command.usage());
@@ -809,11 +796,11 @@ struct Help
         log.println("    ", command.description());
     }
 
-    int main(auto&& commands)
+    int main(Logger& log, auto& commands)
     {
         boost::pfr::for_each_field(commands, [&](auto&& command)
         {
-            _print(command);
+            _print(log, command);
         });
         log.println(name());
         log.println("    ", description());
@@ -852,7 +839,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     auto components = TestComponents{};
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
-    test_command(Describe<Config>{}, components, 0,
+    test_command(Describe<decltype(logger)>{}, components, 0,
 R"DESCRIBEDEVICE(component: test-component-1
   name: "Test Component 1"
   type:  component
@@ -896,7 +883,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     value: ()
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
-    test_command(Describe<Config>{}, TestComponents{}, 0,
+    test_command(Describe<decltype(logger)>{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
   type:  persistent value
@@ -913,23 +900,27 @@ or we describe a single endpoint.
 
 ```c++
 // @='describe main'
-if (argc < 2) return 2;
-bool describe_component = argc == 2;
-bool describe_endpoint = argc > 2;
-return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
+template<typename Components>
+int main(int argc, char** argv, Logger& log, Components& components)
 {
-    if (describe_component)
+    if (argc < 2) return 2;
+    bool describe_component = argc == 2;
+    bool describe_endpoint = argc > 2;
+    return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
     {
-        describe_entity("component: ", component);
-        return 0;
-    }
-    else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
-    {
-        describe_entity("endpoint: ", endpoint);
-        return 0;
+        if (describe_component)
+        {
+            describe_entity(log, "component: ", component);
+            return 0;
+        }
+        else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
+        {
+            describe_entity(log, "endpoint: ", endpoint);
+            return 0;
+        });
+        else return 0;
     });
-    else return 0;
-});
+};
 // @/
 ```
 
@@ -941,7 +932,7 @@ before others, since a `Bang` is currently implemented as a `PersistentValue`.
 ```c++
 // @+'describe implementation details'
 template<typename T>
-void describe_entity_type(T& entity)
+void describe_entity_type(Logger& log, T& entity)
 {
     if constexpr (Component<T>) log.println("component");
     else if constexpr (Bang<T>) log.println("bang");
@@ -951,7 +942,7 @@ void describe_entity_type(T& entity)
 }
 
 template<typename T>
-void describe_entity_value(T& entity)
+void describe_entity_value(Logger& log, T& entity)
 {
     if constexpr (Bang<T>)
     {
@@ -964,14 +955,14 @@ void describe_entity_value(T& entity)
 }
 
 template<typename T>
-void describe_entity(auto preface, T& entity, auto ... indents)
+void describe_entity(Logger& log, auto preface, T& entity, auto ... indents)
 {
     using spelling::lower_kebab_case;
     static_assert(has_name<T>);
     log.println(indents..., preface, (const char *)lower_kebab_case(entity));
     log.println(indents..., "  name: \"", entity.name(), "\"");
     log.print(indents...,   "  type:  ");
-    describe_entity_type(entity);
+    describe_entity_type(log, entity);
     if constexpr (has_range<T>)
     {
         log.print(indents..., "  range: ");
@@ -981,7 +972,7 @@ void describe_entity(auto preface, T& entity, auto ... indents)
     if constexpr (has_value<T>)
     {
         log.print(indents...,   "  value: ");
-        describe_entity_value(entity);
+        describe_entity_value(log, entity);
     }
     if constexpr (Component<T>)
     {
@@ -989,7 +980,7 @@ void describe_entity(auto preface, T& entity, auto ... indents)
         {
             boost::pfr::for_each_field(group, [&](auto& entity)
             {
-                describe_entity(groupname, entity, "  ", indents...);
+                describe_entity(log, groupname, entity, "  ", indents...);
             });
         };
         describe_group(inputs_of(entity),  "input:   ");
@@ -1014,24 +1005,17 @@ namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
 using namespace sygaldry::concepts;
 
-template<typename Config>
+template<typename Logger>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
     static _consteval auto usage() { return "component-name [endpoint-name]"; }
     static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
-    @{describe matcher}
-
     @{describe implementation details}
 
-    template<typename Components>
-    int main(int argc, char** argv, Components& components)
-    {
-        @{describe main}
-    }
+    @{describe main}
+
 };
 
 } } } } // namespaces
@@ -1060,28 +1044,28 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "button-in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set<Config>{}, components, 0, "", "set", "test-component-1", "bang-in");
+        test_command(Set<decltype(logger)>{}, components, 0, "", "set", "test-component-1", "bang-in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 }
@@ -1093,18 +1077,22 @@ right endpoint, deferring the main logic of the command to another subroutine.
 
 ```c++
 // @='set main'
-if (argc < 3)
+template<typename Components>
+int main(int argc, char** argv, Logger& log, Components& components)
 {
-    log.println("usage: ", usage());
-    return 2;
-}
-auto component_name = argv[1];
-auto endpoint_name = argv[2];
-return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
-    return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
-        return set_endpoint_value(endpoint, argc-3, argv+3);
+    if (argc < 3)
+    {
+        log.println("usage: ", usage());
+        return 2;
+    }
+    auto component_name = argv[1];
+    auto endpoint_name = argv[2];
+    return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
+        return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
+            return set_endpoint_value(log, endpoint, argc-3, argv+3);
+        });
     });
-});
+}
 // @/
 ```
 
@@ -1116,7 +1104,7 @@ input. Otherwise, we require more information to parse in order to set the value
 @{parse and set}
 
 template<typename T>
-int set_endpoint_value(T& endpoint, int argc, char ** argv)
+int set_endpoint_value(Logger& log, T& endpoint, int argc, char ** argv)
 {
     if constexpr (Bang<T>)
     {
@@ -1133,7 +1121,7 @@ int set_endpoint_value(T& endpoint, int argc, char ** argv)
             return 2;
         }
         // TODO: we should determine the type of the value and use it here
-        else return parse_and_set<float>(endpoint, argv[0]);
+        else return parse_and_set<float>(log, endpoint, argv[0]);
     }
     else return 2;
 }
@@ -1148,7 +1136,7 @@ failure code in case we can't parse the input token as a number.
 ```c++
 // @='parse and set'
 template<typename T>
-int parse_and_set(auto& endpoint, char * argstart)
+int parse_and_set(auto& log, auto& endpoint, char * argstart)
 {
     T num{};
     auto argend = argstart;
@@ -1189,22 +1177,17 @@ int parse_and_set(auto& endpoint, char * argstart)
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Config>
+template<typename Logger>
 struct Set
 {
     static _consteval auto name() { return "set"; }
     static _consteval auto usage() { return "component-name endpoint-name [value] [value] [...]"; }
     static _consteval auto description() { return "Change the current value of the given endoint"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
     @{set implementation details}
 
-    template<typename Components>
-    int main(int argc, char** argv, Components& components)
-    {
-        @{set main}
-    }
+    @{set main}
+
 };
 
 } } } }
@@ -1221,11 +1204,14 @@ default_command(Set);
 
 ## Trigger
 
+TODO write literate annotation for this command
+
 ```c++
 // @+'tests'
 TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
 {
     auto components = TestComponents{};
+    // TODO: test this properly
 }
 // @/
 ```
@@ -1252,19 +1238,17 @@ return 2;
 #include "bindings/name_dispatch.hpp"
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Config>
+template<typename Logger>
 struct Trigger
 {
     static _consteval auto name() { return "trigger"; }
     static _consteval auto usage() { return "component-name"; }
     static _consteval auto description() { return "Activate the given component's main subroutine"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
     @{trigger implementation details}
 
     template<typename Components>
-    int main(int argc, char** argv, Components& components)
+    int main(int argc, char** argv, Logger& log, Components& components)
     {
         if (argc < 2)
         {
@@ -1310,26 +1294,22 @@ that provides `getchar` and `putchar` from the C standard library.
 #include <cstdlib>
 #include <memory>
 
-struct Config
-{
-    using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
-};
-
 template<typename Components>
 struct CliApp
 {
     int main()
     {
         auto components = Components{};
-        auto cli = sygaldry::bindings::cli::Cli<Config, Components>{};
-        cli.init();
+        auto log = sygaldry::bindings::basic_logger::StandardLogger{};
+        auto cli = sygaldry::bindings::cli::Cli<decltype(log), Components>{};
+        cli.init(log);
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
                 return EXIT_SUCCESS;
             else
-                cli.process(c, components);
+                cli(c, log, components);
         }
     }
 };
@@ -1393,15 +1373,15 @@ using std::string;
 using namespace sygaldry::bindings::cli::commands;
 using namespace sygaldry::bindings::cli;
 
+@{cli tests logger}
+
 @{cli test wrapper}
+
+@{command test wrapper}
 
 @{test commands}
 
 @{test components}
-
-@{test command subroutine}
-
-@{test config class}
 
 @{tests}
 // @/

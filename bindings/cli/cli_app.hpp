@@ -5,26 +5,22 @@
 #include <cstdlib>
 #include <memory>
 
-struct Config
-{
-    using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
-};
-
 template<typename Components>
 struct CliApp
 {
     int main()
     {
         auto components = Components{};
-        auto cli = sygaldry::bindings::cli::Cli<Config, Components>{};
-        cli.init();
+        auto log = sygaldry::bindings::basic_logger::StandardLogger{};
+        auto cli = sygaldry::bindings::cli::Cli<decltype(log), Components>{};
+        cli.init(log);
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
                 return EXIT_SUCCESS;
             else
-                cli.process(c, components);
+                cli(c, log, components);
         }
     }
 };

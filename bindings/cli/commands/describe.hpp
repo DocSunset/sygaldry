@@ -10,18 +10,15 @@ namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
 using namespace sygaldry::concepts;
 
-template<typename Config>
+template<typename Logger>
 struct Describe
 {
     static _consteval auto name() { return "describe"; }
     static _consteval auto usage() { return "component-name [endpoint-name]"; }
     static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
-
     template<typename T>
-    void describe_entity_type(T& entity)
+    void describe_entity_type(Logger& log, T& entity)
     {
         if constexpr (Component<T>) log.println("component");
         else if constexpr (Bang<T>) log.println("bang");
@@ -31,7 +28,7 @@ struct Describe
     }
 
     template<typename T>
-    void describe_entity_value(T& entity)
+    void describe_entity_value(Logger& log, T& entity)
     {
         if constexpr (Bang<T>)
         {
@@ -44,14 +41,14 @@ struct Describe
     }
 
     template<typename T>
-    void describe_entity(auto preface, T& entity, auto ... indents)
+    void describe_entity(Logger& log, auto preface, T& entity, auto ... indents)
     {
         using spelling::lower_kebab_case;
         static_assert(has_name<T>);
         log.println(indents..., preface, (const char *)lower_kebab_case(entity));
         log.println(indents..., "  name: \"", entity.name(), "\"");
         log.print(indents...,   "  type:  ");
-        describe_entity_type(entity);
+        describe_entity_type(log, entity);
         if constexpr (has_range<T>)
         {
             log.print(indents..., "  range: ");
@@ -61,7 +58,7 @@ struct Describe
         if constexpr (has_value<T>)
         {
             log.print(indents...,   "  value: ");
-            describe_entity_value(entity);
+            describe_entity_value(log, entity);
         }
         if constexpr (Component<T>)
         {
@@ -69,7 +66,7 @@ struct Describe
             {
                 boost::pfr::for_each_field(group, [&](auto& entity)
                 {
-                    describe_entity(groupname, entity, "  ", indents...);
+                    describe_entity(log, groupname, entity, "  ", indents...);
                 });
             };
             describe_group(inputs_of(entity),  "input:   ");
@@ -78,7 +75,7 @@ struct Describe
     }
 
     template<typename Components>
-    int main(int argc, char** argv, Components& components)
+    int main(int argc, char** argv, Logger& log, Components& components)
     {
         if (argc < 2) return 2;
         bool describe_component = argc == 2;
@@ -87,17 +84,18 @@ struct Describe
         {
             if (describe_component)
             {
-                describe_entity("component: ", component);
+                describe_entity(log, "component: ", component);
                 return 0;
             }
             else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
             {
-                describe_entity("endpoint: ", endpoint);
+                describe_entity(log, "endpoint: ", endpoint);
                 return 0;
             });
             else return 0;
         });
-    }
+    };
+
 };
 
 } } } } // namespaces

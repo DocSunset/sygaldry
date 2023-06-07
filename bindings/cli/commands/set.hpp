@@ -6,17 +6,15 @@
 
 namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Config>
+template<typename Logger>
 struct Set
 {
     static _consteval auto name() { return "set"; }
     static _consteval auto usage() { return "component-name endpoint-name [value] [value] [...]"; }
     static _consteval auto description() { return "Change the current value of the given endoint"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
     template<typename T>
-    int parse_and_set(auto& endpoint, char * argstart)
+    int parse_and_set(auto& log, auto& endpoint, char * argstart)
     {
         T num{};
         auto argend = argstart;
@@ -44,7 +42,7 @@ struct Set
     }
 
     template<typename T>
-    int set_endpoint_value(T& endpoint, int argc, char ** argv)
+    int set_endpoint_value(Logger& log, T& endpoint, int argc, char ** argv)
     {
         if constexpr (Bang<T>)
         {
@@ -61,13 +59,13 @@ struct Set
                 return 2;
             }
             // TODO: we should determine the type of the value and use it here
-            else return parse_and_set<float>(endpoint, argv[0]);
+            else return parse_and_set<float>(log, endpoint, argv[0]);
         }
         else return 2;
     }
 
     template<typename Components>
-    int main(int argc, char** argv, Components& components)
+    int main(int argc, char** argv, Logger& log, Components& components)
     {
         if (argc < 3)
         {
@@ -78,10 +76,11 @@ struct Set
         auto endpoint_name = argv[2];
         return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
             return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
-                return set_endpoint_value(endpoint, argc-3, argv+3);
+                return set_endpoint_value(log, endpoint, argc-3, argv+3);
             });
         });
     }
+
 };
 
 } } } }

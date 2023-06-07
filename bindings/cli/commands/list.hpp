@@ -5,22 +5,17 @@
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
-namespace sygaldry
-{
-namespace bindings::cli::commands
-{
+namespace sygaldry { namespace bindings { namespace cli { namespace commands {
 
-template<typename Config>
+template<typename Logger>
 struct List
 {
     static _consteval auto name() { return "list"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "List the components available to interact with through the CLI"; }
 
-    [[no_unique_address]] typename Config::basic_logger_type log;
-
     template<typename Components>
-    int main(int argc, char** argv, Components& components)
+    int main(int argc, char** argv, Logger& log, Components& components)
     {
         boost::pfr::for_each_field(components, [&](const auto& component)
         {
@@ -30,5 +25,4 @@ struct List
     }
 };
 
-}
-}
+} } } }

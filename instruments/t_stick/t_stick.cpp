@@ -10,6 +10,8 @@ using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 
 struct TStick { struct parts_t {
+    StdioLogger log; // a part
+    // Eeprom<decltype(log), decltype(api), JsonSerializer> eeprom; // a part with two external plugins, one internal plugin
     esp32::I2cDriver<idf_config::i2c_sda, idf_config::i2c_scl> i2c; // a part with two configuration parameters
     struct api_t : _name("T-Stick")
                  , _designer<"Joseph Malloch">
@@ -40,8 +42,6 @@ struct TStick { struct parts_t {
     //           > http_server; // a part with two internal plugins, each with one external plugin and one configuration parameter
     LibloServer<decltype(api), idf_config::default_name> liblo_server; // a part with one external plugin
     // LibmapperDevice<decltype(api)> libmapper_device; // one external plugin
-    StdioLogger log; // a part
-    // Eeprom<decltype(log), decltype(api), JsonSerializer> eeprom; // a part with two external plugins, one internal plugin
     Cli<decltype(log), decltype(api)> cli; // a part with two external plugins
 } parts; } tstick; // an assemblage
 

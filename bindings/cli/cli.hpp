@@ -11,19 +11,20 @@
 #include "commands/set.hpp"
 #include "commands/trigger.hpp"
 
-namespace sygaldry { namespace bindings::cli
-{
+namespace sygaldry { namespace bindings { namespace cli {
 
-template<typename Config, typename Components, template<typename>typename Commands>
+template<typename Logger, typename Components, template<typename>typename Commands>
 struct CustomCli
 {
-    [[no_unique_address]] typename Config::basic_logger_type log{};
-    Commands<Config> commands{};
+    struct parts_t
+    {
+        [[no_unique_address]] Commands<Logger> commands;
+    } parts;
 
-    void init()
+    void init(Logger& log)
     {
         log.println("CLI enabled. Write `help` for a list of available commands.");
-        _prompt();
+        _prompt(log);
     }
 
     // TODO: automatically size the buffers depending on the commands
@@ -34,15 +35,15 @@ struct CustomCli
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
 
-    int _try_to_match_and_execute(Components components)
+    int _try_to_match_and_execute(Logger& log, Components& components)
     {
-        return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
+        return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
             {
-                if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
+                if constexpr (std::is_same_v<decltype(command), commands::Help<Logger>&>)
                 {
-                    return command.main(commands);
+                    return command.main(log, parts.commands);
                 }
-                else return command.main(argc, argv, components);
+                else return command.main(argc, argv, log, components);
             });
     }
     bool _is_whitespace(char c)
@@ -61,22 +62,22 @@ struct CustomCli
         return argc == MAX_ARGS || write_pos == BUFFER_SIZE;
     }
 
-    void _prompt()
+    void _prompt(auto& log)
     {
         log.print("> ");
     }
 
-    void _reset()
+    void _reset(auto& log)
     {
         argc = 0;
         write_pos = 0;
-        _prompt();
+        _prompt(log);
     }
 
-    void _complain_about_command_failure(int retcode)
+    void _complain_about_command_failure(auto& log, int retcode)
     {} // TODO
 
-    void process(char c, Components& components)
+    void operator()(char c, Logger& log, Components& components)
     {
         if (_is_whitespace(c))
             buffer[write_pos++] = 0;
@@ -90,23 +91,23 @@ struct CustomCli
 
         if (c == '\n')
         {
-            auto retcode = _try_to_match_and_execute(components);
-            if (retcode != 0) _complain_about_command_failure(retcode);
-            _reset();
+            auto retcode = _try_to_match_and_execute(log, components);
+            if (retcode != 0) _complain_about_command_failure(log, retcode);
+            _reset(log);
         }
 
         if (_overflow())
         {
             log.println("CLI line buffer overflow!");
-            _reset();
+            _reset(log);
         }
     }
 };
 
-template<typename Config>
+template<typename Logger>
 struct DefaultCommands
 {
-    #define default_command(TYPENAME) commands::TYPENAME<Config> _##TYPENAME
+    #define default_command(TYPENAME) commands::TYPENAME<Logger> _##TYPENAME
     default_command(Help);
     default_command(List);
     default_command(Describe);
@@ -115,7 +116,7 @@ struct DefaultCommands
     #undef default_command
 };
 
-template<typename Config, typename Components>
-using Cli = CustomCli<Config, Components, DefaultCommands>;
+template<typename Logger, typename Components>
+using Cli = CustomCli<Logger, Components, DefaultCommands>;
 
-} }
+} } }
