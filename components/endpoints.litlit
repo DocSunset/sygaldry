@@ -1,26 +1,5 @@
 # Introduction
 
-A digital musical instrument is an assemblage of components that generate,
-process, and output various forms of information with numerous different
-structures and temporal characteristics. We define a *port* as a point in the
-flow of data that is associated with a certain component, and can be said to be
-a source or destination of data flowing through the assemblage. We define an
-*endpoint* as a port with which metadata is readily associated, such as a name
-and range.
-
-Imagine we have two components, `A` and `B`, where `A` is connected directly to
-`B`. We call the endpoints of `A` from which data originate its *source
-endpoints*. These endpoints can generally be given descriptive names related to
-their interpretation with respect to `A`, e.g. "button state" if `A` is a
-button, or "saw wave" if `A` is an oscillator. From `A`'s perspective, the data
-coming from these endpoints are its *outputs*. Similarly, the endpoints of `B`
-where data arrives are its *destination endpoints*, they can be described based
-on their interpretation with respect to `B`, e.g. "bypass switch" or "cutoff
-frequency", and from `B`'s perspective the data arriving at these endpoints are
-its *inputs*. Notice that the data that `A` sees as outputs is the same data
-that `B` sees as inputs. The interpretation of endpoints depends only on the
-component with which they are associated.
-
 This document is concerned with providing a convenient means for definine
 endpoints that adhere to certain concepts. The concepts themselves, along with
 generic functions for accessing the signals and metadata associated with

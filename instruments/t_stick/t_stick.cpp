@@ -1,14 +1,9 @@
-# T-Stick
-
-```c++
-//@#'t_stick.cpp'
 #include "utilities/consteval.hpp"
 #include "concepts/components.hpp"
 #include "components/metadata.hpp"
 #include "components/esp32/all.hpp"
 #include "bindings/esp32/all.hpp"
 
-@{idf preprocessor configuration}
 
 using namespace sygaldry::concepts;
 using namespace sygaldry::components;
@@ -56,5 +51,3 @@ int main()
     for (;;)
         activate(tstick, tstick, tstick.api);
 }
-//@/
-```
