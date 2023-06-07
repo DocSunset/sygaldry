@@ -201,15 +201,18 @@ What is needed is a way to pass in a function that can accept a string and
 immediately print it or buffer it for printing with the appropriate driver. In
 the current version of [Avendish](github.com/celtera/avendish) at the time of
 writing, this is accomplished through a dependency injection mechanism where
-the component or command in need of logging functionality accepts a template parameter that
-provides a logger. This seems like possibly the only reasonable approach.
+the component or command in need of logging functionality accepts a template
+parameter that provides a logger type that the component can instantiate to
+access the needed functionality through a member function call of the
+instantiated type. This exposes the core of the only reasonable approach.
 Effectively, the only way to explicitly pass the thread of execution from one
 place to another is through a function call. So here are some of the options
 
 - the component author includes the function(s) for printing
 - the component user inherits from the component and overrides its virtual printing method(s)
-- the component accepts a callback function pointer or pointer to class that is called on for printing
+- the component stores a callback function pointer or pointer to class that is called on for printing
 - the printing function or class is passed as a template parameter to the component
+- the printing function or class is passed as an argument to the component's main subroutine
 
 In all cases, the component author and binding author are forced to agree on a
 convention for the printing calls. There's no getting around that. In the first
@@ -231,22 +234,22 @@ the responsibility for converting any data that needs to be printed into a
 focus on writing their component without having to think about string formatting
 conversions.
 
-All that's left (unless I've forgotten something) is the template parameter.
-This is only very slightly better than a pointer to a class. In both cases, the
-component author admits a dependency on the call signature requirements of the
-printer. The template parameter option has these main advantages: the
-dependency is implicit, meaning that it is simpler for binding authors to meet
-the requirements without modifying the component's implementation, and the component
-and binding implementations aren't required to share any source code; the
-injection of the feature imposes no runtime cost, since the full signature of
-the printer and component are both known at compile time, so there's no
-indirection through a base class; compile time injection also enables stronger
-type checking, and potentially allows the binding author to enable optimization
-through compile-time programming and template metaprogramming, if applicable.
-The cost is likely in compilation time, since the component code has to be
-recompiled for every different printer. However, in this context that cost is
-negligible, since we're already committed to recompiling our components for each
-new binding.
+The approach taken in Avendish at the time of writing is the template class
+parameter. This is only very slightly better than a pointer to a class. In both
+cases, the component author admits a dependency on the call signature
+requirements of the printer. The template parameter option has these main
+advantages: the dependency is implicit, meaning that it is simpler for binding
+authors to meet the requirements without modifying the component's
+implementation, and the component and binding implementations aren't required
+to share any source code; the injection of the feature imposes no runtime cost,
+since the full signature of the printer and component are both known at compile
+time, so there's no indirection through a base class; compile time injection
+also enables stronger type checking, and potentially allows the binding author
+to enable optimization through compile-time programming and template
+metaprogramming, if applicable. The cost is likely in compilation time, since
+the component code has to be recompiled for every different printer. However,
+in this context that cost is negligible, since we're already committed to
+recompiling our components for each new binding.
 
 The design of the printer is sufficiently involved that it is addressed in
 its own directory.
@@ -546,10 +549,9 @@ default initialized.
 [[no_unique_address]] typename Config::basic_logger_type log{};
 Commands<Config> commands{};
 
-CustomCli(const char * extra_boot_message = "")
+void init()
 {
     log.println("CLI enabled. Write `help` for a list of available commands.");
-    if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
     _prompt();
 }
 // @/
@@ -1319,12 +1321,13 @@ struct CliApp
     int main()
     {
         auto components = Components{};
-        auto cli = sygaldry::bindings::cli::Cli<Config, Components>("Type Ctrl-D to exit.");
+        auto cli = sygaldry::bindings::cli::Cli<Config, Components>{};
+        cli.init();
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
-                std::exit(EXIT_SUCCESS);
+                return EXIT_SUCCESS;
             else
                 cli.process(c, components);
         }
@@ -1366,7 +1369,7 @@ struct AppComponents {
 int main()
 {
     CliApp<AppComponents> app{};
-    app.main();
+    return app.main();
 }
 // @/
 ```
@@ -1413,3 +1416,10 @@ catch_discover_tests(cli-tests)
 add_executable(cli-demo cli_app_demo.cpp)
 # @/
 ```
+
+## CLI Component
+
+The CLI can also be treated as a component. There are a few clear approaches that could
+be taken here to get the character inputs, broadly similar to the possibilities for
+sending text to the output. In keeping with that previous discussion, we will
+model the character input as a plugin component.

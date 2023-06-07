@@ -27,5 +27,5 @@ struct AppComponents {
 int main()
 {
     CliApp<AppComponents> app{};
-    app.main();
+    return app.main();
 }

@@ -16,12 +16,13 @@ struct CliApp
     int main()
     {
         auto components = Components{};
-        auto cli = sygaldry::bindings::cli::Cli<Config, Components>("Type Ctrl-D to exit.");
+        auto cli = sygaldry::bindings::cli::Cli<Config, Components>{};
+        cli.init();
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
-                std::exit(EXIT_SUCCESS);
+                return EXIT_SUCCESS;
             else
                 cli.process(c, components);
         }

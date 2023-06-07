@@ -20,10 +20,9 @@ struct CustomCli
     [[no_unique_address]] typename Config::basic_logger_type log{};
     Commands<Config> commands{};
 
-    CustomCli(const char * extra_boot_message = "")
+    void init()
     {
         log.println("CLI enabled. Write `help` for a list of available commands.");
-        if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
         _prompt();
     }
 
