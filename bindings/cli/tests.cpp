@@ -11,13 +11,12 @@ using std::string;
 using namespace sygaldry::bindings::cli::commands;
 using namespace sygaldry::bindings::cli;
 
-template <typename Cli>
-string cli_process_input(Cli& cli, string input)
+void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
     cli.log.put.ss.str("");
     for (char c : input)
-        cli.process(c);
-    return cli.log.put.ss.str();
+        cli.process(c, components);
+    REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 
 template<typename Config>
@@ -115,17 +114,17 @@ struct CliCommands
 
 TEST_CASE("CLI", "[bindings][cli]")
 {
-    auto cpts = std::make_shared<TestComponents>();
-    auto cli = make_cli<Config, CliCommands>(cpts);
+    auto components = TestComponents{};
+    auto cli = CustomCli<Config, TestComponents, CliCommands>{};
 
     SECTION("Hello world")
     {
-        REQUIRE(cli_process_input(cli, "hello\n") == "Hello world!\n> ");
+        test_cli(cli, components, "hello\n", "Hello world!\n> ");
     }
 
     SECTION("Echo")
     {
-        REQUIRE(cli_process_input(cli, "echo foo bar baz\n") == "foo bar baz\n> ");
+        test_cli(cli, components, "echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
 TEST_CASE("List command outputs", "[cli][commands][list]")

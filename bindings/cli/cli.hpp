@@ -14,21 +14,20 @@
 namespace sygaldry { namespace bindings::cli
 {
 
-template<typename Config, typename cpts_t, typename Commands>
-struct Cli
+template<typename Config, typename Components, template<typename>typename Commands>
+struct CustomCli
 {
     [[no_unique_address]] typename Config::basic_logger_type log{};
-    Commands commands{};
-    cpts_t components;
+    Commands<Config> commands{};
 
-    Cli(cpts_t cpts, const char * extra_boot_message)
-    : components{cpts}
+    CustomCli(const char * extra_boot_message = "")
     {
         log.println("CLI enabled. Write `help` for a list of available commands.");
         if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
         _prompt();
     }
 
+    // TODO: automatically size the buffers depending on the commands
     static constexpr size_t MAX_ARGS = 5;
     static constexpr size_t BUFFER_SIZE = 128;
     int argc = 0;
@@ -36,15 +35,15 @@ struct Cli
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
 
-    int _try_to_match_and_execute()
+    int _try_to_match_and_execute(Components components)
     {
-        return dispatch<CommandMatcher>(argv[0], commands, 127, [this](auto& command)
+        return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
             {
                 if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
                 {
                     return command.main(commands);
                 }
-                else return command.main(argc, argv, *components);
+                else return command.main(argc, argv, components);
             });
     }
     bool _is_whitespace(char c)
@@ -78,7 +77,7 @@ struct Cli
     void _complain_about_command_failure(int retcode)
     {} // TODO
 
-    void process(char c)
+    void process(char c, Components& components)
     {
         if (_is_whitespace(c))
             buffer[write_pos++] = 0;
@@ -92,7 +91,7 @@ struct Cli
 
         if (c == '\n')
         {
-            auto retcode = _try_to_match_and_execute();
+            auto retcode = _try_to_match_and_execute(components);
             if (retcode != 0) _complain_about_command_failure(retcode);
             _reset();
         }
@@ -104,12 +103,6 @@ struct Cli
         }
     }
 };
-
-template<typename Config, template<typename>typename Commands, typename SuperComponent>
-auto make_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
-{
-    return Cli<Config, std::shared_ptr<SuperComponent>, Commands<Config>>(components, boot_message);
-}
 
 template<typename Config>
 struct DefaultCommands
@@ -123,10 +116,7 @@ struct DefaultCommands
     #undef default_command
 };
 
-template<typename Config, typename SuperComponent>
-auto make_default_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
-{
-    return Cli<Config, std::shared_ptr<SuperComponent>, DefaultCommands<Config>>(components, boot_message);
-}
+template<typename Config, typename Components>
+using Cli = CustomCli<Config, Components, DefaultCommands>;
 
 } }

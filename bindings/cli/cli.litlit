@@ -304,13 +304,12 @@ define some test components and a configuration.
 
 ```c++
 // @='cli test wrapper'
-template <typename Cli>
-string cli_process_input(Cli& cli, string input)
+void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
     cli.log.put.ss.str("");
     for (char c : input)
-        cli.process(c);
-    return cli.log.put.ss.str();
+        cli.process(c, components);
+    REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 // @/
 
@@ -372,18 +371,17 @@ struct CliCommands
 
 TEST_CASE("CLI", "[bindings][cli]")
 {
-    auto cpts = std::make_shared<TestComponents>();
-    auto cli = make_cli<Config, CliCommands>(cpts);
+    auto components = TestComponents{};
+    auto cli = CustomCli<Config, TestComponents, CliCommands>{};
 
-    @{cli tests}
     SECTION("Hello world")
     {
-        REQUIRE(cli_process_input(cli, "hello\n") == "Hello world!\n> ");
+        test_cli(cli, components, "hello\n", "Hello world!\n> ");
     }
 
     SECTION("Echo")
     {
-        REQUIRE(cli_process_input(cli, "echo foo bar baz\n") == "foo bar baz\n> ");
+        test_cli(cli, components, "echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
 // @/
@@ -402,6 +400,7 @@ for now:
 
 ```c++
 // @='cli buffers'
+// TODO: automatically size the buffers depending on the commands
 static constexpr size_t MAX_ARGS = 5;
 static constexpr size_t BUFFER_SIZE = 128;
 int argc = 0;
@@ -424,36 +423,44 @@ command's exit status, we reset the buffers, print a new prompt, and return to
 the normal process loop. The same reset routine is called if our input buffer
 overflows.
 
+Notice that we accept the list of components which the CLI interacts with as an
+argument. We assume that this is in the form of a reflectable simple-aggregate
+struct, which we will discuss further below.
+
 ```c++
 // @='cli process'
-if (_is_whitespace(c))
-    buffer[write_pos++] = 0;
-else
+void process(char c, Components& components)
 {
-    buffer[write_pos] = c;
-    if (_new_arg())
-        argv[argc++] = &buffer[write_pos];
-    write_pos++;
-}
+    if (_is_whitespace(c))
+        buffer[write_pos++] = 0;
+    else
+    {
+        buffer[write_pos] = c;
+        if (_new_arg())
+            argv[argc++] = &buffer[write_pos];
+        write_pos++;
+    }
 
-if (c == '\n')
-{
-    auto retcode = _try_to_match_and_execute();
-    if (retcode != 0) _complain_about_command_failure(retcode);
-    _reset();
-}
+    if (c == '\n')
+    {
+        auto retcode = _try_to_match_and_execute(components);
+        if (retcode != 0) _complain_about_command_failure(retcode);
+        _reset();
+    }
 
-if (_overflow())
-{
-    log.println("CLI line buffer overflow!");
-    _reset();
+    if (_overflow())
+    {
+        log.println("CLI line buffer overflow!");
+        _reset();
+    }
 }
 // @/
 ```
 
 We invoke the matcher subroutine as follows, accounting for `help`
 as a special case in our callback lambda, and using a kebab-case
-respeller in our matcher.
+respeller in our matcher. The same matcher is used by all of
+the CLI commands, so it is defined in its own header.
 
 ```c++
 // @#'matcher.hpp'
@@ -478,15 +485,15 @@ struct CommandMatcher
 // @/
 
 // @+'cli implementation details'
-int _try_to_match_and_execute()
+int _try_to_match_and_execute(Components components)
 {
-    return dispatch<CommandMatcher>(argv[0], commands, 127, [this](auto& command)
+    return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
         {
             if constexpr (std::is_same_v<decltype(command), commands::Help<Config>&>)
             {
                 return command.main(commands);
             }
-            else return command.main(argc, argv, *components);
+            else return command.main(argc, argv, components);
         });
 }
 // @/
@@ -495,28 +502,26 @@ int _try_to_match_and_execute()
 ### Instantiation
 
 The CLI is a template that can accept an arbitrary number of components and
-commands, and requires a configuration that is passed through to all
-of its commands. Being able to instantiate such a template without having to name
-all of the components and commands twice (e.g. in the template argument list
-and the constructor) is essential.
+commands, and requires a configuration that is passed through to all of its
+commands. Being able to instantiate the CLI without having to restate the names
+all of the components and commands is essential.
 
-We require the components to be wrapped in a reflectable struct. We further
-assume that the list of commands will, by default, be all available commands,
-but that (particularly for testing) some clients will want to specify their own
-list of commands. We provide factory functions for instantiating a CLI to
-simplify the API for users. In particular, this allows the user-provided
-`Config` to be (more or less) automatically propagated to all of the default
-commands, without the user having to write out `List<Config> list;
-Describe<Config> describe;` and so on.
+To facilitate this, we require the components and commands to be wrapped in a
+reflectable struct. We further assume that the list of commands will, by
+default, be all available commands, but that (particularly for testing) some
+clients will want to specify their own list of commands. For this reason, the
+main CLI implementation is contained in a class `CustomCli`, for which a
+template alias is provided `Cli` that specifies the default list of commands.
+
+Notice that the list of commands should be a template class, so that the
+`Config` type of the CLI can be propagated to all of its commands. This is a
+bit inconvenient, but since we expect most users to use the default list of
+commands, we accept that users of custom commands will have to write
+`CommandType<Config> command;` for each command when they declare their
+custom command struct.
 
 ```c++
 // @='cli default type alias'
-template<typename Config, template<typename>typename Commands, typename SuperComponent>
-auto make_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
-{
-    return Cli<Config, std::shared_ptr<SuperComponent>, Commands<Config>>(components, boot_message);
-}
-
 template<typename Config>
 struct DefaultCommands
 {
@@ -526,27 +531,22 @@ struct DefaultCommands
     #undef default_command
 };
 
-template<typename Config, typename SuperComponent>
-auto make_default_cli(std::shared_ptr<SuperComponent> components, const char * boot_message = "")
-{
-    return Cli<Config, std::shared_ptr<SuperComponent>, DefaultCommands<Config>>(components, boot_message);
-}
+template<typename Config, typename Components>
+using Cli = CustomCli<Config, Components, DefaultCommands>;
 // @/
 ```
 
-The constructor simply copies the pointer to the components, writes a welcome
-message, and then prompts the user for input. The logger specified by the
-configuration and an instance of the command container are both default
-initialized.
+The constructor writes a user-customizeable welcome message, and then prompts
+the user for input. The logger specified by the configuration and an instance
+of the command container, with the `Config` type propagated in, are both
+default initialized.
 
 ```c++
 // @='cli instantiation'
 [[no_unique_address]] typename Config::basic_logger_type log{};
-Commands commands{};
-cpts_t components;
+Commands<Config> commands{};
 
-Cli(cpts_t cpts, const char * extra_boot_message)
-: components{cpts}
+CustomCli(const char * extra_boot_message = "")
 {
     log.println("CLI enabled. Write `help` for a list of available commands.");
     if (extra_boot_message[0] != '\0') log.println(extra_boot_message);
@@ -606,8 +606,8 @@ void _complain_about_command_failure(int retcode)
 namespace sygaldry { namespace bindings::cli
 {
 
-template<typename Config, typename cpts_t, typename Commands>
-struct Cli
+template<typename Config, typename Components, template<typename>typename Commands>
+struct CustomCli
 {
     @{cli instantiation}
 
@@ -615,10 +615,7 @@ struct Cli
 
     @{cli implementation details}
 
-    void process(char c)
-    {
-        @{cli process}
-    }
+    @{cli process}
 };
 
 @{cli default type alias}
@@ -631,9 +628,10 @@ struct Cli
 
 The remainder of this document describes the commands available on the CLI. The
 tests for these commands generally follow the same format, so a single test
-function is provided to simplify the implementation and presentation of the
-tests. The command and components are passed by reference to allow the main
-test case to check for expected side-effects of running the command.
+function, similar to the one used for testing the CLI, is provided to simplify
+the implementation and presentation of the tests. The command and components
+are passed by reference to allow the main test case to check for expected
+side-effects of running the command.
 
 ```c++
 // @='test command subroutine'
@@ -1315,20 +1313,20 @@ struct Config
     using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
 };
 
-template<typename SuperComponent>
+template<typename Components>
 struct CliApp
 {
     int main()
     {
-        auto components = std::make_shared<SuperComponent>(SuperComponent{});
-        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(components, "Type Ctrl-D to exit.");
+        auto components = Components{};
+        auto cli = sygaldry::bindings::cli::Cli<Config, Components>("Type Ctrl-D to exit.");
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
                 std::exit(EXIT_SUCCESS);
             else
-                cli.process(c);
+                cli.process(c, components);
         }
     }
 };

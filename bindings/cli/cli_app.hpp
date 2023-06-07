@@ -10,20 +10,20 @@ struct Config
     using basic_logger_type = sygaldry::bindings::basic_logger::StandardLogger;
 };
 
-template<typename SuperComponent>
+template<typename Components>
 struct CliApp
 {
     int main()
     {
-        auto components = std::make_shared<SuperComponent>(SuperComponent{});
-        auto cli = sygaldry::bindings::cli::make_default_cli<Config>(components, "Type Ctrl-D to exit.");
+        auto components = Components{};
+        auto cli = sygaldry::bindings::cli::Cli<Config, Components>("Type Ctrl-D to exit.");
         for (;;)
         {
             char c = getchar();
             if (c == EOF)
                 std::exit(EXIT_SUCCESS);
             else
-                cli.process(c);
+                cli.process(c, components);
         }
     }
 };
