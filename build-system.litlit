@@ -56,27 +56,14 @@ build directory as first argument.
 
 ```sh
 # @#'sh/run.sh'
-[ -d "$1" ] ||
-{
-    echo "No build directory called $1.
-Run e.g. `cmake -B $1 -S .` from the root of the repository to generate one."
-    exit 2
-}
 ./sh/litlit.sh
-cmake --build "$1" &&
+[ -d "$1" ] && dir="$1" || dir='_build_debug'
+
+cmake --build "$dir" &&
 {
-    ctest --test-dir "$1" ||
-        ctest --test-dir "$1" --rerun-failed --output-on-failure
+    ctest --test-dir "$dir" ||
+        ctest --test-dir "$dir" --rerun-failed --output-on-failure
 }
-# @/
-```
-
-If `entr` is available on your system, the following script watches literate
-sources and automatically executes `run.sh` when they have changed.
-
-```sh
-# @#'sh/rund.sh'
-find -iname '*.litlit' | entr ./sh/run.sh $@
 # @/
 ```
 
