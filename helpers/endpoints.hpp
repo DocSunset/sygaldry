@@ -3,11 +3,9 @@
 #include <string_view>
 #include <optional>
 #include "utilities/consteval.hpp"
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 
-namespace sygaldry { namespace endpoints {
-
-using namespace sygaldry::metadata;
+namespace sygaldry { namespace helpers {
 
 template<typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;

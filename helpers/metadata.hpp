@@ -3,7 +3,7 @@
 #include <cstddef>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace metadata {
+namespace sygaldry { namespace helpers {
 
 template<std::size_t N>
 struct string_literal

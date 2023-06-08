@@ -1,10 +1,11 @@
 #pragma once
-#include "components/metadata.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 
 namespace sygaldry { namespace components {
 
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
+
 struct TestComponent : name_<"Test Component 1">
 {
     struct inputs_t {

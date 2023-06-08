@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 
 using std::string_view;
 using namespace sygaldry::spelling;
@@ -54,7 +54,7 @@ TEST_CASE("Upper/lower")
 
 TEST_CASE("Spelling with helpers")
 {
-    using namespace sygaldry::metadata;
+    using namespace sygaldry::helpers;
     struct example_t : name_<"Helper Example"> {} x;
     CHECK(string_view(upper_snake_case(x)) == string_view("HELPER_EXAMPLE"));
     CHECK(string_view(lower_kebab_case(x)) == string_view("helper-example"));

@@ -50,7 +50,7 @@ metadata with such an endpoint.
 
 ## Name and Other Text
 
-Names and other textual metadata are addressed in `components/metadata.litlit`.
+Names and other textual metadata are addressed in `helpers/metadata.litlit`.
 
 ## Range and Initial Value
 
@@ -385,11 +385,9 @@ TEST_CASE("Bang", "[endpoints][bang]")
 #include <string_view>
 #include <optional>
 #include "utilities/consteval.hpp"
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 
-namespace sygaldry { namespace endpoints {
-
-using namespace sygaldry::metadata;
+namespace sygaldry { namespace helpers {
 
 @{endpoint bases}
 
@@ -407,9 +405,9 @@ using namespace sygaldry::metadata;
 #include <boost/pfr.hpp>
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/endpoints.hpp"
 
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 using namespace sygaldry::concepts;
 using std::string_view;
 

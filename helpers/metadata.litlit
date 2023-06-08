@@ -19,7 +19,7 @@ such classes, allowing us to easily add other textual metadata in this way.
 #include <cstddef>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace metadata {
+namespace sygaldry { namespace helpers {
 
 template<std::size_t N>
 struct string_literal
@@ -81,9 +81,9 @@ with our overall strategy.
 #include <type_traits>
 #include <optional>
 #include <boost/pfr.hpp>
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 
-using namespace sygaldry::metadata;
+using namespace sygaldry::helpers;
 
 using std::string_view;
 

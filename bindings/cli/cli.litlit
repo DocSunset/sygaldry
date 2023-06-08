@@ -594,7 +594,7 @@ void _complain_about_command_failure(int retcode)
 #include <memory>
 #include <string_view>
 #include "utilities/consteval.hpp"
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
 #include "matcher.hpp"
 
@@ -602,8 +602,7 @@ void _complain_about_command_failure(int retcode)
 
 namespace sygaldry { namespace bindings { namespace cli {
 
-using namespace sygaldry::metadata;
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">

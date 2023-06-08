@@ -6,9 +6,9 @@
 #include <boost/pfr.hpp>
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/endpoints.hpp"
 
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 using namespace sygaldry::concepts;
 using std::string_view;
 

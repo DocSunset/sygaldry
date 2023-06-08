@@ -2,8 +2,8 @@
 #include <tuple>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
-#include "components/metadata.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
@@ -12,7 +12,7 @@
 using std::string_view;
 
 using namespace sygaldry::bindings;
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 
 struct Config
 {

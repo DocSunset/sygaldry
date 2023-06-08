@@ -2,7 +2,7 @@
 
 The base helpers for components and endpoints to declare their names
 conveniently, and for concepts for bindings to access names generically, are
-defined in `components/metadata.litlit` and `concepts/metadata.litlit`
+defined in `helpers/metadata.litlit` and `concepts/metadata.litlit`
 respectively. This document deals with transformations over names required for
 bindings.
 
@@ -109,7 +109,7 @@ the data as a string, e.g. `snake_case("example name").data()`, which we would
 like to avoid. It's also not possible to use a template variable e.g.
 `snake_case<"example name">`, since string literals cannot be used as non-type
 template parameters easily, and even if we use the `string_literal` type
-defined in `components/metadata.litlit`, we will eventually run into problems when
+defined in `helpers/metadata.litlit`, we will eventually run into problems when
 someone accidentally tries to pass a decayed string literal to our
 transformation. The problem is that string literals decay to points at the
 slightest provocation, losing essential information about their length in the
@@ -197,7 +197,7 @@ template<typename NamedType> using snake_case = respeller<NamedType, snake>;
 argument deduction for template aliases:
 
 ```sh
-.../sygaldry/utilities/metadata/names/tests.cpp:18:24: error: alias template
+.../sygaldry/utilities/tests/spelling/tests.cpp:18:24: error: alias template
 'snake_case' requires template arguments; argument deduction only allowed for
 class templates
         REQUIRE(string(snake_case(x)) == string("snake_case_example"));
@@ -270,7 +270,7 @@ template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_k
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
-#include "components/metadata.hpp"
+#include "helpers/metadata.hpp"
 
 using std::string_view;
 using namespace sygaldry::spelling;
@@ -321,7 +321,7 @@ TEST_CASE("Upper/lower")
 
 TEST_CASE("Spelling with helpers")
 {
-    using namespace sygaldry::metadata;
+    using namespace sygaldry::helpers;
     struct example_t : name_<"Helper Example"> {} x;
     CHECK(string_view(upper_snake_case(x)) == string_view("HELPER_EXAMPLE"));
     CHECK(string_view(lower_kebab_case(x)) == string_view("helper-example"));
