@@ -1,2 +1,2 @@
-idf_component_register(SRCS "one-bit-whistle-esp32.c"
-                    INCLUDE_DIRS ".")
+idf_component_register(SRCS "one-bit-bongo.cpp"
+                       INCLUDE_DIRS ".")

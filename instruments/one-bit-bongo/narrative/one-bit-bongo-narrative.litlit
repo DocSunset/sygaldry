@@ -1,7 +1,7 @@
 # The 1-Bit Bongo
 
 A 1-Bit bongo is an infra-instrument [@bowers2005nime_infra-instruments]
-conceived as a proof of concept and test platform for Sygaldry.
+conceived as a proof of concept and test platform for `sygaldry`.
 
 The intended design of the instrument is a single button, e.g. the spacebar key
 on a typical computer keyboard, mapped to a 1-bit synthesis algorithm
@@ -121,7 +121,7 @@ This gives us a handful of CMakeLists.txt files, and an empty main. We leave
 the top level CMakeLists.txt unchanged:
 
 ```cmake
-# @#'narrative/bit-banger/CMakeLists.txt'
+# @#'bit-banger/CMakeLists.txt'
 cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(bit-banger)
@@ -132,7 +132,7 @@ But we will modify the CMakeLists.txt in the main directory to use our C++ main
 file:
 
 ```cmake
-# @#'narrative/bit-banger/main/CMakeLists.txt'
+# @#'bit-banger/main/CMakeLists.txt'
 idf_component_register(SRCS "bit-banger.cpp"
                     INCLUDE_DIRS ".")
 # @/
@@ -143,7 +143,7 @@ idf_component_register(SRCS "bit-banger.cpp"
 The final implementation is very simple.
 
 ```c++
-// @#'narrative/bit-banger/main/bit-banger.cpp'
+// @#'bit-banger/main/bit-banger.cpp'
 #include "driver/gpio.h"
 
 @{define pin numbers}
@@ -334,7 +334,7 @@ constants. The main processing method is identical to above, with variable
 names appropriately changed to access the structure-endpoints.
 
 ```c++
-// @#'narrative/first_button_gesture_model/button_gesture_model.hpp'
+// @#'first_button_gesture_model/button_gesture_model.hpp'
 #pragma once
 
 struct ButtonGestureModel
@@ -423,7 +423,7 @@ void print_everything(Processor processor, Processors... ps)
 Which can be tentatively validated offline by this brief listing:
 
 ```c++
-// @#'narrative/just_print/main.cpp'
+// @#'just_print/main.cpp'
 #include <boost/pfr.hpp>
 #include "../first_button_gesture_model/button_gesture_model.hpp"
 @{automatically just print everything}
@@ -445,13 +445,13 @@ int main()
 ```
 
 ```cmake
-# @#'narrative/just_print/CMakeLists.txt'
+# @#'just_print/CMakeLists.txt'
 add_executable(one-bit-bongo-just-print main.cpp)
 add_test(NAME one-bit-bongo-just-print COMMAND one-bit-bongo-just-print)
 # @/
 
 # @#'CMakeLists.txt'
-add_subdirectory(narrative/just_print)
+add_subdirectory(just_print)
 # @/
 ```
 
@@ -476,7 +476,7 @@ of our simple gesture model to run as a Pure Data external. A trivial port of
 the model directly might look something like the following:
 
 ```c++
-// @#'narrative/trivial-pd-edge-detector-port/edge_detect.c'
+// @#'trivial-pd-edge-detector-port/edge_detect.c'
 #include "m_pd.h"
 
 static t_class *edge_detect_class;
@@ -541,7 +541,7 @@ void edge_detect_setup(void)
 This can be compiled, leveraging pd-lib-builder, using the following Makefile:
 
 ```sh
-# @#'narrative/trivial-pd-edge-detector-port/Makefile'
+# @#'trivial-pd-edge-detector-port/Makefile'
 lib.name = edge_detect
 class.sources = edge_detect.c
 include pd-lib-builder/Makefile.pdlibbuilder
@@ -728,7 +728,7 @@ obj->processor();
 In summary:
 
 ```c++
-// @#'narrative/automatic-pd-edge-detector-port/pd_binding.hpp'
+// @#'automatic-pd-edge-detector-port/pd_binding.hpp'
 #include <type_traits>
 #include "m_pd.h"
 #include <boost/pfr.hpp>
@@ -751,7 +751,7 @@ In summary:
 @{setup macro}
 // @/
 
-// @#'narrative/automatic-pd-edge-detector-port/button_gesture_model.cpp'
+// @#'automatic-pd-edge-detector-port/button_gesture_model.cpp'
 #include "pd_binding.hpp"
 #include "../first_button_gesture_model/button_gesture_model.hpp"
 
@@ -760,7 +760,7 @@ MAKE_PD_BINDING(button_gesture_model, ButtonGestureModel);
 ```
 
 ```sh
-# @#'narrative/automatic-pd-edge-detector-port/Makefile'
+# @#'automatic-pd-edge-detector-port/Makefile'
 lib.name = button_gesture_model
 class.sources = button_gesture_model.cpp
 cflags = -std=c++20 -I'../first_button_gesture_model' -I'./pfr/include' -I '../../../../' -I'../../../../dependencies/pfr/include'
@@ -770,7 +770,7 @@ include pd-lib-builder/Makefile.pdlibbuilder
 ```
 
 ```c++
-// @#'narrative/automatic-pd-edge-detector-port/tests.cpp'
+// @#'automatic-pd-edge-detector-port/tests.cpp'
 #include <catch2/catch_test_macros.hpp>
 #include "pd_binding.hpp"
 #include "../first_button_gesture_model/button_gesture_model.hpp"
@@ -780,14 +780,14 @@ include pd-lib-builder/Makefile.pdlibbuilder
 ```
 
 ```cmake
-# @#'narrative/automatic-pd-edge-detector-port/CMakeLists.txt'
+# @#'automatic-pd-edge-detector-port/CMakeLists.txt'
 add_executable(one-bit-bongo-first-pd-port tests.cpp)
 target_link_libraries(one-bit-bongo-first-pd-port PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(one-bit-bongo-first-pd-port)
 # @/
 
 # @+'CMakeLists.txt'
-add_subdirectory(narrative/automatic-pd-edge-detector-port/)
+add_subdirectory(automatic-pd-edge-detector-port/)
 # @/
 ```
 

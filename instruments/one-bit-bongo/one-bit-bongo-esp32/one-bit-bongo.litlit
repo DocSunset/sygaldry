@@ -1,0 +1,33 @@
+The `idf.py init` generated boilerplate `CMakeLists.txt` for an `esp-idf` project:
+
+```cmake
+# @#'CMakeLists.txt'
+# For more information about build system see
+# https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html
+# The following lines of boilerplate have to be in your project's
+# CMakeLists in this exact order for cmake to work correctly
+cmake_minimum_required(VERSION 3.16)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(one-bit-bongo-esp32)
+# @/
+
+# @#'main/CMakeLists.txt'
+idf_component_register(SRCS "one-bit-bongo.cpp"
+                       INCLUDE_DIRS ".")
+# @/
+```
+
+```c++
+// @#'main/one-bit-bongo.cpp'
+#include <stdio.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+extern "C" void app_main(void)
+{
+    printf("Hello world.\n");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+}
+// @/
+```
