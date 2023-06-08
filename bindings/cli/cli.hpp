@@ -2,7 +2,7 @@
 #include <memory>
 #include <string_view>
 #include "utilities/consteval.hpp"
-#include "components/endpoints.hpp"
+#include "components/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
 #include "matcher.hpp"
 
@@ -14,6 +14,7 @@
 
 namespace sygaldry { namespace bindings { namespace cli {
 
+using namespace sygaldry::metadata;
 using namespace sygaldry::endpoints;
 
 template<typename Reader, typename Logger, typename Components, typename Commands>

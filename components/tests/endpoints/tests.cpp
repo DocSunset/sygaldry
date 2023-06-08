@@ -4,27 +4,14 @@
 #include <type_traits>
 #include <optional>
 #include <boost/pfr.hpp>
-#include "components/endpoints.hpp"
+#include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
+#include "components/endpoints.hpp"
 
 using namespace sygaldry::endpoints;
 using namespace sygaldry::concepts;
 using std::string_view;
 
-template<string_literal str>
-_consteval auto name() {return string_view{str.value};}
-
-TEST_CASE("String literal", "[endpoints][string_literal]")
-{
-    REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
-    REQUIRE(name<"test">() == "test");
-}
-
-struct struct_with_name : name_<"foo"> {};
-TEST_CASE("name_", "[endpoints][bases][name_]")
-{
-    REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
-}
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
 

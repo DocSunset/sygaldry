@@ -3,37 +3,12 @@
 #include <string_view>
 #include <optional>
 #include "utilities/consteval.hpp"
+#include "components/metadata.hpp"
 
 namespace sygaldry { namespace endpoints {
 
-template<std::size_t N>
-struct string_literal
-{
-    char value[N];
-    _consteval string_literal(const char (&str)[N]) noexcept
-    {
-        for (std::size_t i = 0; i < N; ++i) value[i] = str[i];
-    }
-};
+using namespace sygaldry::metadata;
 
-#define text_struct(NAME) template<string_literal str>\
-struct NAME##_\
-{\
-    static _consteval auto NAME() {return str.value;}\
-}
-
-text_struct(name);
-text_struct(author);
-text_struct(email);
-text_struct(license);
-text_struct(copyright);
-text_struct(description);
-text_struct(uuid);
-text_struct(unit);
-text_struct(version);
-text_struct(date);
-
-#undef text_struct
 template<typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
 template<arithmetic T>

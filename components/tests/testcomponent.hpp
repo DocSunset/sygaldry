@@ -1,4 +1,5 @@
 #pragma once
+#include "components/metadata.hpp"
 #include "components/endpoints.hpp"
 
 namespace sygaldry { namespace components {

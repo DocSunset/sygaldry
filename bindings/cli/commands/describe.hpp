@@ -3,6 +3,7 @@
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
+#include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 

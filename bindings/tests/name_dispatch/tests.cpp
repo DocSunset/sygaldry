@@ -2,6 +2,7 @@
 #include <tuple>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
+#include "components/metadata.hpp"
 #include "components/endpoints.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 #include "components/tests/testcomponent.hpp"
