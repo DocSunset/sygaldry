@@ -235,24 +235,39 @@ focus on writing their component without having to think about string formatting
 conversions.
 
 The approach taken in Avendish at the time of writing is the template class
-parameter. This is only very slightly better than a pointer to a class. In both
-cases, the component author admits a dependency on the call signature
-requirements of the printer. The template parameter option has these main
-advantages: the dependency is implicit, meaning that it is simpler for binding
-authors to meet the requirements without modifying the component's
-implementation, and the component and binding implementations aren't required
-to share any source code; the injection of the feature imposes no runtime cost,
-since the full signature of the printer and component are both known at compile
-time, so there's no indirection through a base class; compile time injection
-also enables stronger type checking, and potentially allows the binding author
-to enable optimization through compile-time programming and template
-metaprogramming, if applicable. The cost is likely in compilation time, since
-the component code has to be recompiled for every different printer. However,
-in this context that cost is negligible, since we're already committed to
-recompiling our components for each new binding.
+parameter. The dependency is passed as a type in the scope of a class parameter
+of the component, e.g. `template<class Config> struct mycomponent {...};`, and
+an instance of the depency type is instantiated as a member variable of the
+component e.g. `[[no_unique_address]] typename Config::logger_type log;`. This
+is somewhat better than a pointer to a class. In both cases, the component
+author admits a dependency on the call signature requirements of the logger.
+The template parameter option has these main advantages: the dependency is
+implicit, meaning that it is simpler for binding authors to meet the
+requirements without modifying the component's implementation or satisfy a
+certain binary-level API, and the component and binding implementations aren't
+required to share any source code; the injection of the feature imposes no
+runtime cost, since the full signature of the printer and component are both
+known at compile time, so there's no indirection through a base class; and
+compile time injection also enables stronger type checking, and potentially
+allows the binding author to enable optimization through compile-time
+programming and template metaprogramming, if applicable. The cost is likely in
+compilation time, since the component code has to be recompiled for every
+different printer. However, in this context that
+cost is negligible, since we're already committed to recompiling our components
+for each new binding. It's also a bit awkward to instantiate the dependency,
+requiring the attribute `[[no_unique_address]]` to advise the compiler that the
+instance may not take any space, and the type declaration `typename
+Config::deptype` to access the nested type name. This approach is what is
+termed an *internal plugin* in `sygaldry`, describe at a higher level in
+`concepts/README.md`.
 
-The design of the printer is sufficiently involved that it is addressed in
-its own directory.
+The design of the printer is addressed in its own directory.
+
+### Reading Through Dependency Injection
+
+Just as sending text to the serial console output is best achieved through
+an internal plugin, so it reading text from the console input. The serial
+reader is defined in its own directory.
 
 ### Summary
 
@@ -299,20 +314,16 @@ is found.
 We'll define a function to facilitate testing, inspired by chatGPT's failed
 attempt to generate tests for me, that accepts a string as input to the CLI and
 returns a string representing whatever the CLI prints in response. We also
-define some test components and a logger.
+define some test components;
 
 ```c++
-// @='cli tests logger'
-sygaldry::bindings::basic_logger::TestLogger logger{};
-// @/
-
 // @='cli test wrapper'
 void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
-    logger.put.ss.str("");
-    for (char c : input)
-        cli(c, logger, components);
-    REQUIRE(logger.put.ss.str() == expected_output);
+    cli.parts.log.put.ss.str("");
+    cli.parts.reader.ss.str(input);
+    cli(components);
+    REQUIRE(cli.parts.log.put.ss.str() == expected_output);
 }
 // @/
 
@@ -363,7 +374,7 @@ struct CliCommands
 TEST_CASE("CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
-    auto cli = CustomCli<decltype(logger), TestComponents, CliCommands>{};
+    auto cli = CustomCli<TestReader, TestLogger, TestComponents, CliCommands>{};
 
     SECTION("Hello world")
     {
@@ -420,7 +431,7 @@ struct, which we will discuss further below.
 
 ```c++
 // @='cli process'
-void operator()(char c, Logger& log, Components& components)
+void process(char c, Components& components)
 {
     if (_is_whitespace(c))
         buffer[write_pos++] = 0;
@@ -434,16 +445,21 @@ void operator()(char c, Logger& log, Components& components)
 
     if (c == '\n')
     {
-        auto retcode = _try_to_match_and_execute(log, components);
-        if (retcode != 0) _complain_about_command_failure(log, retcode);
-        _reset(log);
+        auto retcode = _try_to_match_and_execute(components);
+        if (retcode != 0) _complain_about_command_failure(retcode);
+        _reset();
     }
 
     if (_overflow())
     {
-        log.println("CLI line buffer overflow!");
-        _reset(log);
+        parts.log.println("CLI line buffer overflow!");
+        _reset();
     }
+}
+
+void operator()(Components& components)
+{
+    while(parts.reader.ready()) process(parts.reader.getchar(), components);
 }
 // @/
 ```
@@ -476,15 +492,15 @@ struct CommandMatcher
 // @/
 
 // @+'cli implementation details'
-int _try_to_match_and_execute(Logger& log, Components& components)
+int _try_to_match_and_execute(Components& components)
 {
-    return dispatch<CommandMatcher>(argv[0], outputs.commands, 127, [&](auto& command)
+    return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
         {
             if constexpr (std::is_same_v<decltype(command), commands::Help&>)
             {
-                return command.main(log, outputs.commands);
+                return command.main(parts.log, parts.commands);
             }
-            else return command.main(argc, argv, log, components);
+            else return command.main(argc, argv, parts.log, components);
         });
 }
 // @/
@@ -504,13 +520,6 @@ clients will want to specify their own list of commands. For this reason, the
 main CLI implementation is contained in a class `CustomCli`, for which a
 template alias is provided `Cli` that specifies the default list of commands.
 
-Notice that the list of commands should be a template class, so that the
-`Logger` type of the CLI can be propagated to all of its commands. This is a
-bit inconvenient, but since we expect most users to use the default list of
-commands, we accept that users of custom commands will have to write
-`CommandType<Logger> command;` for each command when they declare their
-custom command struct.
-
 ```c++
 // @='cli default type alias'
 struct DefaultCommands
@@ -518,25 +527,26 @@ struct DefaultCommands
     @{default commands}
 };
 
-template<typename Logger, typename Components>
-using Cli = CustomCli<Logger, Components, DefaultCommands>;
+template<typename Reader, typename Logger, typename Components>
+using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 // @/
 ```
 
-The constructor writes a user-customizeable welcome message, and then prompts
-the user for input. The logger and an instance of the command container with
-the `Logger` type propagated in are both default initialized.
+The `init` method writes a welcome message, and then prompts the user for
+input. The logger, reader, and an instance of the command container are declared.
 
 ```c++
 // @='cli instantiation'
-struct outputs_t {
+[[no_unique_address]] struct parts_t {
+[[no_unique_address]] Logger log;
+[[no_unique_address]] Reader reader;
 [[no_unique_address]] Commands commands;
-} outputs;
+} parts;
 
-void init(Logger& log)
+void init()
 {
-    log.println("CLI enabled. Write `help` for a list of available commands.");
-    _prompt(log);
+    parts.log.println("CLI enabled. Write `help` for a list of available commands.");
+    _prompt();
 }
 // @/
 
@@ -560,19 +570,19 @@ bool _overflow() const
     return argc == MAX_ARGS || write_pos == BUFFER_SIZE;
 }
 
-void _prompt(auto& log)
+void _prompt()
 {
-    log.print("> ");
+    parts.log.print("> ");
 }
 
-void _reset(auto& log)
+void _reset()
 {
     argc = 0;
     write_pos = 0;
-    _prompt(log);
+    _prompt();
 }
 
-void _complain_about_command_failure(auto& log, int retcode)
+void _complain_about_command_failure(int retcode)
 {} // TODO
 // @/
 
@@ -594,7 +604,7 @@ namespace sygaldry { namespace bindings { namespace cli {
 
 using namespace sygaldry::endpoints;
 
-template<typename Logger, typename Components, typename Commands>
+template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
                  , author_<"Travis J. West">
                  , description_<"Generate a simple command line interface for inspecting and sending data to the bound components.">
@@ -634,6 +644,7 @@ void test_command(auto&& command, auto&& components, int expected_retcode, const
     auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
     ( set_arg(args), ... );
 
+    TestLogger logger{};
     logger.put.ss.str("");
     int retcode = command.main(argc, argv, logger, components);
     REQUIRE(retcode == expected_retcode);
@@ -687,6 +698,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 {
     Help command;
 
+    TestLogger logger{};
     logger.put.ss.str("");
     auto commands = TestCommands{};
     auto retcode = command.main(logger, commands);
@@ -1271,44 +1283,13 @@ their outputs. The same implementation should also be usable on any environment
 that provides `getchar` and `putchar` from the C standard library.
 
 ```c++
-// @#'cli_app.hpp'
-#pragma once
-#include "bindings/basic_logger/standard_logger.hpp"
-#include "cli.hpp"
-#include <stdio.h>
-#include <cstdlib>
-#include <memory>
-
-template<typename Components>
-struct CliApp
-{
-    int main()
-    {
-        auto components = Components{};
-        auto log = sygaldry::bindings::basic_logger::StandardLogger{};
-        auto cli = sygaldry::bindings::cli::Cli<decltype(log), Components>{};
-        cli.init(log);
-        for (;;)
-        {
-            char c = getchar();
-            if (c == EOF)
-                return EXIT_SUCCESS;
-            else
-                cli(c, log, components);
-        }
-    }
-};
-// @/
-```
-
-The CLI class itself implements a fairly limited behavior.
-
-```c++
 // @#'cli_app_demo.cpp'
-#include "cli_app.hpp"
 #include "utilities/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 #include "components/tests/testcomponent.hpp"
+#include "bindings/basic_reader/cstdio_reader.hpp"
+#include "bindings/basic_logger/cstdio_logger.hpp"
+#include "bindings/cli/cli.hpp"
 
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
@@ -1333,8 +1314,18 @@ struct AppComponents {
 
 int main()
 {
-    CliApp<AppComponents> app{};
-    return app.main();
+    auto components = AppComponents{};
+    auto cli = sygaldry::bindings::cli::Cli
+               < sygaldry::bindings::basic_reader::CstdioReader
+               , sygaldry::bindings::basic_logger::CstdioLogger
+               , decltype(components)
+               >{};
+    cli.init();
+    for (;;)
+    {
+        cli(components);
+        usleep(30*1000);
+    }
 }
 // @/
 ```
@@ -1351,12 +1342,15 @@ int main()
 #include "utilities/consteval.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
+#include "bindings/basic_reader/test_reader.hpp"
 #include "cli.hpp"
 
 using std::string;
 
 using namespace sygaldry::bindings::cli::commands;
 using namespace sygaldry::bindings::cli;
+using namespace sygaldry::bindings::basic_reader;
+using namespace sygaldry::bindings::basic_logger;
 
 @{cli tests logger}
 

@@ -1,7 +1,9 @@
-#include "cli_app.hpp"
 #include "utilities/consteval.hpp"
 #include "components/sensors/button/gesture_model.hpp"
 #include "components/tests/testcomponent.hpp"
+#include "bindings/basic_reader/cstdio_reader.hpp"
+#include "bindings/basic_logger/cstdio_logger.hpp"
+#include "bindings/cli/cli.hpp"
 
 struct Component1 {
     static _consteval auto name() { return "Test Component 1"; }
@@ -26,6 +28,16 @@ struct AppComponents {
 
 int main()
 {
-    CliApp<AppComponents> app{};
-    return app.main();
+    auto components = AppComponents{};
+    auto cli = sygaldry::bindings::cli::Cli
+               < sygaldry::bindings::basic_reader::CstdioReader
+               , sygaldry::bindings::basic_logger::CstdioLogger
+               , decltype(components)
+               >{};
+    cli.init();
+    for (;;)
+    {
+        cli(components);
+        usleep(30*1000);
+    }
 }

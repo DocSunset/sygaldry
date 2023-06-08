@@ -4,21 +4,23 @@
 #include "utilities/consteval.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
+#include "bindings/basic_reader/test_reader.hpp"
 #include "cli.hpp"
 
 using std::string;
 
 using namespace sygaldry::bindings::cli::commands;
 using namespace sygaldry::bindings::cli;
+using namespace sygaldry::bindings::basic_reader;
+using namespace sygaldry::bindings::basic_logger;
 
-sygaldry::bindings::basic_logger::TestLogger logger{};
 
 void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
-    logger.put.ss.str("");
-    for (char c : input)
-        cli(c, logger, components);
-    REQUIRE(logger.put.ss.str() == expected_output);
+    cli.parts.log.put.ss.str("");
+    cli.parts.reader.ss.str(input);
+    cli(components);
+    REQUIRE(cli.parts.log.put.ss.str() == expected_output);
 }
 
 void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)
@@ -28,6 +30,7 @@ void test_command(auto&& command, auto&& components, int expected_retcode, const
     auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
     ( set_arg(args), ... );
 
+    TestLogger logger{};
     logger.put.ss.str("");
     int retcode = command.main(argc, argv, logger, components);
     REQUIRE(retcode == expected_retcode);
@@ -104,7 +107,7 @@ struct CliCommands
 TEST_CASE("CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
-    auto cli = CustomCli<decltype(logger), TestComponents, CliCommands>{};
+    auto cli = CustomCli<TestReader, TestLogger, TestComponents, CliCommands>{};
 
     SECTION("Hello world")
     {
@@ -120,6 +123,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 {
     Help command;
 
+    TestLogger logger{};
     logger.put.ss.str("");
     auto commands = TestCommands{};
     auto retcode = command.main(logger, commands);
