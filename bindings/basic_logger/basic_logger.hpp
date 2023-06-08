@@ -4,8 +4,7 @@
 #include <limits>
 #include <charconv>
 
-namespace sygaldry::bindings::basic_logger
-{
+namespace sygaldry { namespace bindings { namespace basic_logger {
 
 template<typename putter>
 struct BasicLogger
@@ -67,4 +66,4 @@ struct BasicLogger
     }
 };
 
-}
+} } }

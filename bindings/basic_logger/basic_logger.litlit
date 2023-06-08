@@ -1,13 +1,14 @@
 # Motivation
 
-As outlined in `/bindings/cli`, there may be a need for bindings and devices to
-have some means of writing textual messages, e.g. to a serial interface such as
-a UART, to a text-based UI such as a console, or simply to debugging logs. Our
-preferred method of achieving this is to inject a logger class into devices
-which need on through a template parameter. This unfortunately imposes an
-implicit dependency on the API of the logger, but provides the best runtime
-performance, opportunity for compile-time programming optimizations, and type
-safety.
+As outlined in `bindings/cli/cli.litlit`, there may be a need for bindings and
+devices to have some means of writing textual messages, e.g. to a serial
+interface such as a UART, to a text-based UI such as a console, or simply to
+debugging logs. Our preferred method of achieving this is to inject a logger
+class into devices which need one through a template parameter, i.e. as an
+internal plugin in the sense described in `concepts/README.md`. This
+unfortunately imposes an implicit dependency on the API of the logger, but
+provides the best runtime performance, opportunity for compile-time programming
+optimizations, and type safety.
 
 Ideally, we would use an excellent available logging facility, such as `fmtlib`
 used by Avendish, or eventually `std::format`. However, these facilities may not
@@ -62,8 +63,7 @@ the following overall plan:
 #pragma once
 @{basic logger includes}
 
-namespace sygaldry::bindings::basic_logger
-{
+namespace sygaldry { namespace bindings { namespace basic_logger {
 
 template<typename putter>
 struct BasicLogger
@@ -90,7 +90,7 @@ struct BasicLogger
     }
 };
 
-}
+} } }
 // @/
 ```
 
@@ -249,20 +249,20 @@ useful for informal experimentation and bindings in environments where the C
 library `putc` is available, puts messages onto the standard output:
 
 ```c++
-// @#'standard_logger.hpp'
+// @#'cstdio_logger.hpp'
 #pragma once
 #include "basic_logger.hpp"
-#include <stdio.h>
+#include <cstdio>
 #include <cstdlib>
 
 namespace sygaldry::bindings::basic_logger
 {
 
-struct StandardPutter
+struct CstdioPutter
 {
     void operator()(char c)
     {
-        auto retcode = putchar(c);
+        auto retcode = std::putchar(c);
         if (retcode == EOF)
         {
             // I guess we're unexpectedly done now?
@@ -271,7 +271,7 @@ struct StandardPutter
     }
 };
 
-using StandardLogger = BasicLogger<StandardPutter>;
+using CstdioLogger = BasicLogger<CstdioPutter>;
 
 }
 // @/

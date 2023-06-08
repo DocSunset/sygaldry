@@ -1,16 +1,16 @@
 #pragma once
 #include "basic_logger.hpp"
-#include <stdio.h>
+#include <cstdio>
 #include <cstdlib>
 
 namespace sygaldry::bindings::basic_logger
 {
 
-struct StandardPutter
+struct CstdioPutter
 {
     void operator()(char c)
     {
-        auto retcode = putchar(c);
+        auto retcode = std::putchar(c);
         if (retcode == EOF)
         {
             // I guess we're unexpectedly done now?
@@ -19,6 +19,6 @@ struct StandardPutter
     }
 };
 
-using StandardLogger = BasicLogger<StandardPutter>;
+using CstdioLogger = BasicLogger<CstdioPutter>;
 
 }
