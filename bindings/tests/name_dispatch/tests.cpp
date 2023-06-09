@@ -4,7 +4,7 @@
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "helpers/endpoints.hpp"
-#include "components/sensors/button/gesture_model.hpp"
+#include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/name_dispatch.hpp"

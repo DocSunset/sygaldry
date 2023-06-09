@@ -1286,7 +1286,7 @@ that provides `getchar` and `putchar` from the C standard library.
 ```c++
 // @#'cli_app_demo.cpp'
 #include "utilities/consteval.hpp"
-#include "components/sensors/button/gesture_model.hpp"
+#include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"

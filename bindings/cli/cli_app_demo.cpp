@@ -1,5 +1,5 @@
 #include "utilities/consteval.hpp"
-#include "components/sensors/button/gesture_model.hpp"
+#include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
