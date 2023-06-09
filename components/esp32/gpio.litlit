@@ -292,6 +292,12 @@ struct GPIO
 # Tests
 
 ```c++
+// @#'main/gpio.hpp'
+void gpio()
+{
+    TEST_ASSERT(true);
+}
+// @/
 ```
 
 ```cmake

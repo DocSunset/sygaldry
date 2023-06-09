@@ -1,2 +1,2 @@
-add_subdirectory("sensors")
-add_subdirectory("esp32")
+add_subdirectory(sensors)
+add_esp32_project(esp32)

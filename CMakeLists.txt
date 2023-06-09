@@ -28,7 +28,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
     ExternalProject_Add(${esp32_project_name}
             PREFIX ${esp32_project_name}
             BUILD_ALWAYS ON
-            INSTALL_COMMAND ${SYGALDRY_ROOT}/sh/esp32-install.sh make flash # TODO: determine generator
+            INSTALL_COMMAND ${SYGALDRY_ROOT}/sh/esp32-install.sh ${esp32_project_name} make flash # TODO: determine generator
             SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name}
             CMAKE_CACHE_ARGS -DSYGALDRY_ROOT:STRING=${SYGALDRY_ROOT})
 endfunction()

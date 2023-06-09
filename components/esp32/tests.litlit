@@ -1,0 +1,46 @@
+# ESP32 Component Tests
+
+Tests in this directory are compiled as ESP32 component tests using the native
+toolchain. This document sets up the boilerplate necessary to compile and
+detect these tests. 
+
+ESP-IDF provides a unit testing app based on its component structure, but due
+to the way the framework is installed on my system, it's a PITA to use, requiring
+super user priviledges, and generally not meeting my requirements. For this
+reason, the given method is eschewed, which means we have to come up with our
+own way of running tests on the device.
+
+For now we make a plain old ESP32 project that just happens to run our tests in
+its `app_main` subroutine. This requires a frustrating amount of bookkeeping:
+we need to manually include all of the tests *and* remember to then run them.
+
+```cmake
+# @#'CMakeLists.txt'
+cmake_minimum_required(VERSION 3.16)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+set(EXTRA_COMPONENT_DIRS tests)
+project(esp-32-component-tests)
+# @/
+
+# @#'tests/CMakeLists.txt'
+idf_component_register(SRC_DIRS "."
+        INCLUDE_DIRS "." ${SYGALDRY_ROOT}
+        REQUIRES unity
+        )
+# @/
+```
+
+```c
+// @#'tests/main.cpp'
+#include "unity.h"
+#include "gpio.hpp"
+
+extern "C" void app_main(void)
+{
+    UNITY_BEGIN();
+    gpio();
+    UNITY_END();
+}
+// @/
+```

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <components/esp32/gpio/gpio.hpp>
+#include <components/esp32/gpio.hpp>
 
 using namespace sygaldry::components::esp32;
 
