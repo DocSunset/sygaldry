@@ -57,8 +57,8 @@ build directory as first argument.
 ```sh
 # @#'sh/run.sh'
 ./sh/litlit.sh
-[ -d "$1" ] && dir="$1" || dir='_build_debug'
-
+[ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
+[ -d "$dir" ] || CMAKE_BUILD_TYPE=Debug cmake -B "$dir" -S .
 cmake --build "$dir" &&
 {
     ctest --test-dir "$dir" ||
