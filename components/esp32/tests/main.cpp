@@ -4,6 +4,6 @@
 extern "C" void app_main(void)
 {
     UNITY_BEGIN();
-    gpio();
+    RUN_TEST(gpio);
     UNITY_END();
 }

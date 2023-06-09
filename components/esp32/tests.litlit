@@ -12,7 +12,8 @@ own way of running tests on the device.
 
 For now we make a plain old ESP32 project that just happens to run our tests in
 its `app_main` subroutine. This requires a frustrating amount of bookkeeping:
-we need to manually include all of the tests *and* remember to then run them.
+we need to manually include all of the tests *and* remember to then run them,
+as well as ensuring that all their required ESP-IDF components are added below.
 
 ```cmake
 # @#'CMakeLists.txt'
@@ -26,7 +27,7 @@ project(esp-32-component-tests)
 # @#'tests/CMakeLists.txt'
 idf_component_register(SRC_DIRS "."
         INCLUDE_DIRS "." ${SYGALDRY_ROOT}
-        REQUIRES unity
+        REQUIRES unity driver
         )
 # @/
 ```
@@ -39,7 +40,7 @@ idf_component_register(SRC_DIRS "."
 extern "C" void app_main(void)
 {
     UNITY_BEGIN();
-    gpio();
+    RUN_TEST(gpio);
     UNITY_END();
 }
 // @/

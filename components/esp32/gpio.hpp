@@ -79,6 +79,13 @@ struct GPIO
         gpio_function(high,         "high",         "set output level high",                       gpio_set_level,     pin_number, 1);
         gpio_function(low,          "low",          "set output level low",                        gpio_set_level,     pin_number, 0);
 
+        gpio_function(disable_pin, "disable pin", "disable input and output", gpio_set_direction, pin_number, GPIO_MODE_DISABLE);
+        gpio_function(input_mode, "input mode", "set pin mode to input", gpio_set_direction, pin_number, GPIO_MODE_INPUT);
+        gpio_function(output_mode, "output mode", "set pin mode to output", gpio_set_direction, pin_number, GPIO_MODE_OUTPUT);
+        gpio_function(output_od_mode, "output od mode", "set pin mode to output with open-drain", gpio_set_direction, pin_number, GPIO_MODE_OUTPUT_OD);
+        gpio_function(input_output_mode, "input output mode", "set pin mode to input/output", gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT);
+        gpio_function(input_output_od_mode, "input output od mode", "set pin mode to input/output with open-drain", gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT_OD);
+
         // note: pins 34-39 have no pull resistors
         gpio_function(enable_pullup,               "enable pull-up",                 "enable internal pull-up resistor",                      gpio_set_pull_mode,        pin_number, GPIO_PULLUP_ONLY);
         gpio_function(enable_pulldown,             "enable pull-down",               "enable internal pull-down resistor",                    gpio_set_pull_mode,        pin_number, GPIO_PULLDOWN_ONLY);
