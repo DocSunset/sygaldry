@@ -6,6 +6,33 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
+    function(add_esp32_project)
+    if (${ARGC} LESS 1)
+        message(FATAL_ERROR "add_esp32_project requires a project directory")
+    endif()
+
+    set(esp32_project_name ${ARGV0})
+
+    if (NOT IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name})
+        message(FATAL_ERROR "add_esp32_project: argument ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name} is not a valid directory")
+    endif()
+
+    if (ESP_PLATFORM)
+        return() # avoid recursively building ESP-IDF projects as external projects of themselves
+    endif()
+
+    message(STATUS ${esp32_project_name} "ESP32 project added")
+
+    include(ExternalProject)
+
+    ExternalProject_Add(${esp32_project_name}
+            PREFIX ${esp32_project_name}
+            BUILD_ALWAYS ON
+            INSTALL_COMMAND ${SYGALDRY_ROOT}/sh/esp32-install.sh make flash # TODO: determine generator
+            SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name}
+            CMAKE_CACHE_ARGS -DSYGALDRY_ROOT:STRING=${SYGALDRY_ROOT})
+endfunction()
+
 Include(FetchContent)
 
 FetchContent_Declare(

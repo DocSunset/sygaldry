@@ -9,12 +9,14 @@ The `idf.py init` generated boilerplate `CMakeLists.txt` for an `esp-idf` projec
 cmake_minimum_required(VERSION 3.16)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(one-bit-bongo-esp32)
+project(one-bit-bongo)
 # @/
+
+We add `sygaldry` as an include directory.
 
 # @#'main/CMakeLists.txt'
 idf_component_register(SRCS "one-bit-bongo.cpp"
-                       INCLUDE_DIRS ".")
+                       INCLUDE_DIRS "." ${SYGALDRY_ROOT})
 # @/
 ```
 
@@ -23,11 +25,19 @@ idf_component_register(SRCS "one-bit-bongo.cpp"
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <components/esp32/gpio/gpio.hpp>
+
+using namespace sygaldry::components::esp32;
 
 extern "C" void app_main(void)
 {
-    printf("Hello world.\n");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    GPIO<GPIO_NUM_23> gpio;
+    gpio.init();
+    for (;;)
+    {
+        printf("Hello world %d.\n", sizeof(gpio));
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }
 // @/
 ```
