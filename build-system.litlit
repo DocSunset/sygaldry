@@ -116,12 +116,27 @@ include_directories(dependencies/avendish/include/)
 # @/
 ```
 
+# Targets
+
+```cmake
+# @='Targets'
+add_library(Sygaldry)
+add_library(Sygaldry::Sygaldry ALIAS Sygaldry)
+target_include_directories(Sygaldry PUBLIC ${CMAKE_CURRENT_LIST_DUR}/utilities)
+target_include_directories(Sygaldry PUBLIC ${CMAKE_CURRENT_LIST_DUR}/concepts)
+target_include_directories(Sygaldry PUBLIC ${CMAKE_CURRENT_LIST_DUR}/helpers)
+target_include_directories(Sygaldry PUBLIC ${CMAKE_CURRENT_LIST_DUR}/components)
+target_include_directories(Sygaldry PUBLIC ${CMAKE_CURRENT_LIST_DUR}/instruments)
+# @/
+```
+
 # Summary
 
 ```cmake
 # @#'CMakeLists.txt'
 cmake_minimum_required(VERSION 3.26)
 project(Sygaldry)
+set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 @{Set language standard}
 
@@ -132,6 +147,8 @@ project(Sygaldry)
 @{Include libraries}
 
 add_subdirectory(utilities)
+add_subdirectory(concepts)
+add_subdirectory(helpers)
 add_subdirectory(components)
 add_subdirectory(bindings)
 add_subdirectory(instruments)

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 project(Sygaldry)
+set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
@@ -25,6 +26,8 @@ set(AVENDISH_INCLUDE_SOURCE_ONLY ON)
 include_directories(dependencies/avendish/include/)
 
 add_subdirectory(utilities)
+add_subdirectory(concepts)
+add_subdirectory(helpers)
 add_subdirectory(components)
 add_subdirectory(bindings)
 add_subdirectory(instruments)

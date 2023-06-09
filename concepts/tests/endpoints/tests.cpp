@@ -3,11 +3,11 @@
 #include <string_view>
 #include <type_traits>
 #include <boost/pfr.hpp>
-#include "components/metadata.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 #include "concepts/endpoints.hpp"
 
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 using namespace sygaldry::concepts;
 using std::string_view;
 

@@ -2,7 +2,7 @@
 
 Although many components of digital musical instruments are commonly employed
 across different designs, their implementation and representation in computer
-programs tends to vary in incompatible ways. In `components/endpoints.litlit`
+programs tends to vary in incompatible ways. In `helpers/endpoints.litlit`
 we have defined a particular set of helper classes that allow components and
 endpoints to be conveniently annotated with useful metadata that can guide
 binding authors in how to interpret these entities. This document describes
@@ -10,7 +10,7 @@ a set of abstract concepts that components and endpoints are expected to
 adhere to, as well as providing generic subroutines that allow the signals
 and metadata from these entities to be accessed, even when the underlying
 representation of this information may vary. It is recommended to read
-this document second, after `components/endpoints.litlit`.
+this document second, after `helpers/endpoints.litlit`.
 
 In the interminable future, we can imagine that the whole music technology
 community might band together to define a set of standard concepts that are
@@ -554,11 +554,11 @@ namespace sygaldry { namespace concepts {
 #include <string_view>
 #include <type_traits>
 #include <boost/pfr.hpp>
-#include "components/metadata.hpp"
-#include "components/endpoints.hpp"
+#include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 #include "concepts/endpoints.hpp"
 
-using namespace sygaldry::endpoints;
+using namespace sygaldry::helpers;
 using namespace sygaldry::concepts;
 using std::string_view;
 
