@@ -1,1 +1,1 @@
-add_subdirectory(one-bit-bongo/narrative)
+add_subdirectory(one-bit-bongo)

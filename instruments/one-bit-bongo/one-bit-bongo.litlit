@@ -1,0 +1,43 @@
+# One Bit Bongo
+
+TODO: a word about this instrument
+
+# Build Process
+
+This instrument is currently implemented for the ESP32 platform using the
+ESP-IDF. A CMake file is provided in this directory that adds the instrument as
+an external project, passing in `sygaldry` specific variables so that the IDF
+build system can be directed toward the library and its ESP-IDF components.
+
+It appears that adding the instrument as an external project is the simplest
+approach. I conducted some cursory experiments trying to use the ESP-IDF cmake
+library functions, but it appears as though it is not their intended usage for
+the firmware project to be included as a subproject. The toolchain configured
+by the parent cmake appears to be incompatible with the IDF project, and the
+IDF cmake library functions don't appear to make any attempt to override the
+selected toolchain in a way that makes this work.
+
+```sh
+# @#'esp-install.sh'
+echo esp-install.sh
+echo $1
+echo $2
+[ -c "$1" -a -w "$1" ] && $2 flash || echo "No valid ESPPORT ($1), skipping install"
+# @/
+```
+
+```cmake
+# @#'CMakeLists.txt'
+add_subdirectory(narrative)
+
+include(ExternalProject)
+
+set(esp32_project_name one-bit-bongo-esp32)
+
+ExternalProject_Add(${esp32_project_name}
+        PREFIX ${esp32_project_name}
+        INSTALL_COMMAND ${CMAKE_CURRENT_LIST_DIR}/esp-install.sh ${ESPPORT} ${BUILD_COMMAND}
+        SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name}
+        CMAKE_CACHE_ARGS -DSYGALDRY_ROOT:STRING=${SYGALDRY_ROOT})
+# @/
+```
