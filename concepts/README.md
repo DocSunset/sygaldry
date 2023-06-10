@@ -82,7 +82,7 @@ passing endpoints, semantic interpretation flows unchanged past throughpoints.
 TODO A component's throughpoints are declared by first using class template
 parameters that accept `outputs` and/or `inputs` struct types that represent
 the source and destination of the throughpoints. Then the component must accept
-structs of those types by reference as arguments to the its main
+structs of those types by reference as arguments to its main
 subroutine. `outputs` originating from a source component should be accepted as
 constant reference arguments, while `inputs` to a destination component should
 be accepted as mutable reference arguments. TODO A variety of combinator
