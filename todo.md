@@ -17,6 +17,9 @@
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
 -[ ] automate flashing and running ESP32 tests
 -[ ] enforce expected internal library dependency graph using cmake
+-[ ] generate a book with a particular linear order to things
+    -[ ] latex suitable for inclusion in a phd thesis...
+    -[ ] static website
 
 # Concepts and Helpers
 
