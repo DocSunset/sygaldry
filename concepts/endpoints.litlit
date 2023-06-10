@@ -498,17 +498,19 @@ concept has_value = OccasionalValue<T> || PersistentValue<T>;
 template <has_value T>
 auto& value_of(T& v)
 {
+    static_assert(PersistentValue<T> || OccasionalValue<T>, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
     if constexpr (PersistentValue<T>)
     {
+        static_assert(has_value_variable<T> || has_value_method<T>, "value_of: PersistentValue with no method or variable. Did we add a new kind?");
         if constexpr (has_value_variable<T>) return v.value;
-        else if constexpr (has_value_method<T>) return v.value;
-        else static_assert(false, "value_of: PersistentValue with no method or variable. Did we add a new kind?");
+        else if constexpr (has_value_method<T>) return v.value();
+        else return 0;
     }
     else if constexpr (OccasionalValue<T>)
     {
         return *v;
     }
-    else static_assert(false, "value_of: Neither PersistentValue nor OccasionalValue. Did we add a new kind?");
+    else return 0;
 }
 
 template<has_value T>
@@ -543,7 +545,7 @@ if a certain symbol is defined in a class's scope.
 
 namespace sygaldry { namespace concepts {
 
-    @{concepts}
+@{concepts}
 
 } } // namespaces
 // @/
