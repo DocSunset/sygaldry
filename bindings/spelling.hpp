@@ -2,8 +2,7 @@
 #include <array>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry::spelling
-{
+namespace sygaldry { namespace bindings {
 
 template<typename Device>
 _consteval auto name_length()
@@ -110,4 +109,4 @@ template<typename NamedType> constexpr const char * kebab_case_v       =       k
 template<typename NamedType> constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
 template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
 
-}
+} }

@@ -269,11 +269,11 @@ template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_k
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 #include "helpers/metadata.hpp"
 
 using std::string_view;
-using namespace sygaldry::spelling;
+using namespace sygaldry::bindings;
 
 TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
 {
@@ -371,8 +371,7 @@ strings and capitalization mappings.
 #include <array>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry::spelling
-{
+namespace sygaldry { namespace bindings {
 
 @{string length function}
 @{compose}
@@ -381,6 +380,6 @@ namespace sygaldry::spelling
 @{template aliases}
 @{template variables}
 
-}
+} }
 // @/
 ```

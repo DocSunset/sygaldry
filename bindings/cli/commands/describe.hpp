@@ -2,7 +2,7 @@
 
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
@@ -43,7 +43,6 @@ struct Describe
     template<typename T>
     void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
     {
-        using spelling::lower_kebab_case;
         static_assert(has_name<T>);
         log.println(indents..., preface, (const char *)lower_kebab_case(entity));
         log.println(indents..., "  name: \"", entity.name(), "\"");

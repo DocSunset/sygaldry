@@ -479,7 +479,7 @@ the CLI commands, so it is defined in its own header.
 #pragma once
 
 #include <string_view>
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings {
 
@@ -488,7 +488,6 @@ struct CommandMatcher
     template<typename stringish, typename Command>
     bool operator()(stringish arg0, const Command& command)
     {
-        using spelling::lower_kebab_case;
         return std::string_view(arg0) == std::string_view(lower_kebab_case(command));
     }
 };
@@ -799,7 +798,7 @@ expression and print each one's name using the injected logger.
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
@@ -813,7 +812,7 @@ struct List
     {
         boost::pfr::for_each_field(components, [&](const auto& component)
         {
-            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
+            log.println(lower_kebab_case_v<std::decay_t<decltype(component)>>);
         });
         return 0;
     }
@@ -966,7 +965,6 @@ void describe_entity_value(auto& log, T& entity)
 template<typename T>
 void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 {
-    using spelling::lower_kebab_case;
     static_assert(has_name<T>);
     log.println(indents..., preface, (const char *)lower_kebab_case(entity));
     log.println(indents..., "  name: \"", entity.name(), "\"");
@@ -1006,7 +1004,7 @@ void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"

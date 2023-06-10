@@ -1,4 +1,6 @@
+add_subdirectory(tests/spelling)
+add_subdirectory(tests/name_dispatch)
+add_subdirectory(tests/output_logger)
 add_subdirectory(basic_logger)
 add_subdirectory(basic_reader)
-add_subdirectory(tests/name_dispatch)
 add_subdirectory(cli)

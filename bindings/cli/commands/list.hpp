@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
@@ -17,7 +17,7 @@ struct List
     {
         boost::pfr::for_each_field(components, [&](const auto& component)
         {
-            log.println(spelling::lower_kebab_case_v<std::decay_t<decltype(component)>>);
+            log.println(lower_kebab_case_v<std::decay_t<decltype(component)>>);
         });
         return 0;
     }

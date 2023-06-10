@@ -2,7 +2,6 @@
 #include <tuple>
 #include <string_view>
 #include <boost/pfr.hpp>
-#include "utilities/spelling.hpp"
 #include "concepts/components.hpp"
 
 namespace sygaldry

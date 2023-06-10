@@ -2,11 +2,11 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
-#include "utilities/spelling.hpp"
+#include "bindings/spelling.hpp"
 #include "helpers/metadata.hpp"
 
 using std::string_view;
-using namespace sygaldry::spelling;
+using namespace sygaldry::bindings;
 
 TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
 {
