@@ -10,11 +10,11 @@ The dispatcher must accept a name, group of entities, default return value, and
 lambda function to apply when a matching name is found. The group of entities
 is allowed to be a simple aggregate of entities (i.e. one that can be operated
 on with `boost::pfr`), or a component with inputs and outputs that are simple
-aggregates of entities. TODO: the extraction of the component's inputs and
-outputs should eventually proceed generically rather than through direct
-access. The callback function must be able to access and modify the state of
-the matching entity or entities.
+aggregates of entities. The callback function must be able to access and modify
+the state of the matching entity or entities. TODO: this has yet to be
+generalised to work with subassemblies and pure assembly components.
 
+```c++
 // @#'tests/name_dispatch/tests.cpp'
 #include <string_view>
 #include <tuple>

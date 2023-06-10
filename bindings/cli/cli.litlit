@@ -7,7 +7,7 @@ Bluetooth, Wi-Fi, Ethernet, or any other transmission protocol, both in terms
 of setting up the hardware, and connecting to it from a PC. A text-based
 console can also be used as a test environment when embedded hardware
 processors are not involved. For these reasons, one of the first bindings to be
-implemented is (TODO: was) a command line interface.
+implemented was this command line interface.
 
 # Design Reasoning
 
