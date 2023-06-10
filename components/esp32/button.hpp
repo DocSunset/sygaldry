@@ -16,19 +16,20 @@ struct Button
 {
     ButtonGestureModel::inputs_t inputs;
     ButtonGestureModel::outputs_t outputs;
-    struct parts_t { GPIO<pin_number> gpio; } parts;
+
+    using gpio = GPIO<pin_number>;
 
     void init()
     {
-        parts.gpio.init();
-        parts.gpio.inputs.input_mode(parts.gpio);
-        if constexpr (active_level == ButtonActive::Low) parts.gpio.inputs.enable_pullup(parts.gpio);
-        else parts.gpio.inputs.enable_pulldown(parts.gpio);
+        gpio::init();
+        gpio::input_mode();
+        if constexpr (active_level == ButtonActive::Low) gpio::enable_pullup();
+        else gpio::enable_pulldown();
     }
 
     void operator()()
     {
-        inputs.button_state = (char)parts.gpio.outputs.level();
+        inputs.button_state = (char)gpio::level();
         ButtonGestureModel::main(inputs, outputs);
     }
 };

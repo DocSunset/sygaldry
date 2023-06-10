@@ -1,10 +1,11 @@
 # ESP32 GPIO
 
-This document implements a `sygaldry` component that attempts to expose all
-available behavior for a single GPIO pin through `sygaldry`-style input and
-output ports. It is currently implemented via the ESP-IDF. Not all
-functionality has been wrapped yet, and much of it remains un-tested.
-GPIO reference documentation for the current version of the ESP-IDF is found
+This document implements type safe and lightly error-checked wrapper that
+attempts to expose all available behavior for a single GPIO pin through static
+methods of a template class, for use in ESP32 `sygaldry` components. It is
+currently implemented via the ESP-IDF. Not all functionality has been wrapped
+yet, and much of it remains un-tested. GPIO reference documentation for the
+current version of the ESP-IDF is found
 [here](https://docs.espressif.com/projects/esp-idf/en/v5.0.2/esp32/api-reference/peripherals/gpio.html).
 The relevant public domain example code is found
 [here](https://github.com/espressif/esp-idf/blob/v5.0.2/examples/peripherals/gpio/generic_gpio/main/gpio_example_main.c).
@@ -15,92 +16,119 @@ exception of a few related to interrupts) are either pin numbers or
 enumerations; it can reasonably be assumed that these values are known at
 compile time in almost all cases.
 
-Our strategy for wrapping this API is to declare input endpoints as messages
-without arguments (i.e. functors that accept the parent `GPIO` as their only
-argument). Each message calls one API function, checks the error code, and
-bypasss the GPIO in case of issue. Because all of these message implementations
-are identical except for the names of things, we use a macro to facilitate
-implementation without repeating ourselves.
-
-Ideally we would like to find some implementation such that it's not necessary
-to pass the parent GPIO to the endpoints (`gpio.inputs.reset(gpio)` for instance)
-so that we could treat the endpoints as methods, e.g. `gpio.inputs.reset()`.
-For now, this will have to do.
+Our strategy for wrapping this API is to declare static methods without
+arguments. Each method calls one API function, checks the error code, and
+returns it. Because all of these method implementations are identical except
+for the names of things, we use a macro to facilitate implementation without
+repeating ourselves.
 
 # Endpoints
 
 ```c++
 // @='gpio_function macro'
-#define gpio_function(c_name, name, description, esp_idf_func, ... )\
-[[no_unique_address]] struct c_name##_t : name_<name>, description_<description> {\
-    auto operator()(GPIO<pin_number>& gpio) const noexcept {\
-        if (gpio.inputs.bypass != 0) return ESP_FAIL;\
-        auto ret = esp_idf_func(__VA_ARGS__);\
-        ESP_ERROR_CHECK_WITHOUT_ABORT(ret);\
-        if (ret != ESP_OK) gpio.inputs.bypass = true;\
-        return ret;\
-    }\
-} c_name /* remember the semicolon */
+#define gpio_function(c_name, esp_idf_func, ... )\
+static auto c_name() noexcept\
+{\
+    auto ret = esp_idf_func(__VA_ARGS__);\
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);\
+    return ret;\
+}
 // @/
 ```
 
 Most (TODO: all) of the subroutines in the ESP-IDF GPIO API are then wrapped
-in this manner, providing a name and description for each, so that the GPIO
-component also serves as an executable user manual for the API.
+in this manner.
+
+# Component Wishes
+
+It would be convenient to encapsulate this functionality in
+a true component, treating the functions as message inputs, so that a textual
+name and description could be provided alongside, so that the component serves
+as an executable manual. However, there are issues with creating reflectable
+message endpoints that are also convenient to use in a subcomponent. For
+instance, we could declare the endpoint as a functor. However, since the
+functor has no way to access the data of the parent component, the parent
+must be passed in as an argument:
+
+```c++
+struct my_message_t : name_<"my message">, description_<"a useful hint"> {
+    void operator()(Parent& parent) {
+        /* ... */
+    }
+} my_message;
+
+/* ... */
+
+my_component.inputs.my_message(my_component);
+```
+
+Such an implementation also generally compiles such that the message endpoint
+take up space, despite that it has no state. The approach taken in Avendish
+is for message endpoints to return a function; this nicely solves the latter
+issue while making the interface for a user of the message endpoint in
+a subcomponent quite unfriendly, e.g. for a message with no arguments:
+
+```c++
+decltype(my_component)::messages::my_message::func()(my_component);
+```
+
+For now, we draw the line at messages. Any endpoint that can be represented
+with value semantics, we allow, and any component that would require messages,
+we avoid. Hence, our GPIO wrapper cannot yet be implemented as a true component.
+However, name strings and descriptions left over from an attempt to implement
+such a component are retained as comments, in hopes they may be useful one day
+beyond being documentation...
 
 ## Inputs
 
 ```c++
 // @='input wrappers'
-// when bypass is not zero, all other endpoints are disabled and return ESP_FAIL
-toggle<"bypass"> bypass;
-
 // all following input methods return esp_err_t, either ESP_OK or an error code
-gpio_function(remove_interrupt_handler, "remove interrupt handler", "remove the interrupt handler callback for this pin", gpio_isr_handler_remove, pin_number);
+gpio_function(remove_interrupt_handler, gpio_isr_handler_remove, pin_number); // "remove interrupt handler", "remove the interrupt handler callback for this pin",
 @{weird inputs}
 
 // The documentation warns "ESP32: Please do not use the interrupt of GPIO36 and GPIO39 when using ADC or Wi-Fi and Bluetooth with sleep mode enabled."
-gpio_function(enable_interrupt,  "enable interrupt",  "enable interrupt",  gpio_intr_enable, pin_number);
-gpio_function(disable_interrupt, "disable interrupt", "disable interrupt", gpio_intr_disable, pin_number);
+gpio_function(enable_interrupt,  gpio_intr_enable,  pin_number); // "enable interrupt",  "enable interrupt",
+gpio_function(disable_interrupt, gpio_intr_disable, pin_number); // "disable interrupt", "disable interrupt",
 
-gpio_function(reset,        "reset",        "reset pin and disconnect peripheral outputs", gpio_reset_pin,     pin_number);
-gpio_function(rising_edge,  "rising edge",  "interrupt on rising edge",                    gpio_set_intr_type, pin_number, GPIO_INTR_POSEDGE);
-gpio_function(falling_edge, "falling edge", "interrupt on falling edge",                   gpio_set_intr_type, pin_number, GPIO_INTR_NEGEDGE);
-gpio_function(any_edge,     "any edge",     "interrupt on any edge",                       gpio_set_intr_type, pin_number, GPIO_INTR_ANYEDGE);
-gpio_function(low_level,    "low level",    "interrupt on low level trigger",              gpio_set_intr_type, pin_number, GPIO_INTR_LOW_LEVEL);
-gpio_function(high_level,   "high level",   "interrupt on high level trigger",             gpio_set_intr_type, pin_number, GPIO_INTR_HIGH_LEVEL);
-gpio_function(high,         "high",         "set output level high",                       gpio_set_level,     pin_number, 1);
-gpio_function(low,          "low",          "set output level low",                        gpio_set_level,     pin_number, 0);
+gpio_function(reset,        gpio_reset_pin,     pin_number);                       // "reset",        "reset pin and disconnect peripheral outputs",
+gpio_function(rising_edge,  gpio_set_intr_type, pin_number, GPIO_INTR_POSEDGE);    // "rising edge",  "interrupt on rising edge",
+gpio_function(falling_edge, gpio_set_intr_type, pin_number, GPIO_INTR_NEGEDGE);    // "falling edge", "interrupt on falling edge",
+gpio_function(any_edge,     gpio_set_intr_type, pin_number, GPIO_INTR_ANYEDGE);    // "any edge",     "interrupt on any edge",
+gpio_function(low_level,    gpio_set_intr_type, pin_number, GPIO_INTR_LOW_LEVEL);  // "low level",    "interrupt on low level trigger",
+gpio_function(high_level,   gpio_set_intr_type, pin_number, GPIO_INTR_HIGH_LEVEL); // "high level",   "interrupt on high level trigger",
+gpio_function(high,         gpio_set_level,     pin_number, 1);                    // "high",         "set output level high",
+gpio_function(low,          gpio_set_level,     pin_number, 0);                    // "low",          "set output level low",
 
-gpio_function(disable_pin, "disable pin", "disable input and output", gpio_set_direction, pin_number, GPIO_MODE_DISABLE);
-gpio_function(input_mode, "input mode", "set pin mode to input", gpio_set_direction, pin_number, GPIO_MODE_INPUT);
-gpio_function(output_mode, "output mode", "set pin mode to output", gpio_set_direction, pin_number, GPIO_MODE_OUTPUT);
-gpio_function(output_od_mode, "output od mode", "set pin mode to output with open-drain", gpio_set_direction, pin_number, GPIO_MODE_OUTPUT_OD);
-gpio_function(input_output_mode, "input output mode", "set pin mode to input/output", gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT);
-gpio_function(input_output_od_mode, "input output od mode", "set pin mode to input/output with open-drain", gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT_OD);
+gpio_function(disable_pin,          gpio_set_direction, pin_number, GPIO_MODE_DISABLE);         // "disable pin", "disable input and output",
+gpio_function(input_mode,           gpio_set_direction, pin_number, GPIO_MODE_INPUT);           // "input mode", "set pin mode to input",
+gpio_function(output_mode,          gpio_set_direction, pin_number, GPIO_MODE_OUTPUT);          // "output mode", "set pin mode to output",
+gpio_function(output_od_mode,       gpio_set_direction, pin_number, GPIO_MODE_OUTPUT_OD);       // "output od mode", "set pin mode to output with open-drain",
+gpio_function(input_output_mode,    gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT);    // "input output mode", "set pin mode to input/output",
+gpio_function(input_output_od_mode, gpio_set_direction, pin_number, GPIO_MODE_INPUT_OUTPUT_OD); // "input output od mode", "set pin mode to input/output with open-drain",
 
 // note: pins 34-39 have no pull resistors
-gpio_function(enable_pullup,               "enable pull-up",                 "enable internal pull-up resistor",                      gpio_set_pull_mode,        pin_number, GPIO_PULLUP_ONLY);
-gpio_function(enable_pulldown,             "enable pull-down",               "enable internal pull-down resistor",                    gpio_set_pull_mode,        pin_number, GPIO_PULLDOWN_ONLY);
-gpio_function(enable_pullup_and_pulldown,  "enable pull-up and pull-down",   "enable both internal pull-up and pull-down resistors",  gpio_set_pull_mode,        pin_number, GPIO_PULLUP_PULLDOWN);
-gpio_function(disable_pullup_and_pulldown, "disable pull-up and pull-down",  "disable both internal pull-up and pull-down resistors", gpio_set_pull_mode,        pin_number, GPIO_FLOATING);
-gpio_function(disable_pullup,              "disable pull-up",                "disable internal pull-up resistor",                     gpio_pullup_dis,           pin_number);
-gpio_function(disable_pulldown,            "disable pull-down",              "disable internal pull-down resistor",                   gpio_pulldown_dis,         pin_number);
+gpio_function(enable_pullup,               gpio_set_pull_mode,        pin_number, GPIO_PULLUP_ONLY);     // "enable pull-up",                "enable internal pull-up resistor",
+gpio_function(enable_pulldown,             gpio_set_pull_mode,        pin_number, GPIO_PULLDOWN_ONLY);   // "enable pull-down",              "enable internal pull-down resistor",
+gpio_function(enable_pullup_and_pulldown,  gpio_set_pull_mode,        pin_number, GPIO_PULLUP_PULLDOWN); // "enable pull-up and pull-down",  "enable both internal pull-up and pull-down resistors",
+gpio_function(disable_pullup_and_pulldown, gpio_set_pull_mode,        pin_number, GPIO_FLOATING);        // "disable pull-up and pull-down", "disable both internal pull-up and pull-down resistors",
+gpio_function(disable_pullup,              gpio_pullup_dis,           pin_number);                       // "disable pull-up",               "disable internal pull-up resistor",
+gpio_function(disable_pulldown,            gpio_pulldown_dis,         pin_number);                       // "disable pull-down",             "disable internal pull-down resistor",
 
-gpio_function(rising_edge_wakeup,  "rising edge wake-up",  "enable wake-up on rising edge",        gpio_wakeup_enable,  pin_number, GPIO_INTR_POSEDGE);
-gpio_function(falling_edge_wakeup, "falling edge wake-up", "enable wake-up on falling edge",       gpio_wakeup_enable,  pin_number, GPIO_INTR_NEGEDGE);
-gpio_function(any_edge_wakeup,     "any edge wake-up",     "enable wake-up on any edge",           gpio_wakeup_enable,  pin_number, GPIO_INTR_ANYEDGE);
-gpio_function(low_level_wakeup,    "low level wake-up",    "enable wake-up on low level trigger",  gpio_wakeup_enable,  pin_number, GPIO_INTR_LOW_LEVEL);
-gpio_function(high_level_wakeup,   "high level wake-up",   "enable wake-up on high level trigger", gpio_wakeup_enable,  pin_number, GPIO_INTR_HIGH_LEVEL);
-gpio_function(disable_wakeup,      "disable wake-up",      "disable wake-up functionality",        gpio_wakeup_disable, pin_number);
-gpio_function(wakeup_high,         "wake-up high",         "enable wake-up on high level",         gpio_wakeup_enable, pin_number, GPIO_INTR_HIGH_LEVEL);
-gpio_function(wakeup_low,          "enable wake-up",       "enable wake-up on low level",          gpio_wakeup_enable, pin_number, GPIO_INTR_LOW_LEVEL);
+gpio_function(rising_edge_wakeup,  gpio_wakeup_enable,  pin_number, GPIO_INTR_POSEDGE);    // "rising edge wake-up",  "enable wake-up on rising edge",
+gpio_function(falling_edge_wakeup, gpio_wakeup_enable,  pin_number, GPIO_INTR_NEGEDGE);    // "falling edge wake-up", "enable wake-up on falling edge",
+gpio_function(any_edge_wakeup,     gpio_wakeup_enable,  pin_number, GPIO_INTR_ANYEDGE);    // "any edge wake-up",     "enable wake-up on any edge",
+gpio_function(low_level_wakeup,    gpio_wakeup_enable,  pin_number, GPIO_INTR_LOW_LEVEL);  // "low level wake-up",    "enable wake-up on low level trigger",
+gpio_function(high_level_wakeup,   gpio_wakeup_enable,  pin_number, GPIO_INTR_HIGH_LEVEL); // "high level wake-up",   "enable wake-up on high level trigger",
+gpio_function(disable_wakeup,      gpio_wakeup_disable, pin_number);                       // "disable wake-up",      "disable wake-up functionality",
+gpio_function(wakeup_high,         gpio_wakeup_enable,  pin_number, GPIO_INTR_HIGH_LEVEL); // "wake-up high",         "enable wake-up on high level",
+gpio_function(wakeup_low,          gpio_wakeup_enable,  pin_number, GPIO_INTR_LOW_LEVEL);  // "enable wake-up",       "enable wake-up on low level",
 
-gpio_function(set_drive_weakest,   "set drive weakest",   "set drive capability", gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_0);
-gpio_function(set_drive_weak,      "set drive weak",      "set drive capability", gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_1);
-gpio_function(set_drive_medium,    "set drive medium",    "set drive capability", gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_2);
-gpio_function(set_drive_strong,    "set drive strong",    "set drive capability", gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_DEFAULT);
-gpio_function(set_drive_strongest, "set drive strongest", "set drive capability", gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_3);
+gpio_function(set_drive_weakest,   gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_0);       // "set drive weakest",   "set drive capability",
+gpio_function(set_drive_weak,      gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_1);       // "set drive weak",      "set drive capability",
+gpio_function(set_drive_medium,    gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_2);       // "set drive medium",    "set drive capability",
+gpio_function(set_drive_strong,    gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_DEFAULT); // "set drive strong",    "set drive capability",
+gpio_function(set_drive_strongest, gpio_set_drive_capability, pin_number, GPIO_DRIVE_CAP_3);       // "set drive strongest", "set drive capability",
 
 // TODO: hold, sleep hold, deep sleep hold, iomux, sleep sel, sleep dir, sleep pull, rtc pins, ...
 // @/
@@ -119,16 +147,12 @@ context as arguments and passes them to the ESP-IDF method.
 
 ```c++
 // @+'weird inputs'
-[[no_unique_address]] struct interrupt_handler_t : name_<"interrupt handler">
-        , description_<"set the interrupt handler callback for this pin"> {
-    auto operator()(GPIO<pin_number>& gpio, void (*handler)(void*), void* args) const noexcept {
-        if (gpio.inputs.bypass != 0) return ESP_FAIL;
-        auto ret = gpio_isr_handler_add(pin_number, handler, args);
-        ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
-        if (ret != ESP_OK) gpio.inputs.bypass = 1;
-        return ret;
-    }
-} interrupt_handler;
+static auto interrupt_handler(void (*handler)(void*), void* args) noexcept
+{
+    auto ret = gpio_isr_handler_add(pin_number, handler, args);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+    return ret;
+}
 // @/
 ```
 
@@ -138,29 +162,18 @@ no return value, so it also requires a unique implementation.
 
 ```cpp
 // @+'weird inputs'
-[[no_unique_address]] struct uninstall_isr_service_t
-: name_<"uninstall ISR service">
-, description_<"uninstall the IDF-provided ISR service and free its resources"> 
+static void uninstall_isr_service() noexcept
 {
-    auto operator()(GPIO<pin_number>& gpio, int intr_alloc_flags) const noexcept {
-        if (gpio.inputs.bypass != 0) return;
-        gpio_uninstall_isr_service();
-    }
-} uninstall_isr_service;
+    gpio_uninstall_isr_service();
+}
 
 // the installer must only be called once for all GPIO
-[[no_unique_address]] struct install_isr_service_t
-: name_<"install ISR service">
-, description_<"install the IDF-provided ISR service, enabling per-pin interrupts">
+static auto install_isr_service(int intr_alloc_flags) noexcept
 {
-    auto operator()(GPIO<pin_number>& gpio, int intr_alloc_flags) const noexcept {
-        if (gpio.inputs.bypass != 0) return ESP_FAIL;
-        auto ret = gpio_install_isr_service(intr_alloc_flags);
-        ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
-        if (ret != ESP_OK) gpio.inputs.bypass = true;
-        return ret;
-    }
-} install_isr_service;
+    auto ret = gpio_install_isr_service(intr_alloc_flags);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
+    return ret;
+}
 // @/
 ```
 
@@ -180,25 +193,15 @@ can also be implemented as a getter.
 
 ```c++
 // @='output wrappers'
-[[no_unique_address]] struct level_t
-: name_<"level">
-, description_<"GPIO input level (always zero for output pin)">
-{
-    auto operator()() const noexcept {
-        return gpio_get_level(pin_number);
-    }
-} level;
+static auto level() noexcept {
+    return gpio_get_level(pin_number);
+}
 
-[[no_unique_address]] struct drive_capability_t
-: name_<"drive capability">
-, description_<"drive strength capability">
-{
-    auto operator()() const noexcept {
-        auto ret = GPIO_DRIVE_CAP_DEFAULT;
-        gpio_get_drive_capability(pin_number, &ret);
-        return ret;
-    }
-} drive_capability;
+static auto drive_capability() noexcept {
+    auto ret = GPIO_DRIVE_CAP_DEFAULT;
+    gpio_get_drive_capability(pin_number, &ret);
+    return ret;
+}
 // @/
 ```
 
@@ -228,7 +231,7 @@ a given MCU board can offer further advice where available.
 
 ```c++
 // @='init function with assertions'
-void init()
+static void init()
 {
     static_assert(GPIO_NUM_0 <= pin_number && pin_number <= GPIO_NUM_39,
         "pin number invalid");
@@ -251,7 +254,7 @@ void init()
     static_assert(pin_number != GPIO_NUM_20 && !(GPIO_NUM_28 <= pin_number && pin_number <= GPIO_NUM_32),
             "GPIO20, and 28-32 likely don't exist, and can't be used for GPIO");
 
-    inputs.reset(*this);
+    reset();
 }
 // @/
 ```
@@ -279,16 +282,9 @@ struct GPIO
 , description_<"An ESP-IDF GPIO API wrapper as a message-based `sygaldry` component">
 {
     @{gpio_function macro}
-    struct inputs_t {
-        @{input wrappers};
-    } inputs;
-
-    [[no_unique_address]] struct outputs_t {
-        @{output wrappers};
-    } outputs;
-
+    @{input wrappers};
+    @{output wrappers};
     #undef gpio_function
-
     @{init function with assertions}
 };
 
@@ -309,14 +305,14 @@ read a single button in a polling loop.
 
 void gpio()
 {
-    sygaldry::components::esp32::GPIO<GPIO_NUM_23> pin;
-    pin.init();
-    pin.inputs.input_mode(pin);
-    pin.inputs.enable_pullup(pin);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(1, pin.outputs.level(), "input mode pin with pullup should read high level");
-    pin.inputs.disable_pullup(pin);
-    pin.inputs.enable_pulldown(pin);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, pin.outputs.level(), "input mode pin with pulldown should read low level");
+    using pin = sygaldry::components::esp32::GPIO<GPIO_NUM_23>;
+    pin::init();
+    pin::input_mode();
+    pin::enable_pullup();
+    TEST_ASSERT_EQUAL_INT_MESSAGE(1, pin::level(), "input mode pin with pullup should read high level");
+    pin::disable_pullup();
+    pin::enable_pulldown();
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, pin::level(), "input mode pin with pulldown should read low level");
 }
 // @/
 ```
