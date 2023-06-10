@@ -1,2 +1,4 @@
 idf_component_register(SRCS "one-bit-bongo.cpp"
-                       INCLUDE_DIRS "." ${SYGALDRY_ROOT})
+        INCLUDE_DIRS ${SYGALDRY_ROOT}/dependencies/pfr/include
+        INCLUDE_DIRS "." ${SYGALDRY_ROOT}
+        )

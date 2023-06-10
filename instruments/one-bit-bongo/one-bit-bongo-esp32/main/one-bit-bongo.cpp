@@ -1,17 +1,26 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <bindings/cli/cli.hpp>
 #include <components/esp32/gpio.hpp>
 
-using namespace sygaldry::components::esp32;
+using namespace sygaldry::components;
+//using namespace sygaldry::bindings;
+
+struct components_t
+{
+    esp32::GPIO<GPIO_NUM_23> gpio;
+} components;
+
+//CstdioCli<components> cli;
 
 extern "C" void app_main(void)
 {
-    GPIO<GPIO_NUM_23> gpio;
-    gpio.init();
+    components.gpio.init();
+    //cli.init();
     for (;;)
     {
-        printf("Hello world %d.\n", sizeof(gpio));
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //cli();
+        vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }
