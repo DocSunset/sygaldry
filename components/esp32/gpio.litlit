@@ -273,10 +273,10 @@ using namespace sygaldry::helpers;
 
 template<gpio_num_t pin_number>
 struct GPIO
-    : name_<"ESP32 GPIO Pin">
-    , author_<"Travis J. West">
-    , copyright_<"Travis J. West (C) 2023">
-    , description_<"An ESP-IDF GPIO API wrapper as a message-based `sygaldry` component">
+: name_<"GPIO Pin">
+, author_<"Travis J. West">
+, copyright_<"Travis J. West (C) 2023">
+, description_<"An ESP-IDF GPIO API wrapper as a message-based `sygaldry` component">
 {
     @{gpio_function macro}
     struct inputs_t {
