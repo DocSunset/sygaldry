@@ -89,7 +89,7 @@ struct CustomCli : name_<"CLI">
     void _complain_about_command_failure(int retcode)
     {} // TODO
 
-    void process(char c, Components& components)
+    void process(const char c, Components& components)
     {
         if (_is_whitespace(c))
             buffer[write_pos++] = 0;
@@ -100,6 +100,12 @@ struct CustomCli : name_<"CLI">
                 argv[argc++] = &buffer[write_pos];
             write_pos++;
         }
+
+        #ifdef ESP_PLATFORM
+        char s[2] = {0,0};
+        s[0] = c;
+        parts.log.print(s);
+        #endif
 
         if (c == '\n')
         {

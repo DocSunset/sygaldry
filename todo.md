@@ -51,3 +51,4 @@
     -[ ] annotate Trigger command
     -[ ] ditch testreader testwriter, just redirect stdio
         -[ ] refactor testreader/writer tests accordingly
+    -[ ] provide a full repl experience
