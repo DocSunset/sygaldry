@@ -519,6 +519,8 @@ default, be all available commands, but that (particularly for testing) some
 clients will want to specify their own list of commands. For this reason, the
 main CLI implementation is contained in a class `CustomCli`, for which a
 template alias is provided `Cli` that specifies the default list of commands.
+By the same sort of reasoning, we also provide a template alias that
+incorporates the `cstdio` input/output plugins.
 
 ```c++
 // @='cli default type alias'
@@ -529,25 +531,14 @@ struct DefaultCommands
 
 template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
+
+template<typename Components>
+using CstdioCli = Cli<basic_reader::CstdioReader, basic_logger::CstdioLogger, Components>;
 // @/
 ```
 
-The `init` method writes a welcome message, and then prompts the user for
-input. The logger, reader, and an instance of the command container are declared.
-
 ```c++
 // @='cli instantiation'
-[[no_unique_address]] struct parts_t {
-[[no_unique_address]] Logger log;
-[[no_unique_address]] Reader reader;
-[[no_unique_address]] Commands commands;
-} parts;
-
-void init()
-{
-    parts.log.println("CLI enabled. Write `help` for a list of available commands.");
-    _prompt();
-}
 // @/
 
 ### Details
@@ -596,6 +587,8 @@ void _complain_about_command_failure(int retcode)
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
+#include "bindings/basic_logger/cstdio_logger.hpp"
+#include "bindings/basic_reader/cstdio_reader.hpp"
 #include "matcher.hpp"
 
 @{commands headers}
@@ -611,7 +604,17 @@ struct CustomCli : name_<"CLI">
                  , version_<"0.0.0">
                  , copyright_<"Travis J. West <C) 2023">
 {
-    @{cli instantiation}
+    [[no_unique_address]] struct parts_t {
+    [[no_unique_address]] Logger log;
+    [[no_unique_address]] Reader reader;
+    [[no_unique_address]] Commands commands;
+    } parts;
+
+    void init()
+    {
+        parts.log.println("CLI enabled. Write `help` for a list of available commands.");
+        _prompt();
+    }
 
     @{cli buffers}
 

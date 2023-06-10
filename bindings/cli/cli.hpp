@@ -4,6 +4,8 @@
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
+#include "bindings/basic_logger/cstdio_logger.hpp"
+#include "bindings/basic_reader/cstdio_reader.hpp"
 #include "matcher.hpp"
 
 #include "commands/help.hpp"
@@ -128,5 +130,8 @@ struct DefaultCommands
 
 template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
+
+template<typename Components>
+using CstdioCli = Cli<basic_reader::CstdioReader, basic_logger::CstdioLogger, Components>;
 
 } } }
