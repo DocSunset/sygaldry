@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <string_view>
+#include <concepts>
+#include <cstdlib>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
@@ -14,7 +16,7 @@
 #include "commands/set.hpp"
 #include "commands/trigger.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli {
+namespace sygaldry { namespace bindings {
 
 using namespace sygaldry::helpers;
 
@@ -49,7 +51,7 @@ struct CustomCli : name_<"CLI">
     {
         return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
             {
-                if constexpr (std::is_same_v<decltype(command), commands::Help&>)
+                if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
                 {
                     return command.main(parts.log, parts.commands);
                 }
@@ -121,17 +123,17 @@ struct CustomCli : name_<"CLI">
 
 struct DefaultCommands
 {
-    commands::Help help;
-    commands::List list;
-    commands::Describe describe;
-    commands::Set set;
-    commands::Trigger trigger;
+    clicommands::Help help;
+    clicommands::List list;
+    clicommands::Describe describe;
+    clicommands::Set set;
+    clicommands::Trigger trigger;
 };
 
 template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 
 template<typename Components>
-using CstdioCli = Cli<basic_reader::CstdioReader, basic_logger::CstdioLogger, Components>;
+using CstdioCli = Cli<CstdioReader, CstdioLogger, Components>;
 
-} } }
+} }

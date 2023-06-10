@@ -7,7 +7,7 @@
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 using namespace sygaldry::concepts;
 
@@ -97,4 +97,4 @@ struct Describe
 
 };
 
-} } } } // namespaces
+} } } // namespaces

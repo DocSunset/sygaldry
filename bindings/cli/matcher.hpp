@@ -3,7 +3,7 @@
 #include <string_view>
 #include "utilities/spelling.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli {
+namespace sygaldry { namespace bindings {
 
 struct CommandMatcher
 {
@@ -15,4 +15,4 @@ struct CommandMatcher
     }
 };
 
-} } }
+} }

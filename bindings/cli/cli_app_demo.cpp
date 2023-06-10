@@ -29,9 +29,9 @@ struct AppComponents {
 int main()
 {
     auto components = AppComponents{};
-    auto cli = sygaldry::bindings::cli::Cli
-               < sygaldry::bindings::basic_reader::CstdioReader
-               , sygaldry::bindings::basic_logger::CstdioLogger
+    auto cli = sygaldry::bindings::Cli
+               < sygaldry::bindings::CstdioReader
+               , sygaldry::bindings::CstdioLogger
                , decltype(components)
                >{};
     cli.init();

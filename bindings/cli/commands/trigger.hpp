@@ -3,7 +3,7 @@
 #include "concepts/endpoints.hpp"
 #include "concepts/components.hpp"
 #include "bindings/name_dispatch.hpp"
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Trigger
 {
@@ -27,4 +27,4 @@ struct Trigger
     }
 };
 
-} } } }
+} } }

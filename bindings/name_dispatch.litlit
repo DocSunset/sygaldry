@@ -24,18 +24,12 @@ generalised to work with subassemblies and pure assembly components.
 #include "helpers/endpoints.hpp"
 #include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/name_dispatch.hpp"
 
 using std::string_view;
 
 using namespace sygaldry::bindings;
 using namespace sygaldry::helpers;
-
-struct Config
-{
-    using basic_logger_type = basic_logger::TestLogger;
-};
 
 struct Named1 { static _consteval auto name() {return "name1";} int value;};
 struct Named2 { static _consteval auto name() {return "a longer name";} float value;};

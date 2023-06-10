@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 
-namespace sygaldry { namespace bindings { namespace basic_reader {
+namespace sygaldry { namespace bindings {
 
 struct TestReader
 {
@@ -12,4 +12,4 @@ struct TestReader
     char getchar() {return static_cast<char>(ss.get());}
 };
 
-} } }
+} }

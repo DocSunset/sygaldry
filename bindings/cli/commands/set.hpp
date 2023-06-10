@@ -4,7 +4,7 @@
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Set
 {
@@ -13,9 +13,44 @@ struct Set
     static _consteval auto description() { return "Change the current value of the given endoint"; }
 
     template<typename T>
-    int parse_and_set(auto& log, auto& endpoint, char * argstart)
+        requires std::integral<T>
+    T from_chars(const char * start, const char * end, bool& success)
     {
-        T num{};
+        T ret;
+        auto [ptr, ec] = std::from_chars(start, end, ret);
+        if (ec == std::errc{}) success = true;
+        else success = false;
+        return ret;
+    }
+
+    template<typename T>
+        requires std::floating_point<T>
+    T from_chars(const char * start, const char * end, bool& success)
+    {
+    #ifdef ESP_PLATFORM
+        char * e;
+        T ret;
+        if constexpr (std::is_same_v<T, float>)
+            ret = std::strtof(start, &e);
+        else if constexpr (std::is_same_v<T, double>)
+            ret = std::strtod(start, &e);
+        else if constexpr (std::is_same_v<T, long double>)
+            ret = std::strtold(start, &e);
+        if (start == e) success = false;
+        else success = true;
+        return ret;
+    #else
+        T ret;
+        auto [ptr, ec] = std::from_chars(start, end, ret);
+        if (ec == std::errc{}) success = true;
+        else success = false;
+        return ret;
+    #endif
+    }
+
+    template<typename T>
+    int parse_and_set(auto& log, auto& endpoint, const char * argstart)
+    {
         auto argend = argstart;
 
         // search for the end of the token, with an arbitrary maximum upper bound
@@ -25,12 +60,11 @@ struct Set
             log.println("Unable to parse number, couldn't find end of token");
             return 2;
         }
-        auto [ptr, ec] = std::from_chars(argstart, argend, num);
-        if (ec == std::errc{})
+        bool success = false;
+        T num = from_chars<T>(argstart, argend, success);
+        if (success)//ec == std::errc{})
         {
             set_value(endpoint, num);
-            if (ptr != argend)
-                log.println("Warning: couldn't parse the entire token '", argstart, "'");
             return 0;
         }
         else
@@ -81,4 +115,4 @@ struct Set
 
 };
 
-} } } }
+} } }

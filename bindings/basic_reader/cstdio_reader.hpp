@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace sygaldry { namespace bindings { namespace basic_reader {
+namespace sygaldry { namespace bindings {
 
 struct CstdioReader
 {
@@ -20,4 +20,4 @@ struct CstdioReader
     }
 };
 
-} } }
+} }

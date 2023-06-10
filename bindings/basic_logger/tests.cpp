@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-using namespace sygaldry::bindings::basic_logger;
+using namespace sygaldry::bindings;
 
 TEST_CASE("BasicLogger print") {
     TestLogger logger;

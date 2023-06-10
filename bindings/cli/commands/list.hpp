@@ -5,7 +5,7 @@
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct List
 {
@@ -23,4 +23,4 @@ struct List
     }
 };
 
-} } } }
+} } }

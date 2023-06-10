@@ -364,7 +364,6 @@ struct HelloWorld
 // @/
 
 // @+'tests'
-
 struct CliCommands
 {
     Echo echo;
@@ -476,7 +475,7 @@ the CLI commands, so it is defined in its own header.
 #include <string_view>
 #include "utilities/spelling.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli {
+namespace sygaldry { namespace bindings {
 
 struct CommandMatcher
 {
@@ -488,7 +487,7 @@ struct CommandMatcher
     }
 };
 
-} } }
+} }
 // @/
 
 // @+'cli implementation details'
@@ -496,7 +495,7 @@ int _try_to_match_and_execute(Components& components)
 {
     return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
         {
-            if constexpr (std::is_same_v<decltype(command), commands::Help&>)
+            if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
             {
                 return command.main(parts.log, parts.commands);
             }
@@ -533,7 +532,7 @@ template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 
 template<typename Components>
-using CstdioCli = Cli<basic_reader::CstdioReader, basic_logger::CstdioLogger, Components>;
+using CstdioCli = Cli<CstdioReader, CstdioLogger, Components>;
 // @/
 ```
 
@@ -577,13 +576,15 @@ void _complain_about_command_failure(int retcode)
 {} // TODO
 // @/
 
-### Summary
+### CLI Summary
 
 ```c++
 // @#'cli.hpp'
 #pragma once
 #include <memory>
 #include <string_view>
+#include <concepts>
+#include <cstdlib>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/name_dispatch.hpp"
@@ -593,7 +594,7 @@ void _complain_about_command_failure(int retcode)
 
 @{commands headers}
 
-namespace sygaldry { namespace bindings { namespace cli {
+namespace sygaldry { namespace bindings {
 
 using namespace sygaldry::helpers;
 
@@ -625,7 +626,7 @@ struct CustomCli : name_<"CLI">
 
 @{cli default type alias}
 
-} } }
+} }
 // @/
 ```
 
@@ -722,7 +723,7 @@ and have a `main` method that takes a parameter pack of commands to describe.
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 struct Help
 {
     static _consteval auto name() { return "help"; }
@@ -750,7 +751,7 @@ struct Help
     }
 };
 
-} } } }
+} } }
 // @/
 
 // @+'commands headers'
@@ -758,7 +759,7 @@ struct Help
 // @/
 
 // @+'default commands'
-commands::Help help;
+clicommands::Help help;
 // @/
 ```
 
@@ -797,7 +798,7 @@ expression and print each one's name using the injected logger.
 #include "utilities/consteval.hpp"
 #include "utilities/spelling.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct List
 {
@@ -815,7 +816,7 @@ struct List
     }
 };
 
-} } } }
+} } }
 // @/
 
 // @+'commands headers'
@@ -823,7 +824,7 @@ struct List
 // @/
 
 // @+'default commands'
-commands::List list;
+clicommands::List list;
 // @/
 ```
 
@@ -1007,7 +1008,7 @@ void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 using namespace sygaldry::concepts;
 
@@ -1023,11 +1024,11 @@ struct Describe
 
 };
 
-} } } } // namespaces
+} } } // namespaces
 // @/
 
 // @+'default commands'
-commands::Describe describe;
+clicommands::Describe describe;
 // @/
 
 // @+'commands headers'
@@ -1133,16 +1134,16 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
 ```
 
 `parse_and_set` is called in case a number needs to be parsed from the input
-tokens. We use the conversions from `<charconv>` as seen also in the basic
-logger. Most of the method consists of checking for errors and returning a
+tokens. Most of the method consists of checking for errors and returning a
 failure code in case we can't parse the input token as a number.
 
 ```c++
 // @='parse and set'
+@{from_chars}
+
 template<typename T>
-int parse_and_set(auto& log, auto& endpoint, char * argstart)
+int parse_and_set(auto& log, auto& endpoint, const char * argstart)
 {
-    T num{};
     auto argend = argstart;
 
     // search for the end of the token, with an arbitrary maximum upper bound
@@ -1152,12 +1153,11 @@ int parse_and_set(auto& log, auto& endpoint, char * argstart)
         log.println("Unable to parse number, couldn't find end of token");
         return 2;
     }
-    auto [ptr, ec] = std::from_chars(argstart, argend, num);
-    if (ec == std::errc{})
+    bool success = false;
+    T num = from_chars<T>(argstart, argend, success);
+    if (success)//ec == std::errc{})
     {
         set_value(endpoint, num);
-        if (ptr != argend)
-            log.println("Warning: couldn't parse the entire token '", argstart, "'");
         return 0;
     }
     else
@@ -1165,6 +1165,53 @@ int parse_and_set(auto& log, auto& endpoint, char * argstart)
         log.println("Unable to parse token '", argstart, "'");
         return 2;
     }
+}
+// @/
+```
+
+For converting from the token string to a number, we would like to
+simply use the standard library `from_chars`, but the ESP-IDF doesn't
+appear to have implemented the floating point overloads for this
+function at the time of writing. We define our own `from_chars`
+function that wraps the standard library when available, and falls
+back to `strtoX` otherwise.
+
+```c++
+// @='from_chars'
+template<typename T>
+    requires std::integral<T>
+T from_chars(const char * start, const char * end, bool& success)
+{
+    T ret;
+    auto [ptr, ec] = std::from_chars(start, end, ret);
+    if (ec == std::errc{}) success = true;
+    else success = false;
+    return ret;
+}
+
+template<typename T>
+    requires std::floating_point<T>
+T from_chars(const char * start, const char * end, bool& success)
+{
+#ifdef ESP_PLATFORM
+    char * e;
+    T ret;
+    if constexpr (std::is_same_v<T, float>)
+        ret = std::strtof(start, &e);
+    else if constexpr (std::is_same_v<T, double>)
+        ret = std::strtod(start, &e);
+    else if constexpr (std::is_same_v<T, long double>)
+        ret = std::strtold(start, &e);
+    if (start == e) success = false;
+    else success = true;
+    return ret;
+#else
+    T ret;
+    auto [ptr, ec] = std::from_chars(start, end, ret);
+    if (ec == std::errc{}) success = true;
+    else success = false;
+    return ret;
+#endif
 }
 // @/
 ```
@@ -1179,7 +1226,7 @@ int parse_and_set(auto& log, auto& endpoint, char * argstart)
 #include "concepts/endpoints.hpp"
 #include "bindings/name_dispatch.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Set
 {
@@ -1193,7 +1240,7 @@ struct Set
 
 };
 
-} } } }
+} } }
 // @/
 
 // @+'commands headers'
@@ -1201,7 +1248,7 @@ struct Set
 // @/
 
 // @+'default commands'
-commands::Set set;
+clicommands::Set set;
 // @/
 ```
 
@@ -1239,7 +1286,7 @@ return 2;
 #include "concepts/endpoints.hpp"
 #include "concepts/components.hpp"
 #include "bindings/name_dispatch.hpp"
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Trigger
 {
@@ -1264,7 +1311,7 @@ struct Trigger
     }
 };
 
-} } } }
+} } }
 // @/
 
 // @+'commands headers'
@@ -1272,7 +1319,7 @@ struct Trigger
 // @/
 
 // @+'default commands'
-commands::Trigger trigger;
+clicommands::Trigger trigger;
 // @/
 ```
 
@@ -1319,9 +1366,9 @@ struct AppComponents {
 int main()
 {
     auto components = AppComponents{};
-    auto cli = sygaldry::bindings::cli::Cli
-               < sygaldry::bindings::basic_reader::CstdioReader
-               , sygaldry::bindings::basic_logger::CstdioLogger
+    auto cli = sygaldry::bindings::Cli
+               < sygaldry::bindings::CstdioReader
+               , sygaldry::bindings::CstdioLogger
                , decltype(components)
                >{};
     cli.init();
@@ -1351,10 +1398,8 @@ int main()
 
 using std::string;
 
-using namespace sygaldry::bindings::cli::commands;
-using namespace sygaldry::bindings::cli;
-using namespace sygaldry::bindings::basic_reader;
-using namespace sygaldry::bindings::basic_logger;
+using namespace sygaldry::bindings::clicommands;
+using namespace sygaldry::bindings;
 
 @{cli tests logger}
 

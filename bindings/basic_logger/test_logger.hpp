@@ -1,7 +1,7 @@
 #pragma once
 #include "basic_logger.hpp"
 
-namespace sygaldry::bindings::basic_logger
+namespace sygaldry::bindings
 {
 
 struct TestPutter

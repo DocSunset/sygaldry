@@ -3,8 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace sygaldry::bindings::basic_logger
-{
+namespace sygaldry { namespace bindings {
 
 struct CstdioPutter
 {
@@ -21,4 +20,4 @@ struct CstdioPutter
 
 using CstdioLogger = BasicLogger<CstdioPutter>;
 
-}
+} }

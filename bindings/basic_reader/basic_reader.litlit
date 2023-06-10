@@ -51,7 +51,7 @@ stick with a simpler non-blocking approach. This gives us the following plan:
 ```c++
 #pragma once
 
-namespace sygaldry { namespace bindings { namespace basic_reader {
+namespace sygaldry { namespace bindings {
 
 struct BasicReader
 {
@@ -68,7 +68,7 @@ struct BasicReader
     }
 };
 
-} } }
+} }
 ```
 
 # Test Reader
@@ -84,7 +84,7 @@ inputs.
 #include <string>
 #include <sstream>
 
-namespace sygaldry { namespace bindings { namespace basic_reader {
+namespace sygaldry { namespace bindings {
 
 struct TestReader
 {
@@ -93,7 +93,7 @@ struct TestReader
     char getchar() {return static_cast<char>(ss.get());}
 };
 
-} } }
+} }
 // @/
 
 // @#'tests.cpp'
@@ -101,7 +101,7 @@ struct TestReader
 
 #include "test_reader.hpp"
 
-using namespace sygaldry::bindings::basic_reader;
+using namespace sygaldry::bindings;
 
 TEST_CASE("TestReader")
 {
@@ -144,7 +144,7 @@ get a character...
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace sygaldry { namespace bindings { namespace basic_reader {
+namespace sygaldry { namespace bindings {
 
 struct CstdioReader
 {
@@ -161,6 +161,6 @@ struct CstdioReader
     }
 };
 
-} } }
+} }
 // @/
 ```

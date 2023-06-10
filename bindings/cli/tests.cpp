@@ -9,10 +9,8 @@
 
 using std::string;
 
-using namespace sygaldry::bindings::cli::commands;
-using namespace sygaldry::bindings::cli;
-using namespace sygaldry::bindings::basic_reader;
-using namespace sygaldry::bindings::basic_logger;
+using namespace sygaldry::bindings::clicommands;
+using namespace sygaldry::bindings;
 
 
 void test_cli(auto& cli, auto& components, string input, string expected_output)
@@ -96,7 +94,6 @@ struct TestComponents
     Component2 cpt2;
     sygaldry::components::TestComponent tc;
 };
-
 
 struct CliCommands
 {

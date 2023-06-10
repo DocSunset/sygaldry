@@ -2,7 +2,7 @@
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace bindings { namespace cli { namespace commands {
+namespace sygaldry { namespace bindings { namespace clicommands {
 struct Help
 {
     static _consteval auto name() { return "help"; }
@@ -30,4 +30,4 @@ struct Help
     }
 };
 
-} } } }
+} } }

@@ -2,7 +2,7 @@
 
 #include "test_reader.hpp"
 
-using namespace sygaldry::bindings::basic_reader;
+using namespace sygaldry::bindings;
 
 TEST_CASE("TestReader")
 {
