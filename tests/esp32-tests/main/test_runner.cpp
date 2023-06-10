@@ -1,6 +1,6 @@
 #include "unity.h"
-#include "gpio.hpp"
-#include "button.hpp"
+#include <components/esp32/tests/gpio.hpp>
+#include <components/esp32/tests/button.hpp>
 
 extern "C" void app_main(void)
 {
