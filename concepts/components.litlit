@@ -20,63 +20,74 @@ concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
         // TODO || has_throughpoints<T> || has_plugins<T>
         );
 // @/
-```
 
-A pure assembly has only parts, no inputs or outputs, and no main subroutine,
-and it is not required to have a name. A pure assembly may also be represented
-by a simple aggregate struct of endpoints.
-
-```c++
-// @='PureAssembly'
-template<typename T>
-concept PureAssembly = (is_simple_aggregate<T> && has_only_endpoints<T>) ||
-    ( has_parts<T> && not ( has_main_subroutine<T>
-    || has_inputs<T> || has_outputs<T>
-    // TODO || has_throughpoints<T> || has_plugins<T>
-    ) );
-// @/
-```
-
-```c++
 // @+'tests'
-
 struct my_component_t : name_<"component concept test component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
     struct parts_t {} parts;
     static void main(const inputs_t&, outputs_t&) {}
-};
+} my_component;
 
+static_assert(has_main_subroutine<my_component_t>);
+static_assert(has_inputs<my_component_t>);
+static_assert(has_outputs<my_component_t>);
+static_assert(has_parts<my_component_t>);
+static_assert(RegularComponent<my_component_t>);
+static_assert(Component<my_component_t>);
+// @/
+```
+
+A pure assembly has only parts, no inputs or outputs, and no main subroutine,
+and it is not required to have a name. A pure assembly may also be represented
+by a simple aggregate struct of components.
+
+```c++
+// @='PureAssembly'
+template<typename T>
+concept PureAssembly = (is_simple_aggregate<T> && has_only_components<T>) ||
+    ( has_parts<T> && not ( has_main_subroutine<T>
+    || has_inputs<T> || has_outputs<T>
+    // TODO || has_throughpoints<T> || has_plugins<T>
+    ) );
+// @/
+
+// @+'tests'
 struct struct_of_components
 {
     my_component_t component;
-};
+} my_assembly1;
 
-TEST_CASE("Base Component Concepts")
+struct component_of_parts : name_<"component concept test assembly">
 {
-    SECTION("has ___")
-    {
-        // static_assert(has_main_subroutine<my_component_t>);
-        // static_assert(has_inputs<my_component_t>);
-        // static_assert(has_outputs<my_component_t>);
-        // static_assert(has_parts<my_component_t>);
-        // static_assert(has_parts<my_component_t>);
-        // TODO static_assert(has_throughpoints<my_component_t>);
-        // TODO static_assert(has_plugins<my_component_t>);
-        // static_assert(has_only_endpoints<struct_of_components>);
-        // static_assert(is_simple_aggregate<struct_of_components>);
-    }
-}
-// @/
+    struct parts_t {
+        my_component_t component;
+    } parts;
+} my_assembly2;
 
+static_assert(is_simple_aggregate<struct_of_components>);
+static_assert(has_only_components<struct_of_components>);
+static_assert(PureAssembly<struct_of_components>);
+//static_assert(Component<struct_of_components>);
+
+static_assert(has_parts<component_of_parts>);
+static_assert(not has_main_subroutine<component_of_parts>);
+static_assert(not has_inputs<component_of_parts>);
+static_assert(not has_outputs<component_of_parts>);
+static_assert(PureAssembly<component_of_parts>);
+//static_assert(Component<component_of_parts>);
+// @/
+```
+
+```c++
 // @='base component concepts'
 @{base component implementation details}
 
-//@{RegularComponent}
-//
-//@{PureAssembly}
-//
+@{RegularComponent}
+
+@{PureAssembly}
+
 //@{Component}
 template<typename T>
 concept Component = requires (T t) {t.inputs; t.outputs;};
@@ -84,6 +95,40 @@ concept Component = requires (T t) {t.inputs; t.outputs;};
 ```
 
 ## Component Concepts Implementation
+
+To detect whether a component has parts, inputs, or outputs, we employ the same
+structure parameterized on the expected name of the nested simple aggregate
+structure. We use a macro to avoid repetition. A similar pattern is used
+[to define `has_name`](concepts/metadata.litlit).
+
+```c++
+// @+'base component implementation details'
+#define has_type_or_value(NAME)\
+template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; };\
+template<typename T> concept has_##NAME##_type = requires { typename T::NAME; };\
+template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; };\
+template<typename T>\
+concept has_##NAME \
+    =  has_##NAME##_member<T>\
+    || has_##NAME##_type<T>\
+    || has_##NAME##_t<T>;\
+\
+template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
+template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
+
+has_type_or_value(inputs);
+has_type_or_value(outputs);
+has_type_or_value(parts);
+
+#undef has_type_or_value
+// @/
+
+// @+'tests'
+static_assert(std::same_as<my_component_t::inputs_t&, decltype(inputs_of(my_component))>);
+static_assert(std::same_as<my_component_t::outputs_t&, decltype(outputs_of(my_component))>);
+static_assert(std::same_as<my_component_t::parts_t&, decltype(parts_of(my_component))>);
+// @/
+```
 
 Using our small [function reflection library](concepts/functions.litlit) we can
 tell whether a component has a main subroutine by checking whether the return
@@ -116,6 +161,30 @@ static_assert(!has_main_subroutine<int_operator>);
 // @/
 ```
 
+## Simple Aggregate
+
+TODO
+
+```c++
+// @+'base component implementation details'
+template<typename T>
+concept is_simple_aggregate = true;
+// @/
+```
+
+## Has Only Components
+
+TODO
+
+```c++
+// @+'base component implementation details'
+template<typename T>
+concept has_only_components = true;
+// @/
+```
+
+# Clearable Flags
+
 Many components have endpoints with message semantics, e.g. by its value having
 semantics similar to a pointer or `std::optional`. These values are expected to
 be cleared so that they have a `false` interpretation unless the value has been
@@ -132,24 +201,13 @@ is well tested.
 #pragma once
 
 #include <boost/pfr.hpp>
+#include "concepts/metadata.hpp"
 #include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"
 
 namespace sygaldry { namespace concepts {
 
 @{base component concepts}
-
-template<Component T>
-auto& inputs_of(T& component)
-{
-    return component.inputs;
-};
-
-template<Component T>
-auto& outputs_of(T& component)
-{
-    return component.outputs;
-};
 
 template<typename T>
 void clear_flags(T& entities)

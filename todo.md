@@ -14,6 +14,7 @@
 -[ ] automate documentation link checking
 -[ ] compile litlit as a dependency
 -[ ] drive litlit tangling from cmake
+-[ ] automatically generate litlit.md files
 -[ ] rename litlit to lili?
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
 -[ ] automate flashing and running ESP32 tests

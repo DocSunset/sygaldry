@@ -1,46 +1,57 @@
 #pragma once
 
 #include <boost/pfr.hpp>
+#include "concepts/metadata.hpp"
 #include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"
 
 namespace sygaldry { namespace concepts {
 
+#define has_type_or_value(NAME)\
+template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; };\
+template<typename T> concept has_##NAME##_type = requires { typename T::NAME; };\
+template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; };\
+template<typename T>\
+concept has_##NAME \
+    =  has_##NAME##_member<T>\
+    || has_##NAME##_type<T>\
+    || has_##NAME##_t<T>;\
+\
+template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
+template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
+
+has_type_or_value(inputs);
+has_type_or_value(outputs);
+has_type_or_value(parts);
+
+#undef has_type_or_value
 template<typename T>
 concept has_main_subroutine
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
+template<typename T>
+concept is_simple_aggregate = true;
+template<typename T>
+concept has_only_components = true;
 
-//template<typename T>
-//concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
-//        ( has_inputs<T> || has_outputs<T> || has_parts<T>
-//        // TODO || has_throughpoints<T> || has_plugins<T>
-//        );
-//
-//template<typename T>
-//concept PureAssembly = (is_simple_aggregate<T> && has_only_endpoints<T>) ||
-//    ( has_parts<T> && not ( has_main_subroutine<T>
-//    || has_inputs<T> || has_outputs<T>
-//    // TODO || has_throughpoints<T> || has_plugins<T>
-//    ) );
-//
+template<typename T>
+concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
+        ( has_inputs<T> || has_outputs<T> || has_parts<T>
+        // TODO || has_throughpoints<T> || has_plugins<T>
+        );
+
+template<typename T>
+concept PureAssembly = (is_simple_aggregate<T> && has_only_components<T>) ||
+    ( has_parts<T> && not ( has_main_subroutine<T>
+    || has_inputs<T> || has_outputs<T>
+    // TODO || has_throughpoints<T> || has_plugins<T>
+    ) );
+
 //template<typename T>
 //concept Component = RegularComponent<T> || PureAssembly<T>;
 template<typename T>
 concept Component = requires (T t) {t.inputs; t.outputs;};
-
-template<Component T>
-auto& inputs_of(T& component)
-{
-    return component.inputs;
-};
-
-template<Component T>
-auto& outputs_of(T& component)
-{
-    return component.outputs;
-};
 
 template<typename T>
 void clear_flags(T& entities)
