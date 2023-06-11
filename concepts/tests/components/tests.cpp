@@ -35,28 +35,14 @@ TEST_CASE("Base Component Concepts")
         // static_assert(is_simple_aggregate<struct_of_components>);
     }
 }
-// these should both count as components, for now
-struct struct_with_void_main_method { void main() {}; };
-struct struct_with_void_operator_call { void operator()() {}; };
+struct void_main { void main() {} };
+struct void_operator { void operator()() {} };
+static_assert(has_main_subroutine<void_main>);
+static_assert(has_main_subroutine<void_operator>);
 
-// and these should not
-struct struct_with_int_main_method { int main(int i) { return i + 1; }; };
-struct struct_with_int_operator_call { int operator()(int i) { return i + 1; }; };
-using void_operator = decltype(&struct_with_void_operator_call::operator());
-using void_operator_reflection = func_reflection<void_operator>;
-using void_return_type = void_operator_reflection::ret;
-static_assert(std::is_same_v<void_return_type, void>);
-
-using int_operator = decltype(&struct_with_int_operator_call::operator());
-using int_operator_reflection = func_reflection<int_operator>;
-using int_return_type = int_operator_reflection::ret;
-static_assert(std::is_same_v<int_return_type, int>);
-static_assert(std::is_same_v<int_return_type, int>);
-static_assert(std::is_same_v<func_ret_t<&struct_with_int_operator_call::operator()>, int>);
-
-static_assert(func_reflectable<void_operator>);
-static_assert(func_reflectable<int_operator>);
-static_assert(has_main_subroutine<struct_with_void_main_method>);
-static_assert(!has_main_subroutine<struct_with_int_main_method>);
-static_assert(has_main_subroutine<struct_with_void_operator_call>);
-static_assert(!has_main_subroutine<struct_with_int_operator_call>);
+struct member_main { int main; };
+struct int_main { int main() {return 1;} };
+struct int_operator { int operator()() {return 1;} };
+static_assert(!has_main_subroutine<member_main>);
+static_assert(!has_main_subroutine<int_main>);
+static_assert(!has_main_subroutine<int_operator>);

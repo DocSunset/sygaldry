@@ -85,129 +85,34 @@ concept Component = requires (T t) {t.inputs; t.outputs;};
 
 ## Component Concepts Implementation
 
-We detect a main subroutine as a static method `main` or a function call
-operator that takes as arguments the components inputs, outputs, and/or parts,
-if any exist, as well as possibly additional throughpoints and/or plugins, and
-returns `void`. This turns out to be a bit involved to determine based only on
-the type. For now, we check only that the potential component has one of the
-expected methods (itself no simple task), and that their return type is `void`,
-and we leave verification of the arguments as future work.
-
-```c++
-// @+'tests'
-// these should both count as components, for now
-struct struct_with_void_main_method { void main() {}; };
-struct struct_with_void_operator_call { void operator()() {}; };
-
-// and these should not
-struct struct_with_int_main_method { int main(int i) { return i + 1; }; };
-struct struct_with_int_operator_call { int operator()(int i) { return i + 1; }; };
-// @/
-```
-
-It's easy to check whether the given type has a function call operator; we can
-simply check if it's possible to take its address. But this doesn't allow us
-to check the return type is `void`:
-
-```c++
-template<typename T>
-concept has_call_operator
-    = requires (T t) { &T::operator(); };
-
-static_assert(has_call_operator<struct_with_void_operator_call>); // true
-static_assert(has_call_operator<struct_with_int_operator_call>); // also true...
-```
-
-A similar check for the `main` method doesn't prove anything; `main` could just
-as well be a static variable, and even if it is a method, we still don't know
-if it returns void.
-
-```c++
-template<typename T>
-concept has_static_main_member = requires (T t) { &T::main; }; // proves nothing!
-
-struct struct_with_main_method { static void main() {}; };
-struct struct_with_main_variable { static int main; };
-static_assert(has_static_main_member<struct_with_main_method>); // true
-static_assert(has_static_main_member<struct_with_main_variable>); // also true...
-```
-
-We need to check that the accepted methods are callable and return `void`. For
-that we need function reflection:
-
-```c++
-// @+'base component implementation details'
-// TODO it may make sense to move this into its own header
-template<typename ... L> struct type_list {};
-
-template<typename NotAFunction>
-struct func_reflection { static constexpr bool exists = false; };
-
-template<typename R, typename... Args>
-struct func_reflection<R(Args...)> {
-    using ret = R;
-    using args = type_list<Args...>;
-    static constexpr bool exists = true;
-};
-
-template<typename R, typename... Args>
-struct func_reflection<R(*)(Args...)> : func_reflection<R(Args...)> {};
-
-template<typename R, typename Class, typename... Args>
-struct func_reflection<R(Class::*)(Args...)> : func_reflection<R(Args...)> {};
-
-template<typename R, typename Class, typename... Args>
-struct func_reflection<R(Class::*)(Args...) const> : func_reflection<R(Args...)> {};
-
-template<auto Val> using func_ret_t = func_reflection<decltype(Val)>::ret;
-template<auto Val> using func_args_t = func_reflection<decltype(Val)>::args;
-
-template<typename ... Args>
-concept func_reflectable = func_reflection<Args...>::exists;
-// @/
-
-// @+'tests'
-using void_operator = decltype(&struct_with_void_operator_call::operator());
-using void_operator_reflection = func_reflection<void_operator>;
-using void_return_type = void_operator_reflection::ret;
-static_assert(std::is_same_v<void_return_type, void>);
-
-using int_operator = decltype(&struct_with_int_operator_call::operator());
-using int_operator_reflection = func_reflection<int_operator>;
-using int_return_type = int_operator_reflection::ret;
-static_assert(std::is_same_v<int_return_type, int>);
-static_assert(std::is_same_v<int_return_type, int>);
-static_assert(std::is_same_v<func_ret_t<&struct_with_int_operator_call::operator()>, int>);
-
-static_assert(func_reflectable<void_operator>);
-static_assert(func_reflectable<int_operator>);
-// @/
-```
-
-With this, we can check that a given main method is in fact a method, and that
-the accepted methods return void, as required:
-
-```c++
-template<typename T>
-concept has_static_main_method_that_returns_void =
-    std::is_same_v<void, func_reflection<decltype(&T::main)>::ret>;
-```
-
-Our final concepts follow this pattern closely:
+Using our small [function reflection library](concepts/functions.litlit) we can
+tell whether a component has a main subroutine by checking whether the return
+type of the expected methods (`T::main` or `T::operator()`) have the expected
+type (void). This concept will not be satisfied if `T::main` is a variable,
+since function reflection is impossible in this case and checking the return
+type is thus an error.
 
 ```c++
 // @+'base component implementation details'
 template<typename T>
 concept has_main_subroutine
-    =  std::is_same_v<void, func_ret_t<&T::operator()>>
-    || std::is_same_v<void, func_ret_t<&T::main>>;
+    =  std::same_as<void, typename function_reflection<decltype(&T::operator())>::return_type>
+    || std::same_as<void, typename function_reflection<decltype(&T::main)>::return_type>
+    ;
 // @/
 
 // @+'tests'
-static_assert(has_main_subroutine<struct_with_void_main_method>);
-static_assert(!has_main_subroutine<struct_with_int_main_method>);
-static_assert(has_main_subroutine<struct_with_void_operator_call>);
-static_assert(!has_main_subroutine<struct_with_int_operator_call>);
+struct void_main { void main() {} };
+struct void_operator { void operator()() {} };
+static_assert(has_main_subroutine<void_main>);
+static_assert(has_main_subroutine<void_operator>);
+
+struct member_main { int main; };
+struct int_main { int main() {return 1;} };
+struct int_operator { int operator()() {return 1;} };
+static_assert(!has_main_subroutine<member_main>);
+static_assert(!has_main_subroutine<int_main>);
+static_assert(!has_main_subroutine<int_operator>);
 // @/
 ```
 
@@ -227,6 +132,7 @@ is well tested.
 #pragma once
 
 #include <boost/pfr.hpp>
+#include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"
 
 namespace sygaldry { namespace concepts {
