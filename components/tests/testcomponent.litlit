@@ -38,6 +38,11 @@ struct TestComponent : name_<"Test Component 1">
         out.slider_out = in.slider_in;
         out.bang_out = in.bang_in;
     }
+
+    constexpr void operator()()
+    {
+        main(inputs, outputs);
+    }
 };
 
 } } // namespaces

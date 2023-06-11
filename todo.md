@@ -26,9 +26,10 @@
 -[ ] subassemblies
 -[ ] pure assemblies
 -[ ] external plugins
+-[ ] throughpoints
+-[ ] parts parameters
 -[ ] enum tag checker
 -[ ] message inputs and callback outputs
--[ ] refactor 'is a' concepts as 'is_whatever' instead of 'Whatever'
 
 # Components
 

@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <concepts/components.hpp>
 #include <bindings/cli/cli.hpp>
+#include <bindings/output_logger.hpp>
 #include <components/esp32/button.hpp>
 
 using namespace sygaldry::components;
@@ -13,6 +15,7 @@ struct components_t
 } components;
 
 CstdioCli<decltype(components)> cli;
+CstdioOutputLogger<decltype(components)> log;
 
 extern "C" void app_main(void)
 {
@@ -21,7 +24,9 @@ extern "C" void app_main(void)
     for (;;)
     {
         components.button();
+        log(components);
         cli(components);
+        clear_flags(components.button);
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }

@@ -1,0 +1,129 @@
+# Output parts.Logger
+
+Following the CLI, the next binding with an optimal balance of usefulness and
+simple implementation was one that simply prints a text-based representation of
+output endpoint values any time they change.
+
+```c++
+// @#'tests/output_logger/tests.cpp'
+#include <string>
+#include <catch2/catch_test_macros.hpp>
+#include "components/tests/testcomponent.hpp"
+#include "bindings/output_logger.hpp"
+
+using std::string;
+
+using namespace sygaldry::bindings;
+
+void test_logger(auto& logger, auto& components, string expected_output, auto input_callback)
+{
+    logger.parts.log.put.ss.str("");
+    input_callback();
+    components.tc();
+    logger(components);
+    REQUIRE(logger.parts.log.put.ss.str() == expected_output);
+}
+
+struct TestComponents
+{
+    sygaldry::components::TestComponent tc;
+};
+
+TEST_CASE("Output Logger", "[bindings][output_logger]")
+{
+    auto components = TestComponents{};
+    auto& tc = components.tc;
+    auto logger = sygaldry::bindings::CstdioOutputLogger<decltype(components)>{};
+    return;
+
+    // updating causes output
+    test_logger(logger, components, "Test_Component_1/button_out 1\n", [&](){
+        tc.inputs.button_in = 1;
+    });
+
+    // changes cause output
+    test_logger(logger, components, "Test_Component_1/button_out 0\n", [&](){
+        tc.inputs.button_in = 0;
+    });
+
+    // no output when things stay the same
+    test_logger(logger, components, "", [&](){
+        tc.inputs.button_in = 0;
+    });
+
+    // bangs look different
+    test_logger(logger, components, "Test_Component_1/bang_out", [&](){
+        tc.outputs.bang_out();
+    });
+
+    // no output when bangs aren't cleared
+    test_logger(logger, components, "", [&](){
+        tc.outputs.bang_out();
+    });
+
+    // no output when bangs *are* cleared
+    test_logger(logger, components, "", [&](){
+        tc.outputs.bang_out = {};
+    });
+}
+// @/
+```
+
+```cmake
+# @#'tests/output_logger/CMakeLists.txt'
+add_executable(output-logger-tests tests.cpp)
+target_link_libraries(output-logger-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(output-logger-tests)
+# @/
+```
+
+```c++
+// @#'output_logger.hpp'
+#pragma once
+#include "bindings/spelling.hpp"
+#include "concepts/components.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
+
+namespace sygaldry { namespace bindings {
+
+using namespace sygaldry::concepts;
+
+template<typename Components>
+struct CstdioOutputLogger
+{
+    struct parts_t {
+        TestLogger log;
+    } parts;
+
+//    endpoints_tuple<outputs_of<Components>> last_endpoints_out{};
+
+    void operator()(Components& components)
+    {
+//        std::apply([&]<typename T>(T& last_out)
+//        {
+//            using Path = path_t<T, Components>;
+//            const T& current_out = find<T>(components);
+//            if (current_out != last_out)
+//            {
+//                last_out = current_out;
+//
+//                if constexpr (Bang<T>) if (not current_out) return;
+//
+//                for_each_type<Path>([&]<typename Y>() {
+//                    if constexpr (not has_name<Y>) return;
+//                    parts.log.print(snake_case_v<T>);
+//                    if constexpr (not std::is_same_v<T, Y>)
+//                        parts.log.print("/");
+//                });
+//
+//                if constexpr (has_value<T>)
+//                    parts.log.print(value_of(current_out));
+//
+//                parts.log.println();
+//            }
+//        }, last_endpoints_out);
+    }
+};
+} }
+// @/
+```
