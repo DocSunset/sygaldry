@@ -1,13 +1,220 @@
 # Components Concepts
 
-For now, we take a component as any type that has member variables for inputs
-and outputs. This is no doubt an incomplete specification of the requirements
-we have for components, but it'll do for now.
+We consider two kinds of components: regular components and pure assemblies.
+
+```c++
+// @='Component'
+template<typename T>
+concept Component = RegularComponent<T> || PureAssembly<T>;
+// @/
+```
+
+A regular component has a name, a main subroutine, and at least one of
+endpoints, throughpoints, parts, or plugins.
+
+```c++
+// @='RegularComponent'
+template<typename T>
+concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
+        ( has_inputs<T> || has_outputs<T> || has_parts<T>
+        // TODO || has_throughpoints<T> || has_plugins<T>
+        );
+// @/
+```
+
+A pure assembly has only parts, no inputs or outputs, and no main subroutine,
+and it is not required to have a name. A pure assembly may also be represented
+by a simple aggregate struct of endpoints.
+
+```c++
+// @='PureAssembly'
+template<typename T>
+concept PureAssembly = (is_simple_aggregate<T> && has_only_endpoints<T>) ||
+    ( has_parts<T> && not ( has_main_subroutine<T>
+    || has_inputs<T> || has_outputs<T>
+    // TODO || has_throughpoints<T> || has_plugins<T>
+    ) );
+// @/
+```
+
+```c++
+// @+'tests'
+
+struct my_component_t : name_<"component concept test component">
+{
+    struct inputs_t {} inputs;
+    struct outputs_t {} outputs;
+    struct parts_t {} parts;
+    static void main(const inputs_t&, outputs_t&) {}
+};
+
+struct struct_of_components
+{
+    my_component_t component;
+};
+
+TEST_CASE("Base Component Concepts")
+{
+    SECTION("has ___")
+    {
+        // static_assert(has_main_subroutine<my_component_t>);
+        // static_assert(has_inputs<my_component_t>);
+        // static_assert(has_outputs<my_component_t>);
+        // static_assert(has_parts<my_component_t>);
+        // static_assert(has_parts<my_component_t>);
+        // TODO static_assert(has_throughpoints<my_component_t>);
+        // TODO static_assert(has_plugins<my_component_t>);
+        // static_assert(has_only_endpoints<struct_of_components>);
+        // static_assert(is_simple_aggregate<struct_of_components>);
+    }
+}
+// @/
+
+// @='base component concepts'
+@{base component implementation details}
+
+//@{RegularComponent}
+//
+//@{PureAssembly}
+//
+//@{Component}
+template<typename T>
+concept Component = requires (T t) {t.inputs; t.outputs;};
+// @/
+```
+
+## Component Concepts Implementation
+
+We detect a main subroutine as a static method `main` or a function call
+operator that takes as arguments the components inputs, outputs, and/or parts,
+if any exist, as well as possibly additional throughpoints and/or plugins, and
+returns `void`. This turns out to be a bit involved to determine based only on
+the type. For now, we check only that the potential component has one of the
+expected methods (itself no simple task), and that their return type is `void`,
+and we leave verification of the arguments as future work.
+
+```c++
+// @+'tests'
+// these should both count as components, for now
+struct struct_with_void_main_method { void main() {}; };
+struct struct_with_void_operator_call { void operator()() {}; };
+
+// and these should not
+struct struct_with_int_main_method { int main(int i) { return i + 1; }; };
+struct struct_with_int_operator_call { int operator()(int i) { return i + 1; }; };
+// @/
+```
+
+It's easy to check whether the given type has a function call operator; we can
+simply check if it's possible to take its address. But this doesn't allow us
+to check the return type is `void`:
+
+```c++
+template<typename T>
+concept has_call_operator
+    = requires (T t) { &T::operator(); };
+
+static_assert(has_call_operator<struct_with_void_operator_call>); // true
+static_assert(has_call_operator<struct_with_int_operator_call>); // also true...
+```
+
+A similar check for the `main` method doesn't prove anything; `main` could just
+as well be a static variable, and even if it is a method, we still don't know
+if it returns void.
+
+```c++
+template<typename T>
+concept has_static_main_member = requires (T t) { &T::main; }; // proves nothing!
+
+struct struct_with_main_method { static void main() {}; };
+struct struct_with_main_variable { static int main; };
+static_assert(has_static_main_member<struct_with_main_method>); // true
+static_assert(has_static_main_member<struct_with_main_variable>); // also true...
+```
+
+We need to check that the accepted methods are callable and return `void`. For
+that we need function reflection:
+
+```c++
+// @+'base component implementation details'
+// TODO it may make sense to move this into its own header
+template<typename ... L> struct type_list {};
+
+template<typename NotAFunction>
+struct func_reflection { static constexpr bool exists = false; };
+
+template<typename R, typename... Args>
+struct func_reflection<R(Args...)> {
+    using ret = R;
+    using args = type_list<Args...>;
+    static constexpr bool exists = true;
+};
+
+template<typename R, typename... Args>
+struct func_reflection<R(*)(Args...)> : func_reflection<R(Args...)> {};
+
+template<typename R, typename Class, typename... Args>
+struct func_reflection<R(Class::*)(Args...)> : func_reflection<R(Args...)> {};
+
+template<typename R, typename Class, typename... Args>
+struct func_reflection<R(Class::*)(Args...) const> : func_reflection<R(Args...)> {};
+
+template<auto Val> using func_ret_t = func_reflection<decltype(Val)>::ret;
+template<auto Val> using func_args_t = func_reflection<decltype(Val)>::args;
+
+template<typename ... Args>
+concept func_reflectable = func_reflection<Args...>::exists;
+// @/
+
+// @+'tests'
+using void_operator = decltype(&struct_with_void_operator_call::operator());
+using void_operator_reflection = func_reflection<void_operator>;
+using void_return_type = void_operator_reflection::ret;
+static_assert(std::is_same_v<void_return_type, void>);
+
+using int_operator = decltype(&struct_with_int_operator_call::operator());
+using int_operator_reflection = func_reflection<int_operator>;
+using int_return_type = int_operator_reflection::ret;
+static_assert(std::is_same_v<int_return_type, int>);
+static_assert(std::is_same_v<int_return_type, int>);
+static_assert(std::is_same_v<func_ret_t<&struct_with_int_operator_call::operator()>, int>);
+
+static_assert(func_reflectable<void_operator>);
+static_assert(func_reflectable<int_operator>);
+// @/
+```
+
+With this, we can check that a given main method is in fact a method, and that
+the accepted methods return void, as required:
+
+```c++
+template<typename T>
+concept has_static_main_method_that_returns_void =
+    std::is_same_v<void, func_reflection<decltype(&T::main)>::ret>;
+```
+
+Our final concepts follow this pattern closely:
+
+```c++
+// @+'base component implementation details'
+template<typename T>
+concept has_main_subroutine
+    =  std::is_same_v<void, func_ret_t<&T::operator()>>
+    || std::is_same_v<void, func_ret_t<&T::main>>;
+// @/
+
+// @+'tests'
+static_assert(has_main_subroutine<struct_with_void_main_method>);
+static_assert(!has_main_subroutine<struct_with_int_main_method>);
+static_assert(has_main_subroutine<struct_with_void_operator_call>);
+static_assert(!has_main_subroutine<struct_with_int_operator_call>);
+// @/
+```
 
 Many components have endpoints with message semantics, e.g. by its value having
 semantics similar to a pointer or `std::optional`. These values are expected to
 be cleared so that they have a `false` interpretation unless the value has been
-set juse before or during the current call to the component's main subroutine.
+set just before or during the current call to the component's main subroutine.
 To facilitate bindings implementing this behavior in a consistent way, the
 following subroutine is implemented, that reflects over a component's endpoints
 and clears all of its endpoints with this semantics.
@@ -24,8 +231,7 @@ is well tested.
 
 namespace sygaldry { namespace concepts {
 
-template <typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
+@{base component concepts}
 
 template<Component T>
 auto& inputs_of(T& component)
@@ -71,4 +277,26 @@ void activate(T& component)
 
 } }
 // @/
+```
+
+```c++
+// @#'tests/components/tests.cpp'
+#include <type_traits>
+#include <catch2/catch_test_macros.hpp>
+#include "helpers/metadata.hpp"
+#include "concepts/components.hpp"
+
+using namespace sygaldry::concepts;
+using namespace sygaldry::helpers;
+
+@{tests}
+// @/
+```
+
+```cmake
+# @#'tests/components/CMakeLists.txt'
+add_executable(components-concepts-tests tests.cpp)
+target_link_libraries(components-concepts-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(components-concepts-tests)
+# @/
 ```

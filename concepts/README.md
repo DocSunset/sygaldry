@@ -23,10 +23,10 @@ structured. A regular component defines a main subroutine, and has at least one
 of the following: endpoints, throughpoints, parts, or plugins. The
 functionality of a regular component is determined by its main subroutine. A
 pure assembly defines only a parts structure, and no input/output structures or
-main subroutine. It may have internal plugins, but no throughpoints or external
-plugins. Its functionality is defined by running the main subroutines of its
-parts. Both regular components and pure assemblies must define (or inherit) a
-static method `name()` that returns something like a string.
+main subroutine. It may not have throughpoints or external plugins, as a
+consequence of having no main subroutine. Its functionality is defined by
+running the main subroutines of its parts. Pure assemblies are not required to
+have a name.
 
 # Ports
 
@@ -82,12 +82,20 @@ passing endpoints, semantic interpretation flows unchanged past throughpoints.
 TODO A component's throughpoints are declared by first using class template
 parameters that accept `outputs` and/or `inputs` struct types that represent
 the source and destination of the throughpoints. Then the component must accept
-structs of those types by reference as arguments to its main
-subroutine. `outputs` originating from a source component should be accepted as
-constant reference arguments, while `inputs` to a destination component should
-be accepted as mutable reference arguments. TODO A variety of combinator
-templates will be provided to allow the combination and filtering out of
-endpoints from one or more components before passing them to a throughpoint.
+structs of those types by reference as arguments to its main subroutine.
+`outputs` originating from a source component should be accepted as constant
+reference arguments, while `inputs` to a destination component should be
+accepted as mutable reference arguments. TODO A variety of combinator templates
+will be provided to allow the combination and filtering out of endpoints from
+one or more components before passing them to a throughpoint. E.g. the template
+arguments for inputs and outputs may be endpoint structures, or type lists of
+endpoints, and the main subroutine of the throughpoint may accept an arbitrary
+number of input components from which the required endpoints can be located at
+compile time using a generic `find<endpoint struct or list>(list of candidate
+containers...)` method that finds an endpoint struct from a list of components
+or generates a tuple of references to endpoints in said list of components from
+a type list of endpoints. Throughpoints can be detected by whether arguments
+to its main subroutine are endpoint structures or lists of endpoints.
 
 # Subassemblies and Subcomponents
 
@@ -109,15 +117,20 @@ ports of their parts TODO are expected to be exposed by bindings from the
 subassembly. This exposure will TODO be controlled through a variety of
 mechanisms to be determined later.
 
+Often it is unnecessary for a subassembly to know all the details about all of
+its parts, and by using some of its parts implicitly, platform-dependencies can
+be avoided. When the type of one or more of a subassembly's parts is declared
+as a template type parameter of the subassembly, and an instance of the type is
+declared in the subassembly's parts structure, this pattern is termed a *part
+parameter*.
+
 ## Plugins
 
-Often it is necessary for a subassembly to make use of a subcomponent, but it's
-not possible for the subassembly to completely manage the subcomponent, e.g.
+Often it is necessary for a subassembly to make use of a subcomponent, but
+without being completely responsible for managing the subcomponent, e.g.
 especially when doing so requires to draw in unecessary platform-specific
-dependencies. This situation is handled similarly to throughpoints, described
-above. The required component is declared as a class template type parameter,
-an instance of which type is passed to the subassembly component's main
-subroutine as a mutable reference. This pattern is termed an *external plugin*.
-Alternatively, the plugin type parameter can be used to directly instantiate
-an instance of the plugin in the subassembly's parts structure. This pattern
-is termed an *internal plugin*.
+dependencies, and when the plugin may have other reponsibilities beyond those
+known to the plugin user. This situation is handled similarly to throughpoints,
+described above. The required component is declared as a class template type
+parameter, an instance of which type is passed to the subassembly component's
+main subroutine as a mutable reference. This pattern is termed a *plugin*.
