@@ -8,87 +8,88 @@ namespace sygaldry { namespace concepts {
 template<typename ... L> struct args_list {};
 
 template<typename NotAFunction>
-struct function_reflection
+struct function_type_reflection
 {
     using exists = std::false_type;
 };
 
-template<typename R, typename... Args>
-struct function_reflection<R(Args...)> {
+template<typename Ret, typename... Args>
+struct function_type_reflection<Ret(Args...)> {
     using exists = std::true_type;
-    using return_type = R;
-    using args = args_list<Args...>;
+    using return_type = Ret;
+    using arguments = args_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
-    using is_static = std::false_type;
+    using parent_class = std::false_type;
     using is_const = std::false_type;
     using is_volatile = std::false_type;
     using is_noexcept = std::false_type;
 };
 
-template<typename R, typename... Args>
-struct function_reflection<R(*)(Args...)> : function_reflection<R(Args...)> {};
+template<typename Ret, typename... Args>
+struct function_type_reflection<Ret(*)(Args...)> : function_type_reflection<Ret(Args...)> {};
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...)> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...)> : function_type_reflection<Ret(Args...)>
 {
-    static constexpr bool is_member = true;
+    using is_free = std::false_type;
+    using is_member = std::true_type;
+    using parent_class = Class;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) const> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) const> : function_type_reflection<Ret(Class::*)(Args...)>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_const = true;
+    using is_const = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) volatile> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) volatile> : function_type_reflection<Ret(Class::*)(Args...)>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_volatile = true;
+    using is_volatile = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) const volatile> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) const volatile> : function_type_reflection<Ret(Class::*)(Args...)>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_const = true;
-    static constexpr bool is_volatile = true;
+    using is_const = std::true_type;
+    using is_volatile = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) noexcept> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) noexcept> : function_type_reflection<Ret(Class::*)(Args...)>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_noxcept = true;
+    using is_noexcept = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) const noexcept> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) const noexcept> : function_type_reflection<Ret(Class::*)(Args...)const>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_const = true;
-    static constexpr bool is_noxcept = true;
+    using is_noexcept = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) volatile noexcept> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) volatile noexcept> : function_type_reflection<Ret(Class::*)(Args...)volatile>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_volatile = true;
-    static constexpr bool is_noxcept = true;
+    using is_noexcept = std::true_type;
 };
 
-template<typename R, typename Class, typename... Args>
-struct function_reflection<R(Class::*)(Args...) const volatile noexcept> : function_reflection<R(Args...)>
+template<typename Ret, typename Class, typename... Args>
+struct function_type_reflection<Ret(Class::*)(Args...) const volatile noexcept> : function_type_reflection<Ret(Class::*)(Args...)const volatile>
 {
-    static constexpr bool is_member = true;
-    static constexpr bool is_const = true;
-    static constexpr bool is_volatile = true;
-    static constexpr bool is_noxcept = true;
+    using is_noexcept = std::true_type;
 };
 
-template<typename ... Args> concept function_reflectable = function_reflection<Args...>::exists::value;
+template<typename ... Args> concept function_type_reflectable = function_type_reflection<Args...>::exists::value;
+
+template<auto f> concept function_reflectable = function_type_reflectable<std::decay_t<decltype(f)>>;
+
+template<auto f>
+    requires function_reflectable<f>
+struct function_reflection
+: function_type_reflection<std::decay_t<decltype(f)>>
+{
+    using parent_reflection = function_type_reflection<std::decay_t<decltype(f)>>; // for tests
+};
 
 } }

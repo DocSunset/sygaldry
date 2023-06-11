@@ -8,8 +8,8 @@ namespace sygaldry { namespace concepts {
 
 template<typename T>
 concept has_main_subroutine
-    =  std::same_as<void, typename function_reflection<decltype(&T::operator())>::return_type>
-    || std::same_as<void, typename function_reflection<decltype(&T::main)>::return_type>
+    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+    || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
 
 //template<typename T>
