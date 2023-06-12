@@ -22,11 +22,11 @@ We presently model two kinds of components depending on how they are
 structured. A regular component defines a main subroutine, and has at least one
 of the following: endpoints, throughpoints, parts, or plugins. The
 functionality of a regular component is determined by its main subroutine. A
-pure assembly defines only a parts structure, and no input/output structures or
-main subroutine. It may not have throughpoints or external plugins, as a
-consequence of having no main subroutine. Its functionality is defined by
-running the main subroutines of its parts. Pure assemblies are not required to
-have a name.
+container component is a simple aggregate that usually contains subcomponents.
+It may not have throughpoints or external plugins, as a consequence of having
+no main subroutine. Its functionality is defined by running the main
+subroutines of its subcomponents. Container components are not required to have
+a name.
 
 # Ports
 

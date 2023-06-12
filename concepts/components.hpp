@@ -8,10 +8,17 @@
 
 namespace sygaldry { namespace concepts {
 
+template<typename T>
+concept SimpleAggregate
+    =  not std::is_union_v<T>
+    && (  std::is_aggregate_v<T>
+       || std::is_scalar_v<T>
+       )
+    ;
 #define has_type_or_value(NAME)\
-template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; };\
-template<typename T> concept has_##NAME##_type = requires { typename T::NAME; };\
-template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; };\
+template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; requires SimpleAggregate<decltype(t.NAME)>; };\
+template<typename T> concept has_##NAME##_type = requires { typename T::NAME; requires SimpleAggregate<typename T::NAME>; };\
+template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; requires SimpleAggregate<typename T::NAME##_t>; };\
 template<typename T>\
 concept has_##NAME \
     =  has_##NAME##_member<T>\
@@ -31,34 +38,6 @@ concept has_main_subroutine
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
-template<typename T>
-concept Aggregate
-    =  not std::is_union_v<T>
-    && (  std::is_aggregate_v<T>
-       || std::is_scalar_v<T>
-       )
-    ;
-template<typename T> using is_component = std::true_type;
-
-using boost::mp11::mp_apply;
-using boost::mp11::mp_all;
-using boost::mp11::mp_transform;
-template<Aggregate T> struct aggregate_reflection
-{
-    static constexpr T t{};
-    static constexpr auto tup = boost::pfr::structure_to_tuple(t);
-    using members = decltype(tup);
-
-    using has_only_components =
-        mp_apply< mp_all
-                , mp_transform< is_component
-                              , members
-                              >
-                >;
-};
-
-template<typename T>
-concept has_only_components = true;
 
 template<typename T>
 concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
@@ -67,17 +46,10 @@ concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
         );
 
 template<typename T>
-concept Assembly
-    =  has_parts<T> && not ( has_main_subroutine<T>
-    || has_inputs<T> || has_outputs<T>)
-    // TODO || has_throughpoints<T> || has_plugins<T>
-    ;
-
-template<typename T>
-concept Container = Aggregate<T> && has_only_components<T>;
+concept ContainerComponent = SimpleAggregate<T>;
 
 //template<typename T>
-//concept Component = RegularComponent<T> || Assembly<T> || Container<T>;
+//concept Component = RegularComponent<T> || ContainerComponent<T>;
 template<typename T>
 concept Component = requires (T t) {t.inputs; t.outputs;};
 

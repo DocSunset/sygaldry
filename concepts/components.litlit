@@ -1,17 +1,20 @@
 # Components Concepts
 
-We consider three kinds of components: regular components, assemblies,
-and containers.
+We consider three kinds of components: regular components, and container
+components.
 
 ```c++
 // @='Component'
 template<typename T>
-concept Component = RegularComponent<T> || Assembly<T> || Container<T>;
+concept Component = RegularComponent<T> || ContainerComponent<T>;
 // @/
 ```
 
 A regular component has a name, a main subroutine, and at least one of
-endpoints, throughpoints, parts, or plugins.
+endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
+parts, these must be simple aggregate containers. They are expected to contain
+endpoints (inputs and outputs) or subcomponents (parts), but they are not
+required to.
 
 ```c++
 // @='RegularComponent'
@@ -23,76 +26,55 @@ concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
 // @/
 
 // @+'tests'
-struct my_component_t : name_<"component concept test component">
+struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
     struct parts_t {} parts;
     static void main(const inputs_t&, outputs_t&) {}
-} my_component;
+} regular_component;
 
-static_assert(has_main_subroutine<my_component_t>);
-static_assert(has_inputs<my_component_t>);
-static_assert(has_outputs<my_component_t>);
-static_assert(has_parts<my_component_t>);
-static_assert(RegularComponent<my_component_t>);
-static_assert(Component<my_component_t>);
+static_assert(has_main_subroutine<regular_component_t>);
+static_assert(has_inputs<regular_component_t>);
+static_assert(has_outputs<regular_component_t>);
+static_assert(has_parts<regular_component_t>);
+static_assert(RegularComponent<regular_component_t>);
+static_assert(Component<regular_component_t>);
 // @/
 ```
 
-An assembly has only parts, no inputs or outputs, and no main subroutine,
-and it is not required to have a name.
+A container is merely an aggregate that contains only nested containers and/or
+regular components. It may have a name, but it must be declared directly in
+the container definition in order to preserve aggregate-ness (e.g. it must not
+use the inherited `name_<"name">` helper). Similar to a regular component's
+inputs, outputs, and parts structures, a container is expected but not required
+to contain components.
 
 ```c++
-// @='Assembly'
+// @='ContainerComponent'
 template<typename T>
-concept Assembly
-    =  has_parts<T> && not ( has_main_subroutine<T>
-    || has_inputs<T> || has_outputs<T>)
-    // TODO || has_throughpoints<T> || has_plugins<T>
-    ;
+concept ContainerComponent = SimpleAggregate<T>;
 // @/
 
 // @+'tests'
-struct component_of_parts : name_<"component concept test assembly">
+struct container_component_t
 {
-    struct parts_t {
-        my_component_t component;
-    } parts;
-} my_assembly2;
+    static _consteval auto name() {return "container component";}
+    regular_component_t component1;
+} container_component;
 
-static_assert(has_parts<component_of_parts>);
-static_assert(not has_main_subroutine<component_of_parts>);
-static_assert(not has_inputs<component_of_parts>);
-static_assert(not has_outputs<component_of_parts>);
-static_assert(Assembly<component_of_parts>);
-//static_assert(Component<component_of_parts>);
-
+static_assert(SimpleAggregate<container_component_t>);
+static_assert(ContainerComponent<container_component_t>);
+//static_assert(Component<container_component_t>);
 // @/
 ```
 
-A container is merely an aggregate that contains only assemblies and/or regular
-components.
-
-```c++
-// @='Container'
-template<typename T>
-concept Container = Aggregate<T> && has_only_components<T>;
-// @/
-
-// @+'tests'
-struct struct_of_components
-{
-    my_component_t component1;
-    component_of_parts component2;
-} my_assembly1;
-
-static_assert(Aggregate<struct_of_components>);
-static_assert(has_only_components<struct_of_components>);
-static_assert(Container<struct_of_components>);
-//static_assert(Component<struct_of_components>);
-// @/
-```
+Whereas a regular component's functionality is defined by its main subroutine,
+and its subcomponents should not be managed or activated by the runtime
+platform bindings and their inputs should not in general be modified
+externally, containers are defined in terms of their subcomponents, which
+should be treated as regular components by the runtime platform bindings,
+activated accordingly, and exposed for external control inputs.
 
 ```c++
 // @='base component concepts'
@@ -100,9 +82,7 @@ static_assert(Container<struct_of_components>);
 
 @{RegularComponent}
 
-@{Assembly}
-
-@{Container}
+@{ContainerComponent}
 
 //@{Component}
 template<typename T>
@@ -110,74 +90,14 @@ concept Component = requires (T t) {t.inputs; t.outputs;};
 // @/
 ```
 
-## Component Concepts Implementation
+## ContainerComponent
 
-To detect whether a component has parts, inputs, or outputs, we employ the same
-structure parameterized on the expected name of the nested simple aggregate
-structure. We use a macro to avoid repetition. A similar pattern is used
-[to define `has_name`](concepts/metadata.litlit).
+A container is a simple aggregate that contains only components. We begin here,
+since the definition of the `inputs`, `outputs`, and `parts` structures of a
+regular component depends on the definition of a simple aggregate aggregate
+developed here.
 
-```c++
-// @+'base component implementation details'
-#define has_type_or_value(NAME)\
-template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; };\
-template<typename T> concept has_##NAME##_type = requires { typename T::NAME; };\
-template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; };\
-template<typename T>\
-concept has_##NAME \
-    =  has_##NAME##_member<T>\
-    || has_##NAME##_type<T>\
-    || has_##NAME##_t<T>;\
-\
-template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
-template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
-
-has_type_or_value(inputs);
-has_type_or_value(outputs);
-has_type_or_value(parts);
-
-#undef has_type_or_value
-// @/
-
-// @+'tests'
-static_assert(std::same_as<my_component_t::inputs_t&, decltype(inputs_of(my_component))>);
-static_assert(std::same_as<my_component_t::outputs_t&, decltype(outputs_of(my_component))>);
-static_assert(std::same_as<my_component_t::parts_t&, decltype(parts_of(my_component))>);
-// @/
-```
-
-Using our small [function reflection library](concepts/functions.litlit) we can
-tell whether a component has a main subroutine by checking whether the return
-type of the expected methods (`T::main` or `T::operator()`) have the expected
-type (void). This concept will not be satisfied if `T::main` is a variable,
-since function reflection is impossible in this case and checking the return
-type is thus an error.
-
-```c++
-// @+'base component implementation details'
-template<typename T>
-concept has_main_subroutine
-    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
-    || std::same_as<void, typename function_reflection<&T::main>::return_type>
-    ;
-// @/
-
-// @+'tests'
-struct void_main { void main() {} };
-struct void_operator { void operator()() {} };
-static_assert(has_main_subroutine<void_main>);
-static_assert(has_main_subroutine<void_operator>);
-
-struct member_main { int main; };
-struct int_main { int main() {return 1;} };
-struct int_operator { int operator()() {return 1;} };
-static_assert(not has_main_subroutine<member_main>);
-static_assert(not has_main_subroutine<int_main>);
-static_assert(not has_main_subroutine<int_operator>);
-// @/
-```
-
-## Simple Aggregate
+### Simple Aggregate
 
 Our notion of a simple aggregate comes from `boost::pfr`, which we rely on for
 the ability to iterate over lists of endpoints and components in the form of
@@ -187,7 +107,7 @@ concept--
 
 ```c++
 template<typename T>
-concept Aggregate = requires { boost::pfr::tuple_size_v<T>; };
+concept SimpleAggregate = requires { boost::pfr::tuple_size_v<T>; };
 
 ```
 
@@ -204,8 +124,7 @@ what the requirements are:
 ```c++
 // @+'tests'
 // docs say: aggregates may not have base classes
-struct foo { int x; foo(int a, int b) : x{a+b} {} };
-struct not_simple_aggregate1 : foo { };
+struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
 // auto failure = boost::pfr::tuple_size_v<not_simple_aggregate1>; // static assertion failure
 
@@ -250,12 +169,12 @@ any base class. We can easily detect when `T` is scalar or union using
 to detect when `T` has a base class. For now, we defer this issue to
 `boost::pfr`, which will in any case raise a static assertion failure if we try
 to pass it a type with a base class, giving us the following
-incomplete-but-likely-sufficient implementation of our `Aggregate` concept:
+incomplete-but-likely-sufficient implementation of our `SimpleAggregate` concept:
 
 ```c++
 // @+'base component implementation details'
 template<typename T>
-concept Aggregate
+concept SimpleAggregate
     =  not std::is_union_v<T>
     && (  std::is_aggregate_v<T>
        || std::is_scalar_v<T>
@@ -264,62 +183,96 @@ concept Aggregate
 // @/
 
 // @+'tests'
-static_assert(Aggregate<component_of_parts::parts_t>);
-static_assert(Aggregate<my_component_t::inputs_t>);
-static_assert(Aggregate<my_component_t::outputs_t>);
+static_assert(SimpleAggregate<regular_component_t::inputs_t>);
+static_assert(SimpleAggregate<regular_component_t::outputs_t>);
+static_assert(SimpleAggregate<regular_component_t::parts_t>);
+static_assert(SimpleAggregate<container_component_t>);
 // @/
 ```
 
-## Has Only Components
+## Regular Component
 
-A pure assembly component is allowed to be represented as a structure
-containing only components; essentially an unnamed parts structure. To
-recognize this case, we need to be able to tell that all elements of an
-aggregate structure are components. We can use `boost::pfr` to extract
-a list of members of the structure.
+A regular component has a name, a main subroutine, and at least one of
+endpoints, throughpoints, parts, or plugins.
 
-If we take for granted that we have a metafunction that determines whether a
-type `T` is a component, we can use `boost::mp11` to very simply check whether
-all of the members are components.
+### Parts, Inputs, Outputs
+
+To detect whether a component has parts, inputs, or outputs, we employ the same
+structure parameterized on the expected name of the nested simple aggregate
+structure. We use a macro to avoid repetition. A similar pattern is used
+[to define `has_name`](concepts/metadata.litlit).
 
 ```c++
 // @+'base component implementation details'
-template<typename T> using is_component = std::true_type;
+#define has_type_or_value(NAME)\
+template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; requires SimpleAggregate<decltype(t.NAME)>; };\
+template<typename T> concept has_##NAME##_type = requires { typename T::NAME; requires SimpleAggregate<typename T::NAME>; };\
+template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; requires SimpleAggregate<typename T::NAME##_t>; };\
+template<typename T>\
+concept has_##NAME \
+    =  has_##NAME##_member<T>\
+    || has_##NAME##_type<T>\
+    || has_##NAME##_t<T>;\
+\
+template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
+template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
 
-using boost::mp11::mp_apply;
-using boost::mp11::mp_all;
-using boost::mp11::mp_transform;
-template<Aggregate T> struct aggregate_reflection
-{
-    static constexpr T t{};
-    static constexpr auto tup = boost::pfr::structure_to_tuple(t);
-    using members = decltype(tup);
+has_type_or_value(inputs);
+has_type_or_value(outputs);
+has_type_or_value(parts);
 
-    using has_only_components =
-        mp_apply< mp_all
-                , mp_transform< is_component
-                              , members
-                              >
-                >;
-};
+#undef has_type_or_value
+// @/
+
+// @+'tests'
+static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
 // @/
 ```
 
-The tricky part then is defining `is_component`, since this metafunction is
-necessarily recursive. Whether something is a component may depend on whether
-it contains only components, which depends on whether its members are
-components, which may depend on whether they contain only components... and so
-on. By putting all our reflection into a struct, we can break the recursion
-using SFINAE to branch to a base case for components that aren't aggregates of
-components.
+### Main Subroutine
+
+Using our small [function reflection library](concepts/functions.litlit) we can
+tell whether a component has a main subroutine by checking whether the return
+type of the expected methods (`T::main` or `T::operator()`) have the expected
+type (void). This concept will not be satisfied if `T::main` is a variable,
+since function reflection is impossible in this case and checking the return
+type is thus an error.
 
 ```c++
 // @+'base component implementation details'
-
 template<typename T>
-concept has_only_components = true;
+concept has_main_subroutine
+    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+    || std::same_as<void, typename function_reflection<&T::main>::return_type>
+    ;
+// @/
+
+// @+'tests'
+struct void_main { void main() {} };
+struct void_operator { void operator()() {} };
+static_assert(has_main_subroutine<void_main>);
+static_assert(has_main_subroutine<void_operator>);
+
+struct member_main { int main; };
+struct int_main { int main() {return 1;} };
+struct int_operator { int operator()() {return 1;} };
+static_assert(not has_main_subroutine<member_main>);
+static_assert(not has_main_subroutine<int_main>);
+static_assert(not has_main_subroutine<int_operator>);
 // @/
 ```
+
+# Accessing Subcomponents and Endpoints
+
+Given a variadic argument list of components, there are two common operations
+that are required. The first is to apply a generic function (especially a lambda)
+to every component in the list. The second is to find a certain component or
+components in the list.
+
+## For each component
+
 
 # Clearable Flags
 

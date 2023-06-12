@@ -7,61 +7,31 @@
 using namespace sygaldry::concepts;
 using namespace sygaldry::helpers;
 
-struct my_component_t : name_<"component concept test component">
+struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
     struct parts_t {} parts;
     static void main(const inputs_t&, outputs_t&) {}
-} my_component;
+} regular_component;
 
-static_assert(has_main_subroutine<my_component_t>);
-static_assert(has_inputs<my_component_t>);
-static_assert(has_outputs<my_component_t>);
-static_assert(has_parts<my_component_t>);
-static_assert(RegularComponent<my_component_t>);
-static_assert(Component<my_component_t>);
-struct component_of_parts : name_<"component concept test assembly">
+static_assert(has_main_subroutine<regular_component_t>);
+static_assert(has_inputs<regular_component_t>);
+static_assert(has_outputs<regular_component_t>);
+static_assert(has_parts<regular_component_t>);
+static_assert(RegularComponent<regular_component_t>);
+static_assert(Component<regular_component_t>);
+struct container_component_t
 {
-    struct parts_t {
-        my_component_t component;
-    } parts;
-} my_assembly2;
+    static _consteval auto name() {return "container component";}
+    regular_component_t component1;
+} container_component;
 
-static_assert(has_parts<component_of_parts>);
-static_assert(not has_main_subroutine<component_of_parts>);
-static_assert(not has_inputs<component_of_parts>);
-static_assert(not has_outputs<component_of_parts>);
-static_assert(Assembly<component_of_parts>);
-//static_assert(Component<component_of_parts>);
-
-struct struct_of_components
-{
-    my_component_t component1;
-    component_of_parts component2;
-} my_assembly1;
-
-static_assert(Aggregate<struct_of_components>);
-static_assert(has_only_components<struct_of_components>);
-static_assert(Container<struct_of_components>);
-//static_assert(Component<struct_of_components>);
-static_assert(std::same_as<my_component_t::inputs_t&, decltype(inputs_of(my_component))>);
-static_assert(std::same_as<my_component_t::outputs_t&, decltype(outputs_of(my_component))>);
-static_assert(std::same_as<my_component_t::parts_t&, decltype(parts_of(my_component))>);
-struct void_main { void main() {} };
-struct void_operator { void operator()() {} };
-static_assert(has_main_subroutine<void_main>);
-static_assert(has_main_subroutine<void_operator>);
-
-struct member_main { int main; };
-struct int_main { int main() {return 1;} };
-struct int_operator { int operator()() {return 1;} };
-static_assert(not has_main_subroutine<member_main>);
-static_assert(not has_main_subroutine<int_main>);
-static_assert(not has_main_subroutine<int_operator>);
+static_assert(SimpleAggregate<container_component_t>);
+static_assert(ContainerComponent<container_component_t>);
+//static_assert(Component<container_component_t>);
 // docs say: aggregates may not have base classes
-struct foo { int x; foo(int a, int b) : x{a+b} {} };
-struct not_simple_aggregate1 : foo { };
+struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
 // auto failure = boost::pfr::tuple_size_v<not_simple_aggregate1>; // static assertion failure
 
@@ -95,6 +65,21 @@ static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate6>); // works, i
 union not_simple_aggregate7 {float f; int i;} nope;
 static_assert(std::is_aggregate_v<not_simple_aggregate7>); // passes
 // auto failure = boost::pfr::structure_to_tuple(nope); // static assertion failure
-static_assert(Aggregate<component_of_parts::parts_t>);
-static_assert(Aggregate<my_component_t::inputs_t>);
-static_assert(Aggregate<my_component_t::outputs_t>);
+static_assert(SimpleAggregate<regular_component_t::inputs_t>);
+static_assert(SimpleAggregate<regular_component_t::outputs_t>);
+static_assert(SimpleAggregate<regular_component_t::parts_t>);
+static_assert(SimpleAggregate<container_component_t>);
+static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
+struct void_main { void main() {} };
+struct void_operator { void operator()() {} };
+static_assert(has_main_subroutine<void_main>);
+static_assert(has_main_subroutine<void_operator>);
+
+struct member_main { int main; };
+struct int_main { int main() {return 1;} };
+struct int_operator { int operator()() {return 1;} };
+static_assert(not has_main_subroutine<member_main>);
+static_assert(not has_main_subroutine<int_main>);
+static_assert(not has_main_subroutine<int_operator>);
