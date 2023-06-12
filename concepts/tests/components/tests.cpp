@@ -97,7 +97,7 @@ struct dummy_component {
 
     struct parts_t {
         struct dummy_part : name_<"dp"> {
-            struct parts_t {};
+            struct parts_t {} parts;
             void main() {};
         } part;
     } parts;
@@ -107,9 +107,14 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
-    struct c1 : dummy_component, name_<"c1"> {};
-    struct c2 : dummy_component, name_<"c2"> {};
+    struct c1_t : dummy_component, name_<"c1"> {} c1;
+    struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
+
+static_assert(Component<accessor_test_container_t::c1_t>);
+static_assert(Component<accessor_test_container_t::c2_t>);
+static_assert(Component<dummy_component::parts_t::dummy_part>);
+static_assert(ComponentContainer<accessor_test_container_t>);
 
 TEST_CASE("for each component")
 {
@@ -118,6 +123,10 @@ TEST_CASE("for each component")
     {
         allnames += string(component.name());
     });
+    string test{};
+    test += "hi";
+    test += " there";
+    REQUIRE(test == "hi there");
 
     REQUIRE(allnames == "c1dpc2dp");
 }

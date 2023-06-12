@@ -276,7 +276,7 @@ struct dummy_component {
 
     struct parts_t {
         struct dummy_part : name_<"dp"> {
-            struct parts_t {};
+            struct parts_t {} parts;
             void main() {};
         } part;
     } parts;
@@ -286,18 +286,25 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
-    struct c1 : dummy_component, name_<"c1"> {};
-    struct c2 : dummy_component, name_<"c2"> {};
+    struct c1_t : dummy_component, name_<"c1"> {} c1;
+    struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
 
-TEST_CASE("for each component")
-{
-    string allnames{};
-    for_each_component(accessor_test_container, [&](auto& component)
-    {
-        allnames += string(component.name());
-    });
+static_assert(Component<accessor_test_container_t::c1_t>);
+static_assert(Component<accessor_test_container_t::c2_t>);
+static_assert(Component<dummy_component::parts_t::dummy_part>);
+static_assert(ComponentContainer<accessor_test_container_t>);
 
+TEST_CASE("for each X")
+{
+    SECTION("for each component")
+    {
+        string allnames{};
+        for_each_component(accessor_test_container, [&](auto& component)
+        {
+            allnames += string(component.name());
+        });
+    }
     REQUIRE(allnames == "c1dpc2dp");
 }
 // @/
@@ -307,12 +314,22 @@ TEST_CASE("for each component")
 
 ```c++
 // @='for_each_component'
-constexpr auto for_each_component(Component auto components, auto callback)
+template<typename T>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_component(T& component, auto callback)
 {
-}
-
-constexpr auto for_each_component(ComponentContainer auto components, auto callback)
-{
+    if constexpr (Component<T>)
+    {
+        callback(component);
+        if constexpr (has_parts<T>)
+            for_each_component(parts_of(component), callback);
+    } else /* ComponentContainer */
+    {
+        boost::pfr::for_each_field(component, [&]<typename Y>(Y& subcomponent) {
+            if constexpr (Component<Y> || ComponentContainer<Y>)
+                for_each_component(subcomponent, callback);
+        });
+    }
 }
 // @/
 ```

@@ -48,12 +48,22 @@ concept Component = has_main_subroutine<T> && has_name<T> &&
 template<typename T>
 concept ComponentContainer = SimpleAggregate<T>;
 
-constexpr auto for_each_component(Component auto components, auto callback)
+template<typename T>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_component(T& component, auto callback)
 {
-}
-
-constexpr auto for_each_component(ComponentContainer auto components, auto callback)
-{
+    if constexpr (Component<T>)
+    {
+        callback(component);
+        if constexpr (has_parts<T>)
+            for_each_component(parts_of(component), callback);
+    } else /* ComponentContainer */
+    {
+        boost::pfr::for_each_field(component, [&]<typename Y>(Y& subcomponent) {
+            if constexpr (Component<Y> || ComponentContainer<Y>)
+                for_each_component(subcomponent, callback);
+        });
+    }
 }
 
 template<typename T>
