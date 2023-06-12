@@ -347,72 +347,35 @@ TEST_CASE("for each X")
 
 ## For each
 
-Most of these are reasonably straightforward and presented without comment.
+Consider a container of components such as the test structure above. It
+can be seen as the root of a tree-like structure whose leaves are components and
+endpoints:
 
-```c++
-// @='for each'
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_component(T& component, auto callback)
-{
-    if constexpr (Component<T>)
-    {
-        callback(component);
-        if constexpr (has_parts<T>)
-            for_each_component(parts_of(component), callback);
-    } else /* ComponentContainer */
-    {
-        boost::pfr::for_each_field(component, [&]<typename Y>(Y& subcomponent) {
-            if constexpr (Component<Y> || ComponentContainer<Y>)
-                for_each_component(subcomponent, callback);
-        });
-    }
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_endpoint(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_inputs<Y>)
-            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
-        if constexpr (has_outputs<Y>)
-            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
-    });
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_input(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_inputs<Y>)
-            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
-    });
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_output(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_outputs<Y>)
-            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
-    });
-}
-// @/
+```
+container
+    c1
+        inputs
+            ep1
+        outputs
+            ep2
+        parts
+            dp
+                parts
+    c2
+        inputs
+            ep1
+        outputs
+            ep2
+        parts
+            dp
+                parts
 ```
 
-`for_each_node` requires some further exposition. The structure is very similar
-to the above, except in addition to calling the callback for components and
-endpoints, `for_each_node` also calls back for the aggregates encountered along
-the way. To help the user distinguish between a component container, component,
-input or output endpoint aggregate, parts aggregate, or endpoint, an empty tag
-class is passed as the second argument to the callback. Some helpers are
-provided to facilitate compile-time branching depending on the type of node.
+`for_each_node` runs the user-provided callback function for each of these
+nodes. To help the callback distinguish between a component container,
+component, input or output endpoint aggregate, parts aggregate, or endpoint, an
+empty tag class is passed as the second argument to the callback. Some helpers
+are provided to facilitate compile-time branching depending on the type of node.
 
 ```c++
 // @+'for each'
@@ -422,9 +385,11 @@ namespace node
     struct component {};
     struct inputs_container {};
     struct outputs_container {};
+    struct endpoints_container {};
     struct parts_container {};
     struct input_endpoint {};
     struct output_endpoint {};
+    struct endpoint {};
     template<typename> constexpr bool is_component_container = false;
     template<> constexpr bool is_component_container<component_container> = true;
     template<typename> constexpr bool is_component = false;
@@ -442,52 +407,144 @@ namespace node
     template<typename> constexpr bool is_endpoints_container = false;
     template<> constexpr bool is_endpoints_container<inputs_container> = true;
     template<> constexpr bool is_endpoints_container<outputs_container> = true;
+    template<> constexpr bool is_endpoints_container<endpoints_container> = true;
     template<typename> constexpr bool is_endpoint = false;
     template<> constexpr bool is_endpoint<input_endpoint> = true;
     template<> constexpr bool is_endpoint<output_endpoint> = true;
+    template<> constexpr bool is_endpoint<endpoint> = true;
 }
+// @/
+```
 
-template<typename T>
+The function itself takes a variadic list of these tags, allowing the
+user to select which types of nodes they wish to visit. The default, in case
+no tags are provided, is to visit every node.
+
+```c++
+// @+'for each'
+template<typename T, typename ... RequestedNodes>
 constexpr auto for_each_node(T& component, auto callback)
 {
-    if constexpr (Component<T>)
+    using boost::mp11::mp_list;
+    using boost::mp11::mp_contains;
+    using boost::mp11::mp_empty;
+
+    using nodes = mp_list<RequestedNodes...>;
+
+    @{for each component case}
+    @{for each component container case}
+}
+// @/
+```
+
+In case the input is a component container, we optionally call back for said
+container, and then recurse for each contained component.
+
+```c++
+// @='for each component container case'
+else if constexpr (ComponentContainer<T>)
+{
+    if constexpr (  mp_empty<nodes>::value
+                 || mp_contains<nodes, node::component_container>::value
+                 )  callback(component, node::component_container{});
+    boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
     {
-        callback(component, node::component{});
-        if constexpr (has_inputs<T>)
-        {
-            auto& inputs = inputs_of(component);
-            callback(inputs, node::inputs_container{});
-            boost::pfr::for_each_field(inputs, [&](auto& in)
-            {
-                callback(in, node::input_endpoint{});
-            });
-        }
-        if constexpr (has_outputs<T>)
-        {
-            auto& outputs = outputs_of(component);
-            callback(outputs, node::outputs_container{});
-            boost::pfr::for_each_field(outputs, [&](auto& out)
-            {
-                callback(out, node::output_endpoint{});
-            });
-        }
-        if constexpr (has_parts<T>)
-        {
-            auto& parts = parts_of(component);
-            callback(parts, node::parts_container{});
-            boost::pfr::for_each_field(parts, [&](auto& part)
-            {
-                for_each_node(part, callback);
-            });
-        }
-    } else if constexpr (ComponentContainer<T>)
+        for_each_node<S, RequestedNodes...>(subcomponent, callback);
+    });
+}
+// @/
+```
+
+The pattern is almost identical for each of the optional aggregates of a
+component. For endpoint containers, we can skip the iteration over the
+aggregate if the user has not requested the corresponding type of endpoints be
+visited. However, we always recurse over parts in a parts container since the
+user must wish to visit some of its nested nodes, if any exist.
+
+```c++
+// @='for each component case'
+if constexpr (Component<T>)
+{
+    if constexpr (  mp_empty<nodes>::value
+                 || mp_contains<nodes, node::component>::value
+                 )  callback(component, node::component{});
+    if constexpr (has_inputs<T>)
     {
-        callback(component, node::component_container{});
-        boost::pfr::for_each_field(component, [&](auto& subcomponent)
+        auto& inputs = inputs_of(component);
+
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::inputs_container>::value
+                     || mp_contains<nodes, node::endpoints_container>::value
+                     )  callback(inputs, node::inputs_container{});
+
+        // iterate only if we are visiting input endpoints
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::input_endpoint>::value
+                     || mp_contains<nodes, node::endpoint>::value
+                     )  boost::pfr::for_each_field(inputs, [&](auto& in)
         {
-            for_each_node(subcomponent, callback);
+            callback(in, node::input_endpoint{});
         });
-    } else return; // this should never happen
+    }
+    if constexpr (has_outputs<T>)
+    {
+        auto& outputs = outputs_of(component);
+
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::outputs_container>::value
+                     || mp_contains<nodes, node::endpoints_container>::value
+                     )  callback(outputs, node::outputs_container{});
+
+        // iterate only if we are visiting output endpoints
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::output_endpoint>::value
+                     || mp_contains<nodes, node::endpoint>::value
+                     )  boost::pfr::for_each_field(outputs, [&](auto& out)
+        {
+            callback(out, node::output_endpoint{});
+        });
+    }
+    if constexpr (has_parts<T>)
+    {
+        auto& parts = parts_of(component);
+
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::parts_container>::value
+                     )  callback(parts, node::parts_container{});
+
+        // always recurse over nested components
+        boost::pfr::for_each_field(parts, [&]<typename P>(P& part)
+        {
+            for_each_node<P, RequestedNodes...>(part, callback);
+        });
+    }
+}
+// @/
+```
+
+The other `for_each_xyz` function are then easily implemented in terms of
+`for_each_node`:
+
+```c++
+// @+'for each'
+template <typename T> constexpr void for_each_component(T& component, auto callback)
+{
+    for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
+{
+    for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr void for_each_input(T& component, auto callback)
+{
+    for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr void for_each_output(T& component, auto callback)
+{
+    for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 // @/
 ```

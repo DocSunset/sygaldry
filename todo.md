@@ -17,6 +17,7 @@
 
 -[ ] automate documentation link checking
 -[ ] compile litlit as a dependency
+-[ ] litlit should return fail on any warning or error...
 -[ ] drive litlit tangling from cmake
 -[ ] automatically generate litlit.md files
 -[ ] rename litlit to lili?

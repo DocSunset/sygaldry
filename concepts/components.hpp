@@ -48,67 +48,17 @@ concept Component = has_main_subroutine<T> && has_name<T> &&
 template<typename T>
 concept ComponentContainer = SimpleAggregate<T>;
 
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_component(T& component, auto callback)
-{
-    if constexpr (Component<T>)
-    {
-        callback(component);
-        if constexpr (has_parts<T>)
-            for_each_component(parts_of(component), callback);
-    } else /* ComponentContainer */
-    {
-        boost::pfr::for_each_field(component, [&]<typename Y>(Y& subcomponent) {
-            if constexpr (Component<Y> || ComponentContainer<Y>)
-                for_each_component(subcomponent, callback);
-        });
-    }
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_endpoint(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_inputs<Y>)
-            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
-        if constexpr (has_outputs<Y>)
-            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
-    });
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_input(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_inputs<Y>)
-            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
-    });
-}
-
-template<typename T>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_output(T& component, auto callback)
-{
-    for_each_component(component, [&]<typename Y>(Y& subcomponent)
-    {
-        if constexpr (has_outputs<Y>)
-            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
-    });
-}
 namespace node
 {
     struct component_container {};
     struct component {};
     struct inputs_container {};
     struct outputs_container {};
+    struct endpoints_container {};
     struct parts_container {};
     struct input_endpoint {};
     struct output_endpoint {};
+    struct endpoint {};
     template<typename> constexpr bool is_component_container = false;
     template<> constexpr bool is_component_container<component_container> = true;
     template<typename> constexpr bool is_component = false;
@@ -126,22 +76,40 @@ namespace node
     template<typename> constexpr bool is_endpoints_container = false;
     template<> constexpr bool is_endpoints_container<inputs_container> = true;
     template<> constexpr bool is_endpoints_container<outputs_container> = true;
+    template<> constexpr bool is_endpoints_container<endpoints_container> = true;
     template<typename> constexpr bool is_endpoint = false;
     template<> constexpr bool is_endpoint<input_endpoint> = true;
     template<> constexpr bool is_endpoint<output_endpoint> = true;
+    template<> constexpr bool is_endpoint<endpoint> = true;
 }
-
-template<typename T>
+template<typename T, typename ... RequestedNodes>
 constexpr auto for_each_node(T& component, auto callback)
 {
+    using boost::mp11::mp_list;
+    using boost::mp11::mp_contains;
+    using boost::mp11::mp_empty;
+
+    using nodes = mp_list<RequestedNodes...>;
+
     if constexpr (Component<T>)
     {
-        callback(component, node::component{});
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::component>::value
+                     )  callback(component, node::component{});
         if constexpr (has_inputs<T>)
         {
             auto& inputs = inputs_of(component);
-            callback(inputs, node::inputs_container{});
-            boost::pfr::for_each_field(inputs, [&](auto& in)
+
+            if constexpr (  mp_empty<nodes>::value
+                         || mp_contains<nodes, node::inputs_container>::value
+                         || mp_contains<nodes, node::endpoints_container>::value
+                         )  callback(inputs, node::inputs_container{});
+
+            // iterate only if we are visiting input endpoints
+            if constexpr (  mp_empty<nodes>::value
+                         || mp_contains<nodes, node::input_endpoint>::value
+                         || mp_contains<nodes, node::endpoint>::value
+                         )  boost::pfr::for_each_field(inputs, [&](auto& in)
             {
                 callback(in, node::input_endpoint{});
             });
@@ -149,8 +117,17 @@ constexpr auto for_each_node(T& component, auto callback)
         if constexpr (has_outputs<T>)
         {
             auto& outputs = outputs_of(component);
-            callback(outputs, node::outputs_container{});
-            boost::pfr::for_each_field(outputs, [&](auto& out)
+
+            if constexpr (  mp_empty<nodes>::value
+                         || mp_contains<nodes, node::outputs_container>::value
+                         || mp_contains<nodes, node::endpoints_container>::value
+                         )  callback(outputs, node::outputs_container{});
+
+            // iterate only if we are visiting output endpoints
+            if constexpr (  mp_empty<nodes>::value
+                         || mp_contains<nodes, node::output_endpoint>::value
+                         || mp_contains<nodes, node::endpoint>::value
+                         )  boost::pfr::for_each_field(outputs, [&](auto& out)
             {
                 callback(out, node::output_endpoint{});
             });
@@ -158,20 +135,47 @@ constexpr auto for_each_node(T& component, auto callback)
         if constexpr (has_parts<T>)
         {
             auto& parts = parts_of(component);
-            callback(parts, node::parts_container{});
-            boost::pfr::for_each_field(parts, [&](auto& part)
+
+            if constexpr (  mp_empty<nodes>::value
+                         || mp_contains<nodes, node::parts_container>::value
+                         )  callback(parts, node::parts_container{});
+
+            // always recurse over nested components
+            boost::pfr::for_each_field(parts, [&]<typename P>(P& part)
             {
-                for_each_node(part, callback);
+                for_each_node<P, RequestedNodes...>(part, callback);
             });
         }
-    } else if constexpr (ComponentContainer<T>)
+    }
+    else if constexpr (ComponentContainer<T>)
     {
-        callback(component, node::component_container{});
-        boost::pfr::for_each_field(component, [&](auto& subcomponent)
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::component_container>::value
+                     )  callback(component, node::component_container{});
+        boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
         {
-            for_each_node(subcomponent, callback);
+            for_each_node<S, RequestedNodes...>(subcomponent, callback);
         });
-    } else return; // this should never happen
+    }
+}
+template <typename T> constexpr void for_each_component(T& component, auto callback)
+{
+    for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr auto for_each_endpoint(T& component, auto callback)
+{
+    for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr auto for_each_input(T& component, auto callback)
+{
+    for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr auto for_each_output(T& component, auto callback)
+{
+    for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
 template<typename T>
