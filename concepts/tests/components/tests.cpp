@@ -97,7 +97,9 @@ struct dummy_component {
 
     struct parts_t {
         struct dummy_part : name_<"dp"> {
-            struct parts_t {} parts;
+            struct parts_t {
+                static _consteval auto name() {return "dpp";}
+            } parts;
             void main() {};
         } part;
     } parts;
@@ -107,6 +109,7 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
+    static _consteval auto name() {return "container";}
     struct c1_t : dummy_component, name_<"c1"> {} c1;
     struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
@@ -116,17 +119,46 @@ static_assert(Component<accessor_test_container_t::c2_t>);
 static_assert(Component<dummy_component::parts_t::dummy_part>);
 static_assert(ComponentContainer<accessor_test_container_t>);
 
-TEST_CASE("for each component")
+TEST_CASE("for each X")
 {
     string allnames{};
-    for_each_component(accessor_test_container, [&](auto& component)
+    auto add_names = [&](auto& entity)
     {
-        allnames += string(component.name());
-    });
-    string test{};
-    test += "hi";
-    test += " there";
-    REQUIRE(test == "hi there");
+        allnames += string(entity.name());
+    };
 
-    REQUIRE(allnames == "c1dpc2dp");
+    SECTION("for each component")
+    {
+        for_each_component(accessor_test_container, add_names);
+        REQUIRE(allnames == string("c1dpc2dp"));
+    }
+
+    SECTION("for each endpoint")
+    {
+        for_each_endpoint(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep1ep2ep1ep2"));
+    }
+
+    SECTION("for each input")
+    {
+        for_each_input(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep1ep1"));
+    }
+
+    SECTION("for each output")
+    {
+        for_each_output(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep2ep2"));
+    }
+
+    SECTION("for each node")
+    {
+        string allnodes{};
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        for_each_node(accessor_test_container, add_node);
+        REQUIRE(allnodes == string("containerc1ep1ep2dpdppc2ep1ep2dpdpp"));
+    }
 }

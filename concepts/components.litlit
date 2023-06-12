@@ -258,10 +258,11 @@ static_assert(not has_main_subroutine<int_operator>);
 
 Given a list of components, such as a parts struct or container component,
 there are several common operations that are required: apply a generic function
-(especially a lambda) to every component in the list, apply a generic function
-to every endpoint of every component in the list, find a certain component or
-components in the list, find a certain aggregate of endpoints or components in
-the list, and find a certain endpoint or endpoints in the list.
+(especially a lambda) to every component in the list, every endpoint of every
+component in the list, every input or output only, or to every node in the
+component-endpoint tree; find a certain component or components in the list,
+find a certain aggregate of endpoints or components in the list, and find a
+certain endpoint or endpoints in the list.
 
 ```c++
 // @+'tests'
@@ -276,7 +277,9 @@ struct dummy_component {
 
     struct parts_t {
         struct dummy_part : name_<"dp"> {
-            struct parts_t {} parts;
+            struct parts_t {
+                static _consteval auto name() {return "dpp";}
+            } parts;
             void main() {};
         } part;
     } parts;
@@ -286,6 +289,7 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
+    static _consteval auto name() {return "container";}
     struct c1_t : dummy_component, name_<"c1"> {} c1;
     struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
@@ -297,23 +301,56 @@ static_assert(ComponentContainer<accessor_test_container_t>);
 
 TEST_CASE("for each X")
 {
+    string allnames{};
+    auto add_names = [&](auto& entity)
+    {
+        allnames += string(entity.name());
+    };
+
     SECTION("for each component")
     {
-        string allnames{};
-        for_each_component(accessor_test_container, [&](auto& component)
-        {
-            allnames += string(component.name());
-        });
+        for_each_component(accessor_test_container, add_names);
+        REQUIRE(allnames == string("c1dpc2dp"));
     }
-    REQUIRE(allnames == "c1dpc2dp");
+
+    SECTION("for each endpoint")
+    {
+        for_each_endpoint(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep1ep2ep1ep2"));
+    }
+
+    SECTION("for each input")
+    {
+        for_each_input(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep1ep1"));
+    }
+
+    SECTION("for each output")
+    {
+        for_each_output(accessor_test_container, add_names);
+        REQUIRE(allnames == string("ep2ep2"));
+    }
+
+    SECTION("for each node")
+    {
+        string allnodes{};
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        for_each_node(accessor_test_container, add_node);
+        REQUIRE(allnodes == string("containerc1ep1ep2dpdppc2ep1ep2dpdpp"));
+    }
 }
 // @/
 ```
 
-## For each component
+## For each
+
+Most of these are reasonably straightforward and presented without comment.
 
 ```c++
-// @='for_each_component'
+// @='for each'
 template<typename T>
     requires Component<T> || ComponentContainer<T>
 constexpr auto for_each_component(T& component, auto callback)
@@ -330,6 +367,127 @@ constexpr auto for_each_component(T& component, auto callback)
                 for_each_component(subcomponent, callback);
         });
     }
+}
+
+template<typename T>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_endpoint(T& component, auto callback)
+{
+    for_each_component(component, [&]<typename Y>(Y& subcomponent)
+    {
+        if constexpr (has_inputs<Y>)
+            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
+        if constexpr (has_outputs<Y>)
+            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
+    });
+}
+
+template<typename T>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_input(T& component, auto callback)
+{
+    for_each_component(component, [&]<typename Y>(Y& subcomponent)
+    {
+        if constexpr (has_inputs<Y>)
+            boost::pfr::for_each_field(inputs_of(subcomponent), callback);
+    });
+}
+
+template<typename T>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_output(T& component, auto callback)
+{
+    for_each_component(component, [&]<typename Y>(Y& subcomponent)
+    {
+        if constexpr (has_outputs<Y>)
+            boost::pfr::for_each_field(outputs_of(subcomponent), callback);
+    });
+}
+// @/
+```
+
+`for_each_node` requires some further exposition. The structure is very similar
+to the above, except in addition to calling the callback for components and
+endpoints, `for_each_node` also calls back for the aggregates encountered along
+the way. To help the user distinguish between a component container, component,
+input or output endpoint aggregate, parts aggregate, or endpoint, an empty tag
+class is passed as the second argument to the callback. Some helpers are
+provided to facilitate compile-time branching depending on the type of node.
+
+```c++
+// @+'for each'
+namespace node
+{
+    struct component_container {};
+    struct component {};
+    struct inputs_container {};
+    struct outputs_container {};
+    struct parts_container {};
+    struct input_endpoint {};
+    struct output_endpoint {};
+    template<typename> constexpr bool is_component_container = false;
+    template<> constexpr bool is_component_container<component_container> = true;
+    template<typename> constexpr bool is_component = false;
+    template<> constexpr bool is_component<component> = true;
+    template<typename> constexpr bool is_inputs_container = false;
+    template<> constexpr bool is_inputs_container<inputs_container> = true;
+    template<typename> constexpr bool is_outputs_container = false;
+    template<> constexpr bool is_outputs_container<outputs_container> = true;
+    template<typename> constexpr bool is_parts_container = false;
+    template<> constexpr bool is_parts_container<parts_container> = true;
+    template<typename> constexpr bool is_input_endpoint = false;
+    template<> constexpr bool is_input_endpoint<input_endpoint> = true;
+    template<typename> constexpr bool is_output_endpoint = false;
+    template<> constexpr bool is_output_endpoint<output_endpoint> = true;
+    template<typename> constexpr bool is_endpoints_container = false;
+    template<> constexpr bool is_endpoints_container<inputs_container> = true;
+    template<> constexpr bool is_endpoints_container<outputs_container> = true;
+    template<typename> constexpr bool is_endpoint = false;
+    template<> constexpr bool is_endpoint<input_endpoint> = true;
+    template<> constexpr bool is_endpoint<output_endpoint> = true;
+}
+
+template<typename T>
+constexpr auto for_each_node(T& component, auto callback)
+{
+    if constexpr (Component<T>)
+    {
+        callback(component, node::component{});
+        if constexpr (has_inputs<T>)
+        {
+            auto& inputs = inputs_of(component);
+            callback(inputs, node::inputs_container{});
+            boost::pfr::for_each_field(inputs, [&](auto& in)
+            {
+                callback(in, node::input_endpoint{});
+            });
+        }
+        if constexpr (has_outputs<T>)
+        {
+            auto& outputs = outputs_of(component);
+            callback(outputs, node::outputs_container{});
+            boost::pfr::for_each_field(outputs, [&](auto& out)
+            {
+                callback(out, node::output_endpoint{});
+            });
+        }
+        if constexpr (has_parts<T>)
+        {
+            auto& parts = parts_of(component);
+            callback(parts, node::parts_container{});
+            boost::pfr::for_each_field(parts, [&](auto& part)
+            {
+                for_each_node(part, callback);
+            });
+        }
+    } else if constexpr (ComponentContainer<T>)
+    {
+        callback(component, node::component_container{});
+        boost::pfr::for_each_field(component, [&](auto& subcomponent)
+        {
+            for_each_node(subcomponent, callback);
+        });
+    } else return; // this should never happen
 }
 // @/
 ```
@@ -403,7 +561,7 @@ namespace sygaldry { namespace concepts {
 
 @{base component concepts}
 
-@{for_each_component}
+@{for each}
 
 @{clear_flags}
 
