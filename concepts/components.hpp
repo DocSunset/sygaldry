@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/pfr.hpp>
+#include <boost/mp11.hpp>
 #include "concepts/metadata.hpp"
 #include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"
@@ -37,6 +38,25 @@ concept Aggregate
        || std::is_scalar_v<T>
        )
     ;
+template<typename T> using is_component = std::true_type;
+
+using boost::mp11::mp_apply;
+using boost::mp11::mp_all;
+using boost::mp11::mp_transform;
+template<Aggregate T> struct aggregate_reflection
+{
+    static constexpr T t{};
+    static constexpr auto tup = boost::pfr::structure_to_tuple(t);
+    using members = decltype(tup);
+
+    using has_only_components =
+        mp_apply< mp_all
+                , mp_transform< is_component
+                              , members
+                              >
+                >;
+};
+
 template<typename T>
 concept has_only_components = true;
 
@@ -47,14 +67,17 @@ concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
         );
 
 template<typename T>
-concept PureAssembly = (Aggregate<T> && has_only_components<T>) ||
-    ( has_parts<T> && not ( has_main_subroutine<T>
-    || has_inputs<T> || has_outputs<T>
+concept Assembly
+    =  has_parts<T> && not ( has_main_subroutine<T>
+    || has_inputs<T> || has_outputs<T>)
     // TODO || has_throughpoints<T> || has_plugins<T>
-    ) );
+    ;
+
+template<typename T>
+concept Container = Aggregate<T> && has_only_components<T>;
 
 //template<typename T>
-//concept Component = RegularComponent<T> || PureAssembly<T>;
+//concept Component = RegularComponent<T> || Assembly<T> || Container<T>;
 template<typename T>
 concept Component = requires (T t) {t.inputs; t.outputs;};
 

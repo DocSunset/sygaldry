@@ -1,11 +1,12 @@
 # Components Concepts
 
-We consider two kinds of components: regular components and pure assemblies.
+We consider three kinds of components: regular components, assemblies,
+and containers.
 
 ```c++
 // @='Component'
 template<typename T>
-concept Component = RegularComponent<T> || PureAssembly<T>;
+concept Component = RegularComponent<T> || Assembly<T> || Container<T>;
 // @/
 ```
 
@@ -39,18 +40,17 @@ static_assert(Component<my_component_t>);
 // @/
 ```
 
-A pure assembly has only parts, no inputs or outputs, and no main subroutine,
-and it is not required to have a name. A pure assembly may also be represented
-by a simple aggregate struct of components.
+An assembly has only parts, no inputs or outputs, and no main subroutine,
+and it is not required to have a name.
 
 ```c++
-// @='PureAssembly'
+// @='Assembly'
 template<typename T>
-concept PureAssembly = (Aggregate<T> && has_only_components<T>) ||
-    ( has_parts<T> && not ( has_main_subroutine<T>
-    || has_inputs<T> || has_outputs<T>
+concept Assembly
+    =  has_parts<T> && not ( has_main_subroutine<T>
+    || has_inputs<T> || has_outputs<T>)
     // TODO || has_throughpoints<T> || has_plugins<T>
-    ) );
+    ;
 // @/
 
 // @+'tests'
@@ -61,21 +61,35 @@ struct component_of_parts : name_<"component concept test assembly">
     } parts;
 } my_assembly2;
 
-struct struct_of_components
-{
-    my_component_t component;
-} my_assembly1;
-
 static_assert(has_parts<component_of_parts>);
 static_assert(not has_main_subroutine<component_of_parts>);
 static_assert(not has_inputs<component_of_parts>);
 static_assert(not has_outputs<component_of_parts>);
-static_assert(PureAssembly<component_of_parts>);
+static_assert(Assembly<component_of_parts>);
 //static_assert(Component<component_of_parts>);
+
+// @/
+```
+
+A container is merely an aggregate that contains only assemblies and/or regular
+components.
+
+```c++
+// @='Container'
+template<typename T>
+concept Container = Aggregate<T> && has_only_components<T>;
+// @/
+
+// @+'tests'
+struct struct_of_components
+{
+    my_component_t component1;
+    component_of_parts component2;
+} my_assembly1;
 
 static_assert(Aggregate<struct_of_components>);
 static_assert(has_only_components<struct_of_components>);
-static_assert(PureAssembly<struct_of_components>);
+static_assert(Container<struct_of_components>);
 //static_assert(Component<struct_of_components>);
 // @/
 ```
@@ -86,7 +100,9 @@ static_assert(PureAssembly<struct_of_components>);
 
 @{RegularComponent}
 
-@{PureAssembly}
+@{Assembly}
+
+@{Container}
 
 //@{Component}
 template<typename T>
@@ -256,10 +272,50 @@ static_assert(Aggregate<my_component_t::outputs_t>);
 
 ## Has Only Components
 
-TODO
+A pure assembly component is allowed to be represented as a structure
+containing only components; essentially an unnamed parts structure. To
+recognize this case, we need to be able to tell that all elements of an
+aggregate structure are components. We can use `boost::pfr` to extract
+a list of members of the structure.
+
+If we take for granted that we have a metafunction that determines whether a
+type `T` is a component, we can use `boost::mp11` to very simply check whether
+all of the members are components.
 
 ```c++
 // @+'base component implementation details'
+template<typename T> using is_component = std::true_type;
+
+using boost::mp11::mp_apply;
+using boost::mp11::mp_all;
+using boost::mp11::mp_transform;
+template<Aggregate T> struct aggregate_reflection
+{
+    static constexpr T t{};
+    static constexpr auto tup = boost::pfr::structure_to_tuple(t);
+    using members = decltype(tup);
+
+    using has_only_components =
+        mp_apply< mp_all
+                , mp_transform< is_component
+                              , members
+                              >
+                >;
+};
+// @/
+```
+
+The tricky part then is defining `is_component`, since this metafunction is
+necessarily recursive. Whether something is a component may depend on whether
+it contains only components, which depends on whether its members are
+components, which may depend on whether they contain only components... and so
+on. By putting all our reflection into a struct, we can break the recursion
+using SFINAE to branch to a base case for components that aren't aggregates of
+components.
+
+```c++
+// @+'base component implementation details'
+
 template<typename T>
 concept has_only_components = true;
 // @/
@@ -283,6 +339,7 @@ is well tested.
 #pragma once
 
 #include <boost/pfr.hpp>
+#include <boost/mp11.hpp>
 #include "concepts/metadata.hpp"
 #include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"

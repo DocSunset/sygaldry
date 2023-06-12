@@ -1,3 +1,7 @@
+# All
+
+-[ ] clean up using declarations at namespace scope, and namespaces generally
+
 # Literature
 
 -[ ] usage style documentation

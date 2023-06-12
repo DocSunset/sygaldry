@@ -2,10 +2,10 @@
 
 #include <type_traits>
 #include <concepts>
+#include <boost/mp11.hpp>
 
 namespace sygaldry { namespace concepts {
 
-template<typename ... L> struct args_list {};
 
 template<typename NotAFunction>
 struct function_type_reflection
@@ -17,7 +17,7 @@ template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
     using exists = std::true_type;
     using return_type = Ret;
-    using arguments = args_list<Args...>;
+    using arguments = boost::mp11::mp_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
     using parent_class = std::false_type;

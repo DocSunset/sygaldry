@@ -48,6 +48,7 @@ include(CTest)
 include(Catch)
 
 include_directories(dependencies/pfr/include)
+include_directories(dependencies/mp11/include)
 include_directories(./)
 set(AVENDISH_INCLUDE_SOURCE_ONLY ON)
 include_directories(dependencies/avendish/include/)

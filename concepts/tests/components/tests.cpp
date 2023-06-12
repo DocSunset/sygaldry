@@ -28,21 +28,22 @@ struct component_of_parts : name_<"component concept test assembly">
     } parts;
 } my_assembly2;
 
-struct struct_of_components
-{
-    my_component_t component;
-} my_assembly1;
-
 static_assert(has_parts<component_of_parts>);
 static_assert(not has_main_subroutine<component_of_parts>);
 static_assert(not has_inputs<component_of_parts>);
 static_assert(not has_outputs<component_of_parts>);
-static_assert(PureAssembly<component_of_parts>);
+static_assert(Assembly<component_of_parts>);
 //static_assert(Component<component_of_parts>);
+
+struct struct_of_components
+{
+    my_component_t component1;
+    component_of_parts component2;
+} my_assembly1;
 
 static_assert(Aggregate<struct_of_components>);
 static_assert(has_only_components<struct_of_components>);
-static_assert(PureAssembly<struct_of_components>);
+static_assert(Container<struct_of_components>);
 //static_assert(Component<struct_of_components>);
 static_assert(std::same_as<my_component_t::inputs_t&, decltype(inputs_of(my_component))>);
 static_assert(std::same_as<my_component_t::outputs_t&, decltype(outputs_of(my_component))>);
@@ -94,7 +95,6 @@ static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate6>); // works, i
 union not_simple_aggregate7 {float f; int i;} nope;
 static_assert(std::is_aggregate_v<not_simple_aggregate7>); // passes
 // auto failure = boost::pfr::structure_to_tuple(nope); // static assertion failure
-
 static_assert(Aggregate<component_of_parts::parts_t>);
 static_assert(Aggregate<my_component_t::inputs_t>);
 static_assert(Aggregate<my_component_t::outputs_t>);
