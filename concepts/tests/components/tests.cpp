@@ -88,11 +88,17 @@ static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
 struct dummy_component {
     struct inputs_t {
-        struct ep1_t : name_<"ep1">, persistent<float> {} ep1;
+        struct ep1_t : name_<"ep1">, persistent<float>
+        {
+            float extra_value;
+        } ep1;
     } inputs;
 
     struct outputs_t {
-        struct ep2_t : name_<"ep2">, persistent<float> {} ep2;
+        struct ep2_t : name_<"ep2">, persistent<float>
+        {
+            float another_extra;
+        } ep2;
     } outputs;
 
     struct parts_t {

@@ -83,6 +83,7 @@ namespace node
     template<> constexpr bool is_endpoint<endpoint> = true;
 }
 template<typename T, typename ... RequestedNodes>
+    requires Component<T> || ComponentContainer<T>
 constexpr auto for_each_node(T& component, auto callback)
 {
     using boost::mp11::mp_list;
@@ -163,49 +164,48 @@ template <typename T> constexpr void for_each_component(T& component, auto callb
     for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr auto for_each_endpoint(T& component, auto callback)
+template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
 {
     for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr auto for_each_input(T& component, auto callback)
+template<typename T> constexpr void for_each_input(T& component, auto callback)
 {
     for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr auto for_each_output(T& component, auto callback)
+template<typename T> constexpr void for_each_output(T& component, auto callback)
 {
     for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T>
-void clear_flags(T& entities)
+void clear_output_flags(auto& component)
 {
-    if constexpr (Component<T>)
+    for_each_output(component, []<typename Y>(Y& endpoint)
     {
-        clear_flags(inputs_of(entities));
-        clear_flags(outputs_of(entities));
-    }
-    else
+        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
+    });
+}
+
+void clear_input_flags(auto& component)
+{
+    for_each_input(component, []<typename Y>(Y& endpoint)
     {
-        boost::pfr::for_each_field(entities, []<typename Y>(Y& endpoint)
-        {
-            if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
-        });
-    }
+        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
+    });
 }
 
 template<Component T>
 void activate(T& component)
 {
-    clear_flags(outputs_of(component));
+    clear_output_flags(component);
     if constexpr (requires {component.main(component.inputs, component.outputs);})
         component.main(component.inputs, component.outputs);
     else if constexpr (requires {component(component.inputs, component.outputs);})
         component(component.inputs, component.outputs);
     else if constexpr (requires {component();})
         component();
-    clear_flags(inputs_of(component));
+    clear_input_flags(component);
 }
 
 } }

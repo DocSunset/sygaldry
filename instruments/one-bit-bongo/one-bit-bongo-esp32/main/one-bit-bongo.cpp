@@ -14,8 +14,8 @@ struct components_t
     esp32::Button<GPIO_NUM_23> button;
 } components;
 
-CstdioCli<decltype(components)> cli;
 CstdioOutputLogger<decltype(components)> log;
+CstdioCli<decltype(components)> cli;
 
 extern "C" void app_main(void)
 {
@@ -23,10 +23,11 @@ extern "C" void app_main(void)
     cli.init();
     for (;;)
     {
+        clear_output_flags(components.button);
         components.button();
         log(components);
         cli(components);
-        clear_flags(components.button);
+        clear_input_flags(components.button);
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }
