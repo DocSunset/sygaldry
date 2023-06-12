@@ -1,11 +1,13 @@
 #include <type_traits>
-#include <map>
+#include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 #include "concepts/components.hpp"
 
 using namespace sygaldry::concepts;
 using namespace sygaldry::helpers;
+using std::string;
 
 struct regular_component_t : name_<"regular component">
 {
@@ -19,8 +21,9 @@ static_assert(has_main_subroutine<regular_component_t>);
 static_assert(has_inputs<regular_component_t>);
 static_assert(has_outputs<regular_component_t>);
 static_assert(has_parts<regular_component_t>);
-static_assert(RegularComponent<regular_component_t>);
 static_assert(Component<regular_component_t>);
+static_assert(Component<regular_component_t>);
+static_assert(not Component<bng<"a bang">>);
 struct container_component_t
 {
     static _consteval auto name() {return "container component";}
@@ -28,7 +31,7 @@ struct container_component_t
 } container_component;
 
 static_assert(SimpleAggregate<container_component_t>);
-static_assert(ContainerComponent<container_component_t>);
+static_assert(ComponentContainer<container_component_t>);
 //static_assert(Component<container_component_t>);
 // docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
@@ -83,3 +86,38 @@ struct int_operator { int operator()() {return 1;} };
 static_assert(not has_main_subroutine<member_main>);
 static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
+struct dummy_component {
+    struct inputs_t {
+        struct ep1_t : name_<"ep1">, persistent<float> {} ep1;
+    } inputs;
+
+    struct outputs_t {
+        struct ep2_t : name_<"ep2">, persistent<float> {} ep2;
+    } outputs;
+
+    struct parts_t {
+        struct dummy_part : name_<"dp"> {
+            struct parts_t {};
+            void main() {};
+        } part;
+    } parts;
+
+    void main() {}
+};
+
+struct accessor_test_container_t
+{
+    struct c1 : dummy_component, name_<"c1"> {};
+    struct c2 : dummy_component, name_<"c2"> {};
+} accessor_test_container;
+
+TEST_CASE("for each component")
+{
+    string allnames{};
+    for_each_component(accessor_test_container, [&](auto& component)
+    {
+        allnames += string(component.name());
+    });
+
+    REQUIRE(allnames == "c1dpc2dp");
+}

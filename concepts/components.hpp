@@ -40,18 +40,21 @@ concept has_main_subroutine
     ;
 
 template<typename T>
-concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
+concept Component = has_main_subroutine<T> && has_name<T> &&
         ( has_inputs<T> || has_outputs<T> || has_parts<T>
         // TODO || has_throughpoints<T> || has_plugins<T>
         );
 
 template<typename T>
-concept ContainerComponent = SimpleAggregate<T>;
+concept ComponentContainer = SimpleAggregate<T>;
 
-//template<typename T>
-//concept Component = RegularComponent<T> || ContainerComponent<T>;
-template<typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
+constexpr auto for_each_component(Component auto components, auto callback)
+{
+}
+
+constexpr auto for_each_component(ComponentContainer auto components, auto callback)
+{
+}
 
 template<typename T>
 void clear_flags(T& entities)

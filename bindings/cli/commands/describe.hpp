@@ -68,8 +68,8 @@ struct Describe
                     describe_entity(log, groupname, entity, "  ", indents...);
                 });
             };
-            describe_group(inputs_of(entity),  "input:   ");
-            describe_group(outputs_of(entity), "output:  ");
+            if constexpr (has_inputs<T>) describe_group(inputs_of(entity),  "input:   ");
+            if constexpr (has_outputs<T>) describe_group(outputs_of(entity), "output:  ");
         }
     }
 

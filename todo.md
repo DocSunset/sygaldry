@@ -21,6 +21,7 @@
 -[ ] automatically generate litlit.md files
 -[ ] rename litlit to lili?
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
+-[ ] include deps in ESP32 projects automatically, e.g. by linking against top syg proj
 -[ ] automate flashing and running ESP32 tests
 -[ ] enforce expected internal library dependency graph using cmake
 -[ ] generate a book with a particular linear order to things

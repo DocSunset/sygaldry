@@ -56,13 +56,26 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 {
     if constexpr (Component<Entities>)
     {
-        auto ins = boost::pfr::structure_tie(inputs_of(entities));
-        auto outs = boost::pfr::structure_tie(outputs_of(entities));
-        auto tup = std::tuple_cat(ins, outs);
-        return dispatch_tuple<Matcher>(name, tup, d, f);
-        return d;
+        if constexpr (has_inputs<Entities> && has_outputs<Entities>)
+        {
+            auto ins = boost::pfr::structure_tie(inputs_of(entities));
+            auto outs = boost::pfr::structure_tie(outputs_of(entities));
+            auto tup = std::tuple_cat(ins, outs);
+            return dispatch_tuple<Matcher>(name, tup, d, f);
+        }
+        else if constexpr (has_inputs<Entities>)
+        {
+            auto tup = boost::pfr::structure_tie(inputs_of(entities));
+            return dispatch_tuple<Matcher>(name, tup, d, f);
+        }
+        else if constexpr (has_outputs<Entities>)
+        {
+            auto tup = boost::pfr::structure_tie(outputs_of(entities));
+            return dispatch_tuple<Matcher>(name, tup, d, f);
+        }
+        else return d;
     }
-    else
+    else // Entities is assumed to be a struct of endpoints
     {
         auto tup = boost::pfr::structure_tie(entities);
         return dispatch_tuple<Matcher>(name, tup, d, f);

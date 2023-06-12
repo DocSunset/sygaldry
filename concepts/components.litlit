@@ -1,14 +1,7 @@
 # Components Concepts
 
-We consider three kinds of components: regular components, and container
+We consider two kinds of components: regular components, and container
 components.
-
-```c++
-// @='Component'
-template<typename T>
-concept Component = RegularComponent<T> || ContainerComponent<T>;
-// @/
-```
 
 A regular component has a name, a main subroutine, and at least one of
 endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
@@ -17,9 +10,9 @@ endpoints (inputs and outputs) or subcomponents (parts), but they are not
 required to.
 
 ```c++
-// @='RegularComponent'
+// @='Component'
 template<typename T>
-concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
+concept Component = has_main_subroutine<T> && has_name<T> &&
         ( has_inputs<T> || has_outputs<T> || has_parts<T>
         // TODO || has_throughpoints<T> || has_plugins<T>
         );
@@ -38,8 +31,9 @@ static_assert(has_main_subroutine<regular_component_t>);
 static_assert(has_inputs<regular_component_t>);
 static_assert(has_outputs<regular_component_t>);
 static_assert(has_parts<regular_component_t>);
-static_assert(RegularComponent<regular_component_t>);
 static_assert(Component<regular_component_t>);
+static_assert(Component<regular_component_t>);
+static_assert(not Component<bng<"a bang">>);
 // @/
 ```
 
@@ -51,9 +45,9 @@ inputs, outputs, and parts structures, a container is expected but not required
 to contain components.
 
 ```c++
-// @='ContainerComponent'
+// @='ComponentContainer'
 template<typename T>
-concept ContainerComponent = SimpleAggregate<T>;
+concept ComponentContainer = SimpleAggregate<T>;
 // @/
 
 // @+'tests'
@@ -64,7 +58,7 @@ struct container_component_t
 } container_component;
 
 static_assert(SimpleAggregate<container_component_t>);
-static_assert(ContainerComponent<container_component_t>);
+static_assert(ComponentContainer<container_component_t>);
 //static_assert(Component<container_component_t>);
 // @/
 ```
@@ -80,17 +74,13 @@ activated accordingly, and exposed for external control inputs.
 // @='base component concepts'
 @{base component implementation details}
 
-@{RegularComponent}
+@{Component}
 
-@{ContainerComponent}
-
-//@{Component}
-template<typename T>
-concept Component = requires (T t) {t.inputs; t.outputs;};
+@{ComponentContainer}
 // @/
 ```
 
-## ContainerComponent
+## ComponentContainer
 
 A container is a simple aggregate that contains only components. We begin here,
 since the definition of the `inputs`, `outputs`, and `parts` structures of a
@@ -266,13 +256,66 @@ static_assert(not has_main_subroutine<int_operator>);
 
 # Accessing Subcomponents and Endpoints
 
-Given a variadic argument list of components, there are two common operations
-that are required. The first is to apply a generic function (especially a lambda)
-to every component in the list. The second is to find a certain component or
-components in the list.
+Given a list of components, such as a parts struct or container component,
+there are several common operations that are required: apply a generic function
+(especially a lambda) to every component in the list, apply a generic function
+to every endpoint of every component in the list, find a certain component or
+components in the list, find a certain aggregate of endpoints or components in
+the list, and find a certain endpoint or endpoints in the list.
+
+```c++
+// @+'tests'
+struct dummy_component {
+    struct inputs_t {
+        struct ep1_t : name_<"ep1">, persistent<float> {} ep1;
+    } inputs;
+
+    struct outputs_t {
+        struct ep2_t : name_<"ep2">, persistent<float> {} ep2;
+    } outputs;
+
+    struct parts_t {
+        struct dummy_part : name_<"dp"> {
+            struct parts_t {};
+            void main() {};
+        } part;
+    } parts;
+
+    void main() {}
+};
+
+struct accessor_test_container_t
+{
+    struct c1 : dummy_component, name_<"c1"> {};
+    struct c2 : dummy_component, name_<"c2"> {};
+} accessor_test_container;
+
+TEST_CASE("for each component")
+{
+    string allnames{};
+    for_each_component(accessor_test_container, [&](auto& component)
+    {
+        allnames += string(component.name());
+    });
+
+    REQUIRE(allnames == "c1dpc2dp");
+}
+// @/
+```
 
 ## For each component
 
+```c++
+// @='for_each_component'
+constexpr auto for_each_component(Component auto components, auto callback)
+{
+}
+
+constexpr auto for_each_component(ComponentContainer auto components, auto callback)
+{
+}
+// @/
+```
 
 # Clearable Flags
 
@@ -288,19 +331,7 @@ A test is not provided for this function here, since its use in the CLI binding
 is well tested.
 
 ```c++
-// @#'components.hpp'
-#pragma once
-
-#include <boost/pfr.hpp>
-#include <boost/mp11.hpp>
-#include "concepts/metadata.hpp"
-#include "concepts/functions.hpp"
-#include "concepts/endpoints.hpp"
-
-namespace sygaldry { namespace concepts {
-
-@{base component concepts}
-
+// @='clear_flags'
 template<typename T>
 void clear_flags(T& entities)
 {
@@ -317,7 +348,13 @@ void clear_flags(T& entities)
         });
     }
 }
+// @/
+```
 
+# Activate
+
+```c++
+// @='activate'
 template<Component T>
 void activate(T& component)
 {
@@ -330,6 +367,30 @@ void activate(T& component)
         component();
     clear_flags(inputs_of(component));
 }
+// @/
+```
+
+# Summary
+
+```c++
+// @#'components.hpp'
+#pragma once
+
+#include <boost/pfr.hpp>
+#include <boost/mp11.hpp>
+#include "concepts/metadata.hpp"
+#include "concepts/functions.hpp"
+#include "concepts/endpoints.hpp"
+
+namespace sygaldry { namespace concepts {
+
+@{base component concepts}
+
+@{for_each_component}
+
+@{clear_flags}
+
+@{activate}
 
 } }
 // @/
@@ -338,13 +399,15 @@ void activate(T& component)
 ```c++
 // @#'tests/components/tests.cpp'
 #include <type_traits>
-#include <map>
+#include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "helpers/metadata.hpp"
+#include "helpers/endpoints.hpp"
 #include "concepts/components.hpp"
 
 using namespace sygaldry::concepts;
 using namespace sygaldry::helpers;
+using std::string;
 
 @{tests}
 // @/

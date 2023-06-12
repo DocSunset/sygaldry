@@ -29,6 +29,7 @@ struct PseudoComponent1
         Named2 out1;
         Named4 out2;
     } outputs;
+    void main() {}
 };
 
 TEST_CASE("Dispatch over struct of endpoints", "[bindings][dispatch]")
