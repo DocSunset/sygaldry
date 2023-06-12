@@ -13,7 +13,12 @@ struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
-    struct parts_t {} parts;
+    struct parts_t {
+        struct subcomponent_t : name_<"a subcomponent"> {
+            struct inputs_t {} inputs;
+            void operator()() {}
+        } subcomponent;
+    } parts;
     static void main(const inputs_t&, outputs_t&) {}
 } regular_component;
 
@@ -32,7 +37,11 @@ struct container_component_t
 
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(ComponentContainer<container_component_t>);
-//static_assert(Component<container_component_t>);
+static_assert(not Component<container_component_t>);
+static_assert(contains_component_v<container_component_t>);
+
+static_assert(not ComponentContainer<regular_component_t>);
+static_assert(ComponentContainer<regular_component_t::parts_t>);
 // docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
@@ -72,6 +81,10 @@ static_assert(SimpleAggregate<regular_component_t::inputs_t>);
 static_assert(SimpleAggregate<regular_component_t::outputs_t>);
 static_assert(SimpleAggregate<regular_component_t::parts_t>);
 static_assert(SimpleAggregate<container_component_t>);
+static_assert(not contains_component_v<regular_component_t::inputs_t>);
+static_assert(not contains_component_v<regular_component_t::outputs_t>);
+static_assert(contains_component_v<regular_component_t::parts_t>);
+static_assert(contains_component_v<container_component_t>);
 static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);

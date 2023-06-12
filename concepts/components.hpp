@@ -25,6 +25,17 @@ concept has_##NAME \
     || has_##NAME##_type<T>\
     || has_##NAME##_t<T>;\
 \
+template<typename T> struct type_of_##NAME;\
+template<typename T>\
+    requires has_##NAME##_member<T> && (not has_##NAME##_t<T>)\
+struct type_of_##NAME<T> { using type = decltype(std::declval<T>().NAME); };\
+template<typename T>\
+    requires (not has_##NAME##_member<T>) && has_##NAME##_t<T>\
+struct type_of_##NAME<T> { using type = typename T::NAME##_t; };\
+template<has_##NAME##_type T> struct type_of_##NAME<T> { using type = typename T::NAME; };\
+\
+template<typename T> using type_of_##NAME##_t = type_of_##NAME<T>::type;\
+\
 template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
 template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
 
@@ -41,12 +52,33 @@ concept has_main_subroutine
 
 template<typename T>
 concept Component = has_main_subroutine<T> && has_name<T> &&
-        ( has_inputs<T> || has_outputs<T> || has_parts<T>
+        ( has_inputs<T> || has_outputs<T> || has_parts<T>)
         // TODO || has_throughpoints<T> || has_plugins<T>
-        );
+        ;
+
+using boost::mp11::mp_or;
+using boost::mp11::mp_empty;
+using boost::mp11::mp_apply;
+using boost::mp11::mp_any;
+using boost::mp11::mp_transform;
+
+template<typename T> struct contains_component : std::false_type {};
+template<Component T> struct contains_component<T> : std::true_type {};
+template<typename T>
+    requires SimpleAggregate<T> and (not Component<T>)
+struct contains_component<T>
+{
+    using members = decltype(boost::pfr::structure_to_tuple(std::declval<std::remove_cvref_t<T>>()));
+    using type = mp_apply<mp_any, mp_transform<contains_component, members>>;
+    static constexpr const bool value = type::value;
+};
+
+template <typename T> constexpr const bool contains_component_v = contains_component<T>::value;
 
 template<typename T>
-concept ComponentContainer = SimpleAggregate<T>;
+concept ComponentContainer = (not Component<T>)
+    && SimpleAggregate<T> && contains_component_v<T>
+    ;
 
 namespace node
 {
@@ -92,7 +124,17 @@ constexpr auto for_each_node(T& component, auto callback)
 
     using nodes = mp_list<RequestedNodes...>;
 
-    if constexpr (Component<T>)
+    if constexpr (ComponentContainer<T>)
+    {
+        if constexpr (  mp_empty<nodes>::value
+                     || mp_contains<nodes, node::component_container>::value
+                     )  callback(component, node::component_container{});
+        boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
+        {
+            for_each_node<S, RequestedNodes...>(subcomponent, callback);
+        });
+    }
+    else if constexpr (Component<T>)
     {
         if constexpr (  mp_empty<nodes>::value
                      || mp_contains<nodes, node::component>::value
@@ -147,16 +189,6 @@ constexpr auto for_each_node(T& component, auto callback)
                 for_each_node<P, RequestedNodes...>(part, callback);
             });
         }
-    }
-    else if constexpr (ComponentContainer<T>)
-    {
-        if constexpr (  mp_empty<nodes>::value
-                     || mp_contains<nodes, node::component_container>::value
-                     )  callback(component, node::component_container{});
-        boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
-        {
-            for_each_node<S, RequestedNodes...>(subcomponent, callback);
-        });
     }
 }
 template <typename T> constexpr void for_each_component(T& component, auto callback)

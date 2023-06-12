@@ -5,17 +5,17 @@ components.
 
 A regular component has a name, a main subroutine, and at least one of
 endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
-parts, these must be simple aggregate containers. They are expected to contain
-endpoints (inputs and outputs) or subcomponents (parts), but they are not
-required to.
+parts, these must be simple aggregate containers. Endpoints containers are
+allowed to be empty, but a parts container, if defined, must contain at least
+one component or nested component container.
 
 ```c++
 // @='Component'
 template<typename T>
 concept Component = has_main_subroutine<T> && has_name<T> &&
-        ( has_inputs<T> || has_outputs<T> || has_parts<T>
+        ( has_inputs<T> || has_outputs<T> || has_parts<T>)
         // TODO || has_throughpoints<T> || has_plugins<T>
-        );
+        ;
 // @/
 
 // @+'tests'
@@ -23,7 +23,12 @@ struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
-    struct parts_t {} parts;
+    struct parts_t {
+        struct subcomponent_t : name_<"a subcomponent"> {
+            struct inputs_t {} inputs;
+            void operator()() {}
+        } subcomponent;
+    } parts;
     static void main(const inputs_t&, outputs_t&) {}
 } regular_component;
 
@@ -38,16 +43,19 @@ static_assert(not Component<bng<"a bang">>);
 ```
 
 A container is merely an aggregate that contains only nested containers and/or
-regular components. It may have a name, but it must be declared directly in
-the container definition in order to preserve aggregate-ness (e.g. it must not
-use the inherited `name_<"name">` helper). Similar to a regular component's
-inputs, outputs, and parts structures, a container is expected but not required
-to contain components.
+regular components. It may have a name, but it must be declared directly in the
+container definition in order to preserve aggregate-ness (e.g. it must not use
+the inherited `name_<"name">` helper). Similar to a regular component's parts
+structure, a container is required to contain at least one component or nested
+container. Indeed, a parts container is required to meet the requirements for
+a component container.
 
 ```c++
 // @='ComponentContainer'
 template<typename T>
-concept ComponentContainer = SimpleAggregate<T>;
+concept ComponentContainer = (not Component<T>)
+    && SimpleAggregate<T> && contains_component_v<T>
+    ;
 // @/
 
 // @+'tests'
@@ -59,7 +67,11 @@ struct container_component_t
 
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(ComponentContainer<container_component_t>);
-//static_assert(Component<container_component_t>);
+static_assert(not Component<container_component_t>);
+static_assert(contains_component_v<container_component_t>);
+
+static_assert(not ComponentContainer<regular_component_t>);
+static_assert(ComponentContainer<regular_component_t::parts_t>);
 // @/
 ```
 
@@ -75,6 +87,8 @@ activated accordingly, and exposed for external control inputs.
 @{base component implementation details}
 
 @{Component}
+
+@{contains_component}
 
 @{ComponentContainer}
 // @/
@@ -180,6 +194,47 @@ static_assert(SimpleAggregate<container_component_t>);
 // @/
 ```
 
+### Contains Components
+
+As well as being a simple aggregate, component containers are required to
+contain at least one component. There are two complicating factors when
+determining whether this requirement is met. One is that our incomplete concept
+of a simple aggregate will treat regular components as aggregates, even though
+these will trigger a static assertion failure if they have used a helper to
+inherit a metadata-returning static method. Another is that we allow our
+component container to hold nested containers, meaning the metafunction that
+verifies the requirement needs to be recursive.
+
+```c++
+// @='contains_component'
+using boost::mp11::mp_or;
+using boost::mp11::mp_empty;
+using boost::mp11::mp_apply;
+using boost::mp11::mp_any;
+using boost::mp11::mp_transform;
+
+template<typename T> struct contains_component : std::false_type {};
+template<Component T> struct contains_component<T> : std::true_type {};
+template<typename T>
+    requires SimpleAggregate<T> and (not Component<T>)
+struct contains_component<T>
+{
+    using members = decltype(boost::pfr::structure_to_tuple(std::declval<std::remove_cvref_t<T>>()));
+    using type = mp_apply<mp_any, mp_transform<contains_component, members>>;
+    static constexpr const bool value = type::value;
+};
+
+template <typename T> constexpr const bool contains_component_v = contains_component<T>::value;
+// @/
+
+// @+'tests'
+static_assert(not contains_component_v<regular_component_t::inputs_t>);
+static_assert(not contains_component_v<regular_component_t::outputs_t>);
+static_assert(contains_component_v<regular_component_t::parts_t>);
+static_assert(contains_component_v<container_component_t>);
+// @/
+```
+
 ## Regular Component
 
 A regular component has a name, a main subroutine, and at least one of
@@ -203,6 +258,17 @@ concept has_##NAME \
     =  has_##NAME##_member<T>\
     || has_##NAME##_type<T>\
     || has_##NAME##_t<T>;\
+\
+template<typename T> struct type_of_##NAME;\
+template<typename T>\
+    requires has_##NAME##_member<T> && (not has_##NAME##_t<T>)\
+struct type_of_##NAME<T> { using type = decltype(std::declval<T>().NAME); };\
+template<typename T>\
+    requires (not has_##NAME##_member<T>) && has_##NAME##_t<T>\
+struct type_of_##NAME<T> { using type = typename T::NAME##_t; };\
+template<has_##NAME##_type T> struct type_of_##NAME<T> { using type = typename T::NAME; };\
+\
+template<typename T> using type_of_##NAME##_t = type_of_##NAME<T>::type;\
 \
 template<typename T> requires has_##NAME##_member<T> auto& NAME##_of(T& t) { return t.NAME; }\
 template<typename T> requires has_##NAME##_member<T> const auto& NAME##_of(const T& t) { return t.NAME; }
@@ -438,8 +504,8 @@ constexpr auto for_each_node(T& component, auto callback)
 
     using nodes = mp_list<RequestedNodes...>;
 
-    @{for each component case}
     @{for each component container case}
+    @{for each component case}
 }
 // @/
 ```
@@ -449,7 +515,7 @@ container, and then recurse for each contained component.
 
 ```c++
 // @='for each component container case'
-else if constexpr (ComponentContainer<T>)
+if constexpr (ComponentContainer<T>)
 {
     if constexpr (  mp_empty<nodes>::value
                  || mp_contains<nodes, node::component_container>::value
@@ -470,7 +536,7 @@ user must wish to visit some of its nested nodes, if any exist.
 
 ```c++
 // @='for each component case'
-if constexpr (Component<T>)
+else if constexpr (Component<T>)
 {
     if constexpr (  mp_empty<nodes>::value
                  || mp_contains<nodes, node::component>::value
