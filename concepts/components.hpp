@@ -31,7 +31,12 @@ concept has_main_subroutine
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
 template<typename T>
-concept is_simple_aggregate = true;
+concept Aggregate
+    =  not std::is_union_v<T>
+    && (  std::is_aggregate_v<T>
+       || std::is_scalar_v<T>
+       )
+    ;
 template<typename T>
 concept has_only_components = true;
 
@@ -42,7 +47,7 @@ concept RegularComponent = has_main_subroutine<T> && has_name<T> &&
         );
 
 template<typename T>
-concept PureAssembly = (is_simple_aggregate<T> && has_only_components<T>) ||
+concept PureAssembly = (Aggregate<T> && has_only_components<T>) ||
     ( has_parts<T> && not ( has_main_subroutine<T>
     || has_inputs<T> || has_outputs<T>
     // TODO || has_throughpoints<T> || has_plugins<T>

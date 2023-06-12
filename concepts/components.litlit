@@ -46,7 +46,7 @@ by a simple aggregate struct of components.
 ```c++
 // @='PureAssembly'
 template<typename T>
-concept PureAssembly = (is_simple_aggregate<T> && has_only_components<T>) ||
+concept PureAssembly = (Aggregate<T> && has_only_components<T>) ||
     ( has_parts<T> && not ( has_main_subroutine<T>
     || has_inputs<T> || has_outputs<T>
     // TODO || has_throughpoints<T> || has_plugins<T>
@@ -54,11 +54,6 @@ concept PureAssembly = (is_simple_aggregate<T> && has_only_components<T>) ||
 // @/
 
 // @+'tests'
-struct struct_of_components
-{
-    my_component_t component;
-} my_assembly1;
-
 struct component_of_parts : name_<"component concept test assembly">
 {
     struct parts_t {
@@ -66,10 +61,10 @@ struct component_of_parts : name_<"component concept test assembly">
     } parts;
 } my_assembly2;
 
-static_assert(is_simple_aggregate<struct_of_components>);
-static_assert(has_only_components<struct_of_components>);
-static_assert(PureAssembly<struct_of_components>);
-//static_assert(Component<struct_of_components>);
+struct struct_of_components
+{
+    my_component_t component;
+} my_assembly1;
 
 static_assert(has_parts<component_of_parts>);
 static_assert(not has_main_subroutine<component_of_parts>);
@@ -77,6 +72,11 @@ static_assert(not has_inputs<component_of_parts>);
 static_assert(not has_outputs<component_of_parts>);
 static_assert(PureAssembly<component_of_parts>);
 //static_assert(Component<component_of_parts>);
+
+static_assert(Aggregate<struct_of_components>);
+static_assert(has_only_components<struct_of_components>);
+static_assert(PureAssembly<struct_of_components>);
+//static_assert(Component<struct_of_components>);
 // @/
 ```
 
@@ -155,20 +155,102 @@ static_assert(has_main_subroutine<void_operator>);
 struct member_main { int main; };
 struct int_main { int main() {return 1;} };
 struct int_operator { int operator()() {return 1;} };
-static_assert(!has_main_subroutine<member_main>);
-static_assert(!has_main_subroutine<int_main>);
-static_assert(!has_main_subroutine<int_operator>);
+static_assert(not has_main_subroutine<member_main>);
+static_assert(not has_main_subroutine<int_main>);
+static_assert(not has_main_subroutine<int_operator>);
 // @/
 ```
 
 ## Simple Aggregate
 
-TODO
+Our notion of a simple aggregate comes from `boost::pfr`, which we rely on for
+the ability to iterate over lists of endpoints and components in the form of
+structures, an essential functionality for our purposes. We would ideally defer
+to `boost::pfr` for our test of simple aggregate requirements, but a straightforward
+concept--
+
+```c++
+template<typename T>
+concept Aggregate = requires { boost::pfr::tuple_size_v<T>; };
+
+```
+
+--does not provide the required results. It appears as though the compiler
+considers this to be a valid expression regardless of the result, even if pfr
+itself would raise several static assertion failures with the given `T`.
+
+Attempts to defer to `std::is_aggregate_v<T>` in a similar fashion were also
+unsatisfactory, with various test structures passing the test even through
+`boost::pfr` rejects them at compile time through static assertions. It doesn't
+help that `boost::pfr`'s implementation and documentation don't always agree on
+what the requirements are:
+
+```c++
+// @+'tests'
+// docs say: aggregates may not have base classes
+struct foo { int x; foo(int a, int b) : x{a+b} {} };
+struct not_simple_aggregate1 : foo { };
+static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
+// auto failure = boost::pfr::tuple_size_v<not_simple_aggregate1>; // static assertion failure
+
+// docs say: aggregates may not have const fields
+struct not_simple_aggregate2 { const int i; };
+static_assert(std::is_aggregate_v<not_simple_aggregate2>); // passes
+static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate2>); // works fine, even though the docs say it's not allowed
+
+// docs say: aggregates may not have reference fields
+struct not_simple_aggregate3 { int& i; };
+static_assert(std::is_aggregate_v<not_simple_aggregate3>); // passes
+static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate3>); // works fine, even though the docs say it's not allowed
+
+// docs say: aggregates may not have c arrays
+struct not_simple_aggregate4 { float f; int i[5]; };
+static_assert(std::is_aggregate_v<not_simple_aggregate4>); // passes
+static_assert(6 == boost::pfr::tuple_size_v<not_simple_aggregate4>); // works fine, even though the docs say it's not allowed, although arguably this should return 2?
+
+// docs say: aggregates may not have constructors
+struct not_simple_aggregate5 { float f; not_simple_aggregate5(float a, float b) : f{a + b} {} };
+static_assert(not std::is_aggregate_v<not_simple_aggregate5>); // a class with a constructor is not aggregate
+//auto failure = boost::pfr::tuple_size_v<not_simple_aggregate5>; // static assertion failure
+
+// docs don't mention scalars, but implementation suggests they're fine
+using not_simple_aggregate6 = float;
+static_assert(not std::is_aggregate_v<not_simple_aggregate6>); // a float is not aggregate
+static_assert(std::is_scalar_v<not_simple_aggregate6>); // a float is scalar
+static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate6>); // works, in accordance with the docs
+
+// docs say: unions not allowed
+union not_simple_aggregate7 {float f; int i;} nope;
+static_assert(std::is_aggregate_v<not_simple_aggregate7>); // passes
+// auto failure = boost::pfr::structure_to_tuple(nope); // static assertion failure
+// @/
+```
+
+In most cases, `boost::pfr` seems to work when `std::is_aggregate_v` is true,
+and to fail when it is not. The only exceptions we noted in our tests are when
+`T` is scalar, such as a single `float`, when `T` is a union, and when `T` has
+any base class. We can easily detect when `T` is scalar or union using
+`std::is_scalar` and `std::is_union` respectively. However, it is challenging
+to detect when `T` has a base class. For now, we defer this issue to
+`boost::pfr`, which will in any case raise a static assertion failure if we try
+to pass it a type with a base class, giving us the following
+incomplete-but-likely-sufficient implementation of our `Aggregate` concept:
 
 ```c++
 // @+'base component implementation details'
 template<typename T>
-concept is_simple_aggregate = true;
+concept Aggregate
+    =  not std::is_union_v<T>
+    && (  std::is_aggregate_v<T>
+       || std::is_scalar_v<T>
+       )
+    ;
+// @/
+
+// @+'tests'
+static_assert(Aggregate<component_of_parts::parts_t>);
+static_assert(Aggregate<my_component_t::inputs_t>);
+static_assert(Aggregate<my_component_t::outputs_t>);
 // @/
 ```
 
@@ -246,6 +328,7 @@ void activate(T& component)
 ```c++
 // @#'tests/components/tests.cpp'
 #include <type_traits>
+#include <map>
 #include <catch2/catch_test_macros.hpp>
 #include "helpers/metadata.hpp"
 #include "concepts/components.hpp"
