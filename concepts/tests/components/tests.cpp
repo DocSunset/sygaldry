@@ -88,6 +88,10 @@ static_assert(contains_component_v<container_component_t>);
 static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
+
+static_assert(std::same_as<regular_component_t::inputs_t, type_of_inputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::outputs_t, type_of_outputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular_component_t>>);
 struct void_main { void main() {} };
 struct void_operator { void operator()() {} };
 static_assert(has_main_subroutine<void_main>);
@@ -128,7 +132,6 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
-    static _consteval auto name() {return "container";}
     struct c1_t : dummy_component, name_<"c1"> {} c1;
     struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
@@ -137,7 +140,6 @@ static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
 static_assert(Component<dummy_component::parts_t::dummy_part>);
 static_assert(ComponentContainer<accessor_test_container_t>);
-
 TEST_CASE("for each X")
 {
     string allnames{};
@@ -181,3 +183,80 @@ TEST_CASE("for each X")
         REQUIRE(allnodes == string("containerc1ep1ep2dpdppc2ep1ep2dpdpp"));
     }
 }
+static_assert(std::same_as< subnodes<accessor_test_container_t>::members
+                          , std::tuple< accessor_test_container_t::c1_t
+                                      , accessor_test_container_t::c2_t
+                                      >
+                          >);
+static_assert(std::same_as<subnodes<accessor_test_container_t>::subcomponents, subnodes<accessor_test_container_t>::members>);
+static_assert(std::same_as<subnodes<accessor_test_container_t>::tagged_components
+                          , std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
+                                      , tagged<node::component, accessor_test_container_t::c2_t>
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::subsubnodes
+                          , std::tuple< subnodes<accessor_test_container_t::c1_t>
+                                      , subnodes<accessor_test_container_t::c2_t>
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::sublists
+                          , std::tuple< subnodes<accessor_test_container_t::c1_t>::list
+                                      , subnodes<accessor_test_container_t::c2_t>::list
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::interleaved
+                          , std::tuple< std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
+                                                  , subnodes<accessor_test_container_t::c1_t>::list
+                                                  >
+                                      , std::tuple< tagged<node::component, accessor_test_container_t::c2_t>
+                                                  , subnodes<accessor_test_container_t::c2_t>::list
+                                                  >
+                                      >
+                          >);
+using c1 = accessor_test_container_t::c1_t;
+using dp = c1::parts_t::dummy_part;
+static_assert(std::same_as<subnodes<c1>::inputs_t,  std::tuple<tagged<node::inputs_container,  c1::inputs_t>>>);
+static_assert(std::same_as<subnodes<c1>::outputs_t, std::tuple<tagged<node::outputs_container, c1::outputs_t>>>);
+static_assert(std::same_as<subnodes<c1>::parts_t,   std::tuple<tagged<node::parts_container,   c1::parts_t>>>);
+static_assert(std::same_as<subnodes<c1>::inputs,  std::tuple<c1::inputs_t::ep1_t>>);
+static_assert(std::same_as<subnodes<c1>::outputs, std::tuple<c1::outputs_t::ep2_t>>);
+static_assert(std::same_as<subnodes<c1>::parts,   std::tuple<dp>>);
+static_assert(std::same_as<subnodes<c1>::parts, subnodes<c1>::component_parts>);
+static_assert(std::same_as<subnodes<c1>::tagged_inputs, std::tuple<tagged<node::input_endpoint, c1::inputs_t::ep1_t>>>);
+static_assert(std::same_as<subnodes<c1>::tagged_outputs, std::tuple<tagged<node::output_endpoint, c1::outputs_t::ep2_t>>>);
+static_assert(std::same_as<subnodes<c1>::tagged_parts, std::tuple<tagged<node::component, dp>>>);
+static_assert(std::same_as<subnodes<c1>::subsubnodes, std::tuple<subnodes<dp>>>);
+
+static_assert(std::same_as<subnodes<dp>::inputs_t, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::outputs_t, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::inputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::outputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::parts_t, std::tuple<tagged<node::parts_container, dp::parts_t>>>);
+static_assert(std::same_as<subnodes<dp>::parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::component_parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_inputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_outputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::subsubnodes, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::sublists, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::interleaved_components, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::list, subnodes<dp>::parts_t>);
+
+static_assert(std::same_as<subnodes_t<accessor_test_container_t>, std::tuple<
+   tagged<node::component, accessor_test_container_t::c1_t>
+,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
+,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
+,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
+,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
+,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
+,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
+,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
+,   tagged<node::component, accessor_test_container_t::c2_t>
+,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
+,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
+,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
+,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
+,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
+,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
+,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
+>>);

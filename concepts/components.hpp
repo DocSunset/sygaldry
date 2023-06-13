@@ -8,6 +8,20 @@
 
 namespace sygaldry { namespace concepts {
 
+using boost::mp11::mp_and;
+using boost::mp11::mp_any;
+using boost::mp11::mp_append;
+using boost::mp11::mp_apply;
+using boost::mp11::mp_bool;
+using boost::mp11::mp_copy_if;
+using boost::mp11::mp_empty;
+using boost::mp11::mp_flatten;
+using boost::mp11::mp_if;
+using boost::mp11::mp_if_c;
+using boost::mp11::mp_or;
+using boost::mp11::mp_transform;
+using boost::mp11::mp_transform_q;
+
 template<typename T>
 concept SimpleAggregate
     =  not std::is_union_v<T>
@@ -15,24 +29,31 @@ concept SimpleAggregate
        || std::is_scalar_v<T>
        )
     ;
+
+template<SimpleAggregate T> struct aggregate_members
+{
+    using agg_t = std::remove_cvref_t<T>;
+    using type = decltype(boost::pfr::structure_to_tuple(std::declval<agg_t>()));
+};
+
+template<typename T> using aggregate_members_t = aggregate_members<T>::type;
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; requires SimpleAggregate<decltype(t.NAME)>; };\
 template<typename T> concept has_##NAME##_type = requires { typename T::NAME; requires SimpleAggregate<typename T::NAME>; };\
-template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; requires SimpleAggregate<typename T::NAME##_t>; };\
 template<typename T>\
 concept has_##NAME \
     =  has_##NAME##_member<T>\
-    || has_##NAME##_type<T>\
-    || has_##NAME##_t<T>;\
+    || has_##NAME##_type<T>;\
 \
-template<typename T> struct type_of_##NAME;\
-template<typename T>\
-    requires has_##NAME##_member<T> && (not has_##NAME##_t<T>)\
-struct type_of_##NAME<T> { using type = decltype(std::declval<T>().NAME); };\
-template<typename T>\
-    requires (not has_##NAME##_member<T>) && has_##NAME##_t<T>\
-struct type_of_##NAME<T> { using type = typename T::NAME##_t; };\
-template<has_##NAME##_type T> struct type_of_##NAME<T> { using type = typename T::NAME; };\
+template<typename T> struct type_of_##NAME { using type = struct{}; };\
+template<has_##NAME##_member T> struct type_of_##NAME<T>\
+{\
+    using type = decltype(std::declval<T>().NAME);\
+};\
+template<has_##NAME##_type T> struct type_of_##NAME<T>\
+{\
+    using type = typename T::NAME;\
+};\
 \
 template<typename T> using type_of_##NAME##_t = type_of_##NAME<T>::type;\
 \
@@ -56,11 +77,6 @@ concept Component = has_main_subroutine<T> && has_name<T> &&
         // TODO || has_throughpoints<T> || has_plugins<T>
         ;
 
-using boost::mp11::mp_or;
-using boost::mp11::mp_empty;
-using boost::mp11::mp_apply;
-using boost::mp11::mp_any;
-using boost::mp11::mp_transform;
 
 template<typename T> struct contains_component : std::false_type {};
 template<Component T> struct contains_component<T> : std::true_type {};
@@ -68,7 +84,7 @@ template<typename T>
     requires SimpleAggregate<T> and (not Component<T>)
 struct contains_component<T>
 {
-    using members = decltype(boost::pfr::structure_to_tuple(std::declval<std::remove_cvref_t<T>>()));
+    using members = aggregate_members_t<T>;
     using type = mp_apply<mp_any, mp_transform<contains_component, members>>;
     static constexpr const bool value = type::value;
 };
@@ -114,6 +130,7 @@ namespace node
     template<> constexpr bool is_endpoint<output_endpoint> = true;
     template<> constexpr bool is_endpoint<endpoint> = true;
 }
+
 template<typename T, typename ... RequestedNodes>
     requires Component<T> || ComponentContainer<T>
 constexpr auto for_each_node(T& component, auto callback)
@@ -210,6 +227,55 @@ template<typename T> constexpr void for_each_output(T& component, auto callback)
 {
     for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
+
+template<typename Tag, typename Val>
+struct tagged
+{
+    using tag = Tag;
+    using type = Val;
+};
+
+template<typename Tag>
+struct tag_with
+{
+    template<typename T> using fn = tagged<Tag, T>;
+};
+
+template<typename T> struct subnodes { using list = std::tuple<>; };
+
+template<typename T> using get_list_t = T::list;
+
+template<ComponentContainer T> struct subnodes<T>
+{
+    using members = aggregate_members_t<T>;
+    using subcomponents = mp_copy_if<members, contains_component>;
+    using tagged_components = mp_transform_q<tag_with<node::component>, subcomponents>;
+    using subsubnodes = mp_transform<subnodes, subcomponents>;
+    using sublists = mp_transform<get_list_t, subsubnodes>;
+    using interleaved = mp_transform<std::tuple, tagged_components, sublists>;
+    using list = mp_flatten<mp_flatten<interleaved>>;
+};
+template<Component T> struct subnodes<T>
+{
+    using inputs_t  = mp_if_c<has_inputs<T>,  std::tuple<tagged<node::inputs_container,  type_of_inputs_t<T>>>,  std::tuple<>>;
+    using outputs_t = mp_if_c<has_outputs<T>, std::tuple<tagged<node::outputs_container, type_of_outputs_t<T>>>, std::tuple<>>;
+    using parts_t   = mp_if_c<has_parts<T>,   std::tuple<tagged<node::parts_container,   type_of_parts_t<T>>>,   std::tuple<>>;
+    using inputs  = mp_if_c<has_inputs<T>,  aggregate_members_t<type_of_inputs_t<T>>,  std::tuple<>>;
+    using outputs = mp_if_c<has_outputs<T>, aggregate_members_t<type_of_outputs_t<T>>, std::tuple<>>;
+    using parts   = mp_if_c<has_parts<T>,   aggregate_members_t<type_of_parts_t<T>>,   std::tuple<>>;
+    using component_parts = mp_copy_if<parts, contains_component>;
+    using tagged_inputs  = mp_transform_q<tag_with<node::input_endpoint>,  inputs>;
+    using tagged_outputs = mp_transform_q<tag_with<node::output_endpoint>, outputs>;
+    using tagged_parts = mp_transform_q<tag_with<node::component>, component_parts>;
+    using subsubnodes = mp_transform<subnodes, component_parts>;
+    using sublists = mp_transform<get_list_t, subsubnodes>;
+    using interleaved_components = mp_transform<std::tuple, tagged_parts, sublists>;
+    using list = mp_append<inputs_t, tagged_inputs
+                          , outputs_t, tagged_outputs
+                          , parts_t, mp_flatten<mp_flatten<interleaved_components>>>;
+};
+
+template<typename T> using subnodes_t = subnodes<T>::list;
 
 void clear_output_flags(auto& component)
 {

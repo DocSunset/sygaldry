@@ -184,6 +184,8 @@ concept SimpleAggregate
        || std::is_scalar_v<T>
        )
     ;
+
+@{aggregate_members}
 // @/
 
 // @+'tests'
@@ -206,12 +208,17 @@ component container to hold nested containers, meaning the metafunction that
 verifies the requirement needs to be recursive.
 
 ```c++
+// @='aggregate_members'
+template<SimpleAggregate T> struct aggregate_members
+{
+    using agg_t = std::remove_cvref_t<T>;
+    using type = decltype(boost::pfr::structure_to_tuple(std::declval<agg_t>()));
+};
+
+template<typename T> using aggregate_members_t = aggregate_members<T>::type;
+// @/
+
 // @='contains_component'
-using boost::mp11::mp_or;
-using boost::mp11::mp_empty;
-using boost::mp11::mp_apply;
-using boost::mp11::mp_any;
-using boost::mp11::mp_transform;
 
 template<typename T> struct contains_component : std::false_type {};
 template<Component T> struct contains_component<T> : std::true_type {};
@@ -219,7 +226,7 @@ template<typename T>
     requires SimpleAggregate<T> and (not Component<T>)
 struct contains_component<T>
 {
-    using members = decltype(boost::pfr::structure_to_tuple(std::declval<std::remove_cvref_t<T>>()));
+    using members = aggregate_members_t<T>;
     using type = mp_apply<mp_any, mp_transform<contains_component, members>>;
     static constexpr const bool value = type::value;
 };
@@ -252,21 +259,20 @@ structure. We use a macro to avoid repetition. A similar pattern is used
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME##_member = requires (T t) { t.NAME; requires SimpleAggregate<decltype(t.NAME)>; };\
 template<typename T> concept has_##NAME##_type = requires { typename T::NAME; requires SimpleAggregate<typename T::NAME>; };\
-template<typename T> concept has_##NAME##_t = requires { typename T::NAME##_t; requires SimpleAggregate<typename T::NAME##_t>; };\
 template<typename T>\
 concept has_##NAME \
     =  has_##NAME##_member<T>\
-    || has_##NAME##_type<T>\
-    || has_##NAME##_t<T>;\
+    || has_##NAME##_type<T>;\
 \
-template<typename T> struct type_of_##NAME;\
-template<typename T>\
-    requires has_##NAME##_member<T> && (not has_##NAME##_t<T>)\
-struct type_of_##NAME<T> { using type = decltype(std::declval<T>().NAME); };\
-template<typename T>\
-    requires (not has_##NAME##_member<T>) && has_##NAME##_t<T>\
-struct type_of_##NAME<T> { using type = typename T::NAME##_t; };\
-template<has_##NAME##_type T> struct type_of_##NAME<T> { using type = typename T::NAME; };\
+template<typename T> struct type_of_##NAME { using type = struct{}; };\
+template<has_##NAME##_member T> struct type_of_##NAME<T>\
+{\
+    using type = decltype(std::declval<T>().NAME);\
+};\
+template<has_##NAME##_type T> struct type_of_##NAME<T>\
+{\
+    using type = typename T::NAME;\
+};\
 \
 template<typename T> using type_of_##NAME##_t = type_of_##NAME<T>::type;\
 \
@@ -284,6 +290,10 @@ has_type_or_value(parts);
 static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
+
+static_assert(std::same_as<regular_component_t::inputs_t, type_of_inputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::outputs_t, type_of_outputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular_component_t>>);
 // @/
 ```
 
@@ -324,11 +334,14 @@ static_assert(not has_main_subroutine<int_operator>);
 
 Given a list of components, such as a parts struct or container component,
 there are several common operations that are required: apply a generic function
-(especially a lambda) to every component in the list, every endpoint of every
-component in the list, every input or output only, or to every node in the
-component-endpoint tree; find a certain component or components in the list,
-find a certain aggregate of endpoints or components in the list, and find a
-certain endpoint or endpoints in the list.
+(especially a lambda) to every every node in the component tree, or a subset of
+nodes of the same type; access a tuple of references to a certain type of nodes
+in the tree; and find a certain node in the tree, based on its type.
+
+## Nodes
+
+
+Consider a container of components:
 
 ```c++
 // @+'tests'
@@ -361,7 +374,6 @@ struct dummy_component {
 
 struct accessor_test_container_t
 {
-    static _consteval auto name() {return "container";}
     struct c1_t : dummy_component, name_<"c1"> {} c1;
     struct c2_t : dummy_component, name_<"c2"> {} c2;
 } accessor_test_container;
@@ -370,7 +382,77 @@ static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
 static_assert(Component<dummy_component::parts_t::dummy_part>);
 static_assert(ComponentContainer<accessor_test_container_t>);
+// @/
+```
 
+The container can be seen as the root of a tree-like structure.
+
+```
+container
+    c1
+        inputs
+            ep1
+        outputs
+            ep2
+        parts
+            dp
+                parts
+    c2
+        inputs
+            ep1
+        outputs
+            ep2
+        parts
+            dp
+                parts
+```
+
+Each node in this tree structure has a certain type. A set of tag classes and
+type traits are provided to distinguish between these types at compile time.
+
+```c++
+// @='nodes'
+namespace node
+{
+    struct component_container {};
+    struct component {};
+    struct inputs_container {};
+    struct outputs_container {};
+    struct endpoints_container {};
+    struct parts_container {};
+    struct input_endpoint {};
+    struct output_endpoint {};
+    struct endpoint {};
+    template<typename> constexpr bool is_component_container = false;
+    template<> constexpr bool is_component_container<component_container> = true;
+    template<typename> constexpr bool is_component = false;
+    template<> constexpr bool is_component<component> = true;
+    template<typename> constexpr bool is_inputs_container = false;
+    template<> constexpr bool is_inputs_container<inputs_container> = true;
+    template<typename> constexpr bool is_outputs_container = false;
+    template<> constexpr bool is_outputs_container<outputs_container> = true;
+    template<typename> constexpr bool is_parts_container = false;
+    template<> constexpr bool is_parts_container<parts_container> = true;
+    template<typename> constexpr bool is_input_endpoint = false;
+    template<> constexpr bool is_input_endpoint<input_endpoint> = true;
+    template<typename> constexpr bool is_output_endpoint = false;
+    template<> constexpr bool is_output_endpoint<output_endpoint> = true;
+    template<typename> constexpr bool is_endpoints_container = false;
+    template<> constexpr bool is_endpoints_container<inputs_container> = true;
+    template<> constexpr bool is_endpoints_container<outputs_container> = true;
+    template<> constexpr bool is_endpoints_container<endpoints_container> = true;
+    template<typename> constexpr bool is_endpoint = false;
+    template<> constexpr bool is_endpoint<input_endpoint> = true;
+    template<> constexpr bool is_endpoint<output_endpoint> = true;
+    template<> constexpr bool is_endpoint<endpoint> = true;
+}
+// @/
+```
+
+## For each
+
+```c++
+// @+'tests'
 TEST_CASE("for each X")
 {
     string allnames{};
@@ -417,76 +499,11 @@ TEST_CASE("for each X")
 // @/
 ```
 
-## For each
-
-Consider a container of components such as the test structure above. It
-can be seen as the root of a tree-like structure whose leaves are components and
-endpoints:
-
-```
-container
-    c1
-        inputs
-            ep1
-        outputs
-            ep2
-        parts
-            dp
-                parts
-    c2
-        inputs
-            ep1
-        outputs
-            ep2
-        parts
-            dp
-                parts
-```
-
 `for_each_node` runs the user-provided callback function for each of these
 nodes. To help the callback distinguish between a component container,
 component, input or output endpoint aggregate, parts aggregate, or endpoint, an
 empty tag class is passed as the second argument to the callback. Some helpers
 are provided to facilitate compile-time branching depending on the type of node.
-
-```c++
-// @+'for each'
-namespace node
-{
-    struct component_container {};
-    struct component {};
-    struct inputs_container {};
-    struct outputs_container {};
-    struct endpoints_container {};
-    struct parts_container {};
-    struct input_endpoint {};
-    struct output_endpoint {};
-    struct endpoint {};
-    template<typename> constexpr bool is_component_container = false;
-    template<> constexpr bool is_component_container<component_container> = true;
-    template<typename> constexpr bool is_component = false;
-    template<> constexpr bool is_component<component> = true;
-    template<typename> constexpr bool is_inputs_container = false;
-    template<> constexpr bool is_inputs_container<inputs_container> = true;
-    template<typename> constexpr bool is_outputs_container = false;
-    template<> constexpr bool is_outputs_container<outputs_container> = true;
-    template<typename> constexpr bool is_parts_container = false;
-    template<> constexpr bool is_parts_container<parts_container> = true;
-    template<typename> constexpr bool is_input_endpoint = false;
-    template<> constexpr bool is_input_endpoint<input_endpoint> = true;
-    template<typename> constexpr bool is_output_endpoint = false;
-    template<> constexpr bool is_output_endpoint<output_endpoint> = true;
-    template<typename> constexpr bool is_endpoints_container = false;
-    template<> constexpr bool is_endpoints_container<inputs_container> = true;
-    template<> constexpr bool is_endpoints_container<outputs_container> = true;
-    template<> constexpr bool is_endpoints_container<endpoints_container> = true;
-    template<typename> constexpr bool is_endpoint = false;
-    template<> constexpr bool is_endpoint<input_endpoint> = true;
-    template<> constexpr bool is_endpoint<output_endpoint> = true;
-    template<> constexpr bool is_endpoint<endpoint> = true;
-}
-// @/
-```
 
 The function itself takes a variadic list of these tags, allowing the
 user to select which types of nodes they wish to visit. The default, in case
@@ -622,6 +639,156 @@ template<typename T> constexpr void for_each_output(T& component, auto callback)
 // @/
 ```
 
+## Tuple of Nodes
+
+Generalising `boost::pfr`'s facility of taking a structure and returning a
+tuple of references to its elements, we aim in this section to take a component
+container or component and return a tuple of references to all of the subnodes
+of said entity that match a certain node type.
+
+Using `mp_append` with recursion, it is reasonably simple to generate a type
+list of all nodes in a container or component. By tagging the types within the
+list by their node type, we can easily filter the list afterwards.
+
+```c++
+// @='tuple of nodes'
+template<typename Tag, typename Val>
+struct tagged
+{
+    using tag = Tag;
+    using type = Val;
+};
+
+template<typename Tag>
+struct tag_with
+{
+    template<typename T> using fn = tagged<Tag, T>;
+};
+
+template<typename T> struct subnodes { using list = std::tuple<>; };
+
+template<typename T> using get_list_t = T::list;
+
+template<ComponentContainer T> struct subnodes<T>
+{
+    using members = aggregate_members_t<T>;
+    using subcomponents = mp_copy_if<members, contains_component>;
+    using tagged_components = mp_transform_q<tag_with<node::component>, subcomponents>;
+    using subsubnodes = mp_transform<subnodes, subcomponents>;
+    using sublists = mp_transform<get_list_t, subsubnodes>;
+    using interleaved = mp_transform<std::tuple, tagged_components, sublists>;
+    using list = mp_flatten<mp_flatten<interleaved>>;
+};
+// @/
+
+// @+'tests'
+static_assert(std::same_as< subnodes<accessor_test_container_t>::members
+                          , std::tuple< accessor_test_container_t::c1_t
+                                      , accessor_test_container_t::c2_t
+                                      >
+                          >);
+static_assert(std::same_as<subnodes<accessor_test_container_t>::subcomponents, subnodes<accessor_test_container_t>::members>);
+static_assert(std::same_as<subnodes<accessor_test_container_t>::tagged_components
+                          , std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
+                                      , tagged<node::component, accessor_test_container_t::c2_t>
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::subsubnodes
+                          , std::tuple< subnodes<accessor_test_container_t::c1_t>
+                                      , subnodes<accessor_test_container_t::c2_t>
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::sublists
+                          , std::tuple< subnodes<accessor_test_container_t::c1_t>::list
+                                      , subnodes<accessor_test_container_t::c2_t>::list
+                                      >
+                          >);
+static_assert(std::same_as< subnodes<accessor_test_container_t>::interleaved
+                          , std::tuple< std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
+                                                  , subnodes<accessor_test_container_t::c1_t>::list
+                                                  >
+                                      , std::tuple< tagged<node::component, accessor_test_container_t::c2_t>
+                                                  , subnodes<accessor_test_container_t::c2_t>::list
+                                                  >
+                                      >
+                          >);
+// @/
+
+// @+'tuple of nodes'
+template<Component T> struct subnodes<T>
+{
+    using inputs_t  = mp_if_c<has_inputs<T>,  std::tuple<tagged<node::inputs_container,  type_of_inputs_t<T>>>,  std::tuple<>>;
+    using outputs_t = mp_if_c<has_outputs<T>, std::tuple<tagged<node::outputs_container, type_of_outputs_t<T>>>, std::tuple<>>;
+    using parts_t   = mp_if_c<has_parts<T>,   std::tuple<tagged<node::parts_container,   type_of_parts_t<T>>>,   std::tuple<>>;
+    using inputs  = mp_if_c<has_inputs<T>,  aggregate_members_t<type_of_inputs_t<T>>,  std::tuple<>>;
+    using outputs = mp_if_c<has_outputs<T>, aggregate_members_t<type_of_outputs_t<T>>, std::tuple<>>;
+    using parts   = mp_if_c<has_parts<T>,   aggregate_members_t<type_of_parts_t<T>>,   std::tuple<>>;
+    using component_parts = mp_copy_if<parts, contains_component>;
+    using tagged_inputs  = mp_transform_q<tag_with<node::input_endpoint>,  inputs>;
+    using tagged_outputs = mp_transform_q<tag_with<node::output_endpoint>, outputs>;
+    using tagged_parts = mp_transform_q<tag_with<node::component>, component_parts>;
+    using subsubnodes = mp_transform<subnodes, component_parts>;
+    using sublists = mp_transform<get_list_t, subsubnodes>;
+    using interleaved_components = mp_transform<std::tuple, tagged_parts, sublists>;
+    using list = mp_append<inputs_t, tagged_inputs
+                          , outputs_t, tagged_outputs
+                          , parts_t, mp_flatten<mp_flatten<interleaved_components>>>;
+};
+
+template<typename T> using subnodes_t = subnodes<T>::list;
+// @/
+
+// @+'tests'
+using c1 = accessor_test_container_t::c1_t;
+using dp = c1::parts_t::dummy_part;
+static_assert(std::same_as<subnodes<c1>::inputs_t,  std::tuple<tagged<node::inputs_container,  c1::inputs_t>>>);
+static_assert(std::same_as<subnodes<c1>::outputs_t, std::tuple<tagged<node::outputs_container, c1::outputs_t>>>);
+static_assert(std::same_as<subnodes<c1>::parts_t,   std::tuple<tagged<node::parts_container,   c1::parts_t>>>);
+static_assert(std::same_as<subnodes<c1>::inputs,  std::tuple<c1::inputs_t::ep1_t>>);
+static_assert(std::same_as<subnodes<c1>::outputs, std::tuple<c1::outputs_t::ep2_t>>);
+static_assert(std::same_as<subnodes<c1>::parts,   std::tuple<dp>>);
+static_assert(std::same_as<subnodes<c1>::parts, subnodes<c1>::component_parts>);
+static_assert(std::same_as<subnodes<c1>::tagged_inputs, std::tuple<tagged<node::input_endpoint, c1::inputs_t::ep1_t>>>);
+static_assert(std::same_as<subnodes<c1>::tagged_outputs, std::tuple<tagged<node::output_endpoint, c1::outputs_t::ep2_t>>>);
+static_assert(std::same_as<subnodes<c1>::tagged_parts, std::tuple<tagged<node::component, dp>>>);
+static_assert(std::same_as<subnodes<c1>::subsubnodes, std::tuple<subnodes<dp>>>);
+
+static_assert(std::same_as<subnodes<dp>::inputs_t, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::outputs_t, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::inputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::outputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::parts_t, std::tuple<tagged<node::parts_container, dp::parts_t>>>);
+static_assert(std::same_as<subnodes<dp>::parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::component_parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_inputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_outputs, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::tagged_parts, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::subsubnodes, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::sublists, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::interleaved_components, std::tuple<>>);
+static_assert(std::same_as<subnodes<dp>::list, subnodes<dp>::parts_t>);
+
+static_assert(std::same_as<subnodes_t<accessor_test_container_t>, std::tuple<
+   tagged<node::component, accessor_test_container_t::c1_t>
+,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
+,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
+,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
+,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
+,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
+,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
+,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
+,   tagged<node::component, accessor_test_container_t::c2_t>
+,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
+,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
+,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
+,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
+,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
+,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
+,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
+>>);
+// @/
+```
+
 # Clearable Flags
 
 Many components have endpoints with message semantics, e.g. by its value having
@@ -688,9 +855,27 @@ void activate(T& component)
 
 namespace sygaldry { namespace concepts {
 
+using boost::mp11::mp_and;
+using boost::mp11::mp_any;
+using boost::mp11::mp_append;
+using boost::mp11::mp_apply;
+using boost::mp11::mp_bool;
+using boost::mp11::mp_copy_if;
+using boost::mp11::mp_empty;
+using boost::mp11::mp_flatten;
+using boost::mp11::mp_if;
+using boost::mp11::mp_if_c;
+using boost::mp11::mp_or;
+using boost::mp11::mp_transform;
+using boost::mp11::mp_transform_q;
+
 @{base component concepts}
 
+@{nodes}
+
 @{for each}
+
+@{tuple of nodes}
 
 @{clear_flags}
 
