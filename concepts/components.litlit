@@ -898,7 +898,7 @@ memory.
 ```c++
 // @+'tuples of nodes'
 template<typename T>
-struct _tagged_search_by_type
+struct tagged_is_same
 {
     template<typename Y>
     struct fn : std::is_same<T, typename Y::type> {};
@@ -907,7 +907,7 @@ struct _tagged_search_by_type
 template<typename T>
 constexpr auto node_list_find(Tuple auto tup)
 {
-    return node_list_filter<_tagged_search_by_type<T>::template fn>(tup);
+    return node_list_filter<tagged_is_same<T>::template fn>(tup);
 }
 // @/
 
@@ -960,6 +960,109 @@ constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
         boost::mp11::tuple_for_each(filtered, f);
     }
     else boost::mp11::tuple_for_each(node_list, f);
+}
+// @/
+```
+
+## Node Paths
+
+We model the path of a named node as a tuple whose first element is the root of
+the component tree in which the node is found, whose last element is the named
+node, and whose intervening elements are the named parents of the node in order.
+
+```c++
+// @+'tests'
+constexpr auto in11_path = path_of<in11>(component_to_tree(accessor_test_container));
+static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
+                          , std::tuple< tagged<node::component,c1>
+                                      , tagged<node::input_endpoint,in11>
+                                      >
+                          >);
+
+struct deep_component : name_<"root"> {
+    void main();
+    struct parts_t {
+        struct n1 : name_<"n1"> {
+            void main();
+            struct parts_t {
+                struct n2 : name_<"n2"> {
+                    void main();
+                    struct parts_t {
+                        struct n3 : name_<"n3"> {
+                            void main();
+                            struct inputs_t {
+                                struct in : name_<"in"> {} input;
+                            } inputs;
+                        } part;
+                    } parts;
+                } part;
+            } parts;
+        } part;
+    } parts;
+} deep;
+
+constexpr auto deep_path = path_of<deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>(deep);
+static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
+        , std::tuple< tagged<node::component,deep_component>
+                    , tagged<node::component,deep_component::parts_t::n1>
+                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2>
+                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
+                    , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
+                    >
+        >);
+
+// @/
+```
+
+Generating a path, given a node's (untagged) type and a component tree, is
+similar to flattening the tree while searching for a particular node.
+
+The input to the search is a tuple representing a part of the overall tree of
+components. If the tuple is empty, this is the tail of a leaf node of the tree.
+We return the empty tuple unchanged.
+
+Otherwise, we split the tuple into its head and its tail. If the head is a node
+that matches the one we are looking for, we return a tuple containing it.
+Otherwise, if the head is a different node, we search for the sought node in
+the tail of the tuple. If it is found, this search will return a non-empty
+tuple. If the current node is named, we prepend the current node, which is a
+named parent of the sought one, to this tuple, and return it, or else simply
+return the found sub-path. Otherwise we return an empty tuple, since this node
+is not part of the path.
+
+Finally, if the head is a tuple, then we return the `tuple_cat` of the
+recursive search over the head subtree and tail subtree(s). If any of these
+find the sought node, the result of the concatenation will be a non-empty
+tuple. Otherwise, it will be an empty tuple.
+
+```c++
+// @+'tuples of nodes'
+template<typename T, Tuple Tup>
+constexpr auto path_of(const Tup tree)
+{
+    if constexpr (std::tuple_size_v<Tup> == 0) // tail of leaf
+        return std::tuple<>{};
+
+    auto head = tuple_head(tree);
+    auto tail_path = path_of<T>(tuple_tail(tree));
+    if constexpr (Tuple<decltype(head)>) // search subtrees
+        return std::tuple_cat(path_of<T>(head), tail_path);
+    else if constexpr (std::same_as<typename decltype(head)::type, T>) // located T
+        return std::make_tuple(head);
+    else if constexpr (std::tuple_size_v<decltype(tail_path)> > 0) // head is a parent
+    {
+        if constexpr (has_name<typename decltype(head)::type>) // prepend named parent
+            return std::tuple_cat(std::make_tuple(head), tail_path);
+        else return tail_path; // return sub-path
+    }
+    else return std::tuple<>{}; // node is in another subtree
+}
+
+template<typename T, typename C>
+    requires Component<C> || ComponentContainer<C>
+constexpr auto path_of(C& component)
+{
+    return path_of<T>(component_to_tree(component));
 }
 // @/
 ```

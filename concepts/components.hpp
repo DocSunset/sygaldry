@@ -239,7 +239,7 @@ constexpr auto node_list_filter(Tuple auto tup)
     }, tup));
 }
 template<typename T>
-struct _tagged_search_by_type
+struct tagged_is_same
 {
     template<typename Y>
     struct fn : std::is_same<T, typename Y::type> {};
@@ -248,7 +248,7 @@ struct _tagged_search_by_type
 template<typename T>
 constexpr auto node_list_find(Tuple auto tup)
 {
-    return node_list_filter<_tagged_search_by_type<T>::template fn>(tup);
+    return node_list_filter<tagged_is_same<T>::template fn>(tup);
 }
 template<typename ... RequestedNodes>
 struct _search_by_tags
@@ -275,6 +275,33 @@ constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
         boost::mp11::tuple_for_each(filtered, f);
     }
     else boost::mp11::tuple_for_each(node_list, f);
+}
+template<typename T, Tuple Tup>
+constexpr auto path_of(const Tup tree)
+{
+    if constexpr (std::tuple_size_v<Tup> == 0) // tail of leaf
+        return std::tuple<>{};
+
+    auto head = tuple_head(tree);
+    auto tail_path = path_of<T>(tuple_tail(tree));
+    if constexpr (Tuple<decltype(head)>) // search subtrees
+        return std::tuple_cat(path_of<T>(head), tail_path);
+    else if constexpr (std::same_as<typename decltype(head)::type, T>) // located T
+        return std::make_tuple(head);
+    else if constexpr (std::tuple_size_v<decltype(tail_path)> > 0) // head is a parent
+    {
+        if constexpr (has_name<typename decltype(head)::type>) // prepend named parent
+            return std::tuple_cat(std::make_tuple(head), tail_path);
+        else return tail_path; // return sub-path
+    }
+    else return std::tuple<>{}; // node is in another subtree
+}
+
+template<typename T, typename C>
+    requires Component<C> || ComponentContainer<C>
+constexpr auto path_of(C& component)
+{
+    return path_of<T>(component_to_tree(component));
 }
 
 template<typename T, typename ... RequestedNodes>

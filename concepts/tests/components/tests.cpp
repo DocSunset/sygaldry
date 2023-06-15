@@ -271,6 +271,45 @@ TEST_CASE("node_list_filter")
     in1.extra_value = 3.14f;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
 }
+constexpr auto in11_path = path_of<in11>(component_to_tree(accessor_test_container));
+static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
+                          , std::tuple< tagged<node::component,c1>
+                                      , tagged<node::input_endpoint,in11>
+                                      >
+                          >);
+
+struct deep_component : name_<"root"> {
+    void main();
+    struct parts_t {
+        struct n1 : name_<"n1"> {
+            void main();
+            struct parts_t {
+                struct n2 : name_<"n2"> {
+                    void main();
+                    struct parts_t {
+                        struct n3 : name_<"n3"> {
+                            void main();
+                            struct inputs_t {
+                                struct in : name_<"in"> {} input;
+                            } inputs;
+                        } part;
+                    } parts;
+                } part;
+            } parts;
+        } part;
+    } parts;
+} deep;
+
+constexpr auto deep_path = path_of<deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>(deep);
+static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
+        , std::tuple< tagged<node::component,deep_component>
+                    , tagged<node::component,deep_component::parts_t::n1>
+                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2>
+                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
+                    , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
+                    >
+        >);
+
 TEST_CASE("for each X")
 {
     string allnames{};
