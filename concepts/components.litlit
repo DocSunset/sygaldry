@@ -1,13 +1,11 @@
 # Components Concepts
 
-We consider two kinds of components: regular components, and container
-components.
+We consider two kinds of components: regular components, and
+component containers.
 
 A regular component has a name, a main subroutine, and at least one of
 endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
-parts, these must be simple aggregate containers. Endpoints containers are
-allowed to be empty, but a parts container, if defined, must contain at least
-one component or nested component container.
+parts, these must be simple aggregate containers.
 
 ```c++
 // @='Component'
@@ -42,13 +40,13 @@ static_assert(not Component<bng<"a bang">>);
 // @/
 ```
 
-A container is merely an aggregate that contains only nested containers and/or
-regular components. It may have a name, but it must be declared directly in the
-container definition in order to preserve aggregate-ness (e.g. it must not use
-the inherited `name_<"name">` helper). Similar to a regular component's parts
-structure, a container is required to contain at least one component or nested
-container. Indeed, a parts container is required to meet the requirements for
-a component container.
+A component container is merely an aggregate that contains only nested
+containers and/or regular components. It may have a name, but it must be
+declared directly in the container definition in order to preserve
+aggregate-ness (e.g. it must not use the inherited `name_<"name">` helper).
+Similar to a regular component's parts structure, a container is required to
+contain at least one component or nested container. Indeed, a parts container
+is required to meet the requirements for a component container.
 
 ```c++
 // @='ComponentContainer'
@@ -94,14 +92,14 @@ activated accordingly, and exposed for external control inputs.
 // @/
 ```
 
-## ComponentContainer
+# ComponentContainer
 
 A container is a simple aggregate that contains only components. We begin here,
 since the definition of the `inputs`, `outputs`, and `parts` structures of a
 regular component depends on the definition of a simple aggregate aggregate
 developed here.
 
-### Simple Aggregate
+## Simple Aggregate
 
 Our notion of a simple aggregate comes from `boost::pfr`, which we rely on for
 the ability to iterate over lists of endpoints and components in the form of
@@ -196,16 +194,27 @@ static_assert(SimpleAggregate<container_component_t>);
 // @/
 ```
 
-### Contains Components
+The main limitation we encounter due to our incomplete test of
+simple-aggregate-ness is that we cannot admit nested aggregates of endpoints in
+case any of our endpoints have inherited a class type; such non-base endpoints
+pass our `SimpleAggregate` concept, but trigger static assertion failures from
+`boost::pfr`. For this reason, we currently assume that endpoint containers are
+not nested. Another limitation is described next.
+
+## Contains Components
 
 As well as being a simple aggregate, component containers are required to
-contain at least one component. There are two complicating factors when
-determining whether this requirement is met. One is that our incomplete concept
-of a simple aggregate will treat regular components as aggregates, even though
-these will trigger a static assertion failure if they have used a helper to
-inherit a metadata-returning static method. Another is that we allow our
-component container to hold nested containers, meaning the metafunction that
-verifies the requirement needs to be recursive.
+contain at least one component. This is required so that we can distinguish
+component containers from regular components and endpoint containers. Regular
+components also satisfy our `SimpleAggregate` concept despite that they may
+trigger an assertion failure from `boost::pfr` in case they use the `name_`
+helper or any other of our metadata helpers. Similarly, endpoint containers are
+required to be `SimpleAggregate`. Our work around is to treat anything that
+meets the requirements of a regular component as disqualified from being a
+component container, and to require component containers to contain at least
+one component so that they can be distinguished from endpoint containers.
+
+First, we access a type list of data members of the candidate aggregate:
 
 ```c++
 // @='aggregate_members'
@@ -217,7 +226,17 @@ template<SimpleAggregate T> struct aggregate_members
 
 template<typename T> using aggregate_members_t = aggregate_members<T>::type;
 // @/
+```
 
+Then, we use `boost::mp11` to check if any member is a component, or a
+component container. We allow our component container to hold nested
+containers, meaning the metafunction that verifies that an aggregate contains a
+component needs to be recursive. Non-component non-aggregate data members are
+one recursion stopping condition. Components are another. And any data member
+that is a simple aggregate, but not a component, is recursively checked to see
+if it contains a component.
+
+```c++
 // @='contains_component'
 
 template<typename T> struct contains_component : std::false_type {};
@@ -242,12 +261,12 @@ static_assert(contains_component_v<container_component_t>);
 // @/
 ```
 
-## Regular Component
+# Regular Component
 
 A regular component has a name, a main subroutine, and at least one of
 endpoints, throughpoints, parts, or plugins.
 
-### Parts, Inputs, Outputs
+## Parts, Inputs, Outputs
 
 To detect whether a component has parts, inputs, or outputs, we employ the same
 structure parameterized on the expected name of the nested simple aggregate
@@ -291,7 +310,7 @@ static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular
 // @/
 ```
 
-### Main Subroutine
+## Main Subroutine
 
 Using our small [function reflection library](concepts/functions.litlit) we can
 tell whether a component has a main subroutine by checking whether the return
@@ -323,6 +342,14 @@ static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
 // @/
 ```
+
+## Throughpoints
+
+TODO
+
+## Plugins
+
+TODO
 
 # Accessing Subcomponents and Endpoints
 
@@ -402,7 +429,7 @@ struct accessor_test_container_t
     } c2;
 };
 
-constinit accessor_test_container_t accessor_test_container{};
+accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
@@ -494,17 +521,21 @@ comes time to make a tuple of references. Instead, the first step is to
 generate the runtime tuple of references. This runtime structure can be
 manipulated more fluently using a combination of runtime programming and
 template metaprogramming, and if compile-time execution is required, the
-transformations can generally be `constexpr` and executed at compile-time, or
-easily converted into pure type metaprograms using e.g. `std::declval`.
+transformations can generally be `constexpr` or `constinit` and thus executed
+at compile-time, or easily converted into pure type-generating metaprograms
+using e.g. `std::declval` and `decltype`.
+
+## Component Tree
 
 For starters, we define a function `component_to_tree` that generates a tuple
 of nested tuples that preserves the tree-like structure of a general component,
 augmenting our references with a node-type tag, as in the following expected
 output. Each element of the tree is a tuple whose first element is a node and
-subsequent elements are that node's subtrees as tuples of the same form.
+subsequent elements are that node's subtrees as tuples of the same form. Leaf
+nodes are thus represented as tuples containing a single element.
 
 ```c++
-// @='tuple of nodes'
+// @='tuples of nodes'
 template<typename Tag, typename Val>
 struct tagged
 {
@@ -580,20 +611,23 @@ TEST_CASE("component_to_tree")
 // @/
 ```
 
-#### Tree of Nodes
-
-TODO: simplify this implementation...
+TODO: simplify this implementation. The cases for a component container,
+endpoint container, and parts container are all very very similar, and could
+likely be addressed with a single more generic function.
 
 First consider the case where we have been pass a `T& component` that is a
 component container. `component_to_tree` should return something of the form:
 `< head, <subtree>, <subtree>, ...>` where the head of the tuple is simply the
-tagged `component`, and each subtree in the tail of the tuple is the tree for
-one component. To make the tail, we can get a tuple of references to the
-subcomponents using pfr. Then using `boost::mp11::tuple_transform` we can turn
-each subcomponent reference into its corresponding subtree, completing the tail.
-We then must use `tuple_cat` to unpack the tail, which is one tuple containing
-all of the sublists, so that we will have `< head, <subtree>, <subtree> ... >`
-instead of `< head, < <subtree>, <subtree>, ...> >`
+`component` tagged `node::component_container`, and each subtree in the tail of
+the tuple is the tree for one component. To make the tail, we can get a tuple
+of references to the subcomponents using `boost::pfr::structure_tie`. Then
+using `boost::mp11::tuple_transform` we can turn each subcomponent reference
+into its corresponding subtree, completing the tail. We then must use
+`tuple_cat` to unpack the tail, which is one tuple containing all of the
+sublists, so that we will have `< head, <subtree>, <subtree> ... >` where the
+tail is zero or more subtree tuples, instead of `< head, < <subtree>,
+<subtree>, ...> >` where the tail is a single tuple containing the subtree
+tuples.
 
 ```c++
 // @='component container tree case'
@@ -607,15 +641,14 @@ return std::tuple_cat( head, tail);
 // @/
 ```
 
-Now consider the case of a regular component. The subtree has the form:
-`< head, <maybe inputs>, <maybe outputs>, <maybe parts> >`. Because only
-one of inputs, outputs, and parts is required, we have to work around the
-possibility that one or two of these subtrees may not exist. Our strategy
-is to always `tuple_cat` four tuples, where the inputs, outputs, and parts
-tuples may be empty tuples, which will vanish during the `tuple_cat`
-operation. One awkward consequence of this strategy is that each of the
-`<maybe subtree>` terms, as well as the `head` of the tree, have to be
-wrapped in an extra `std::tuple` before being passed to `tuple_cat`.
+Now consider the case of a regular component. The subtree has the form: `<
+head, <maybe inputs>, <maybe outputs>, <maybe parts> >`. Because only one of
+inputs, outputs, and parts is required, we have to work around the possibility
+that one or two of these subtrees may not exist. Our strategy is to always
+`tuple_cat` four tuples, where the inputs, outputs, and parts tuples may be
+empty tuples, which will vanish during the `tuple_cat` operation. One awkward
+consequence of this strategy is that the `head` of the tree has to be a
+`std::tuple` before being passed to `tuple_cat`.
 
 ```c++
 // @='component tree case'
@@ -645,12 +678,10 @@ return std::tuple_cat( std::make_tuple(tagged<node::component, T>{component})
 We use one function for both input and output endpoints to save a bit of
 repetition. The structure is essentially the same as the components container
 case, except that there's no need to recurse into the endpoints, which are
-always leaves, and we have to wrap the output in an extra tuple to work
-around the possibility that there may not be any endpoints in the given
-container..
+always leaves.
 
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<typename Tag, Component T>
 constexpr auto endpoint_subtree(T& component)
 {
@@ -693,7 +724,7 @@ constexpr auto component_to_tree(T& component)
 // @/
 ```
 
-#### Flattening
+## Component Node List
 
 The tree structure is useful for certain applications, but most of the time it is more
 convenient to work with a flat tuple. The following function flattens a given node tree,
@@ -705,7 +736,7 @@ our functions and help us make compile-time branches depending on whether a give
 type is a tuple:
 
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<typename T> struct is_tuple : std::false_type {};
 template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
@@ -717,7 +748,7 @@ To be able to flatten the tree, we need to be able to access the head and tail
 respectively of the tree's tuples.
 
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<Tuple T>
 constexpr auto tuple_head(T tup)
 {
@@ -768,43 +799,48 @@ Otherwise, the function recurses, so that the nested head tuple will be peeled
 apart in successive calls until an element is found and recursion can stop.
 Similarly, the tail of the input is always passed down recursively, so that it
 can get the same treatment for its new head element. Thus the recursive calls
-to `tuple_flatten(head)` can be seen as doing the actual flattening, while the
-calls to `tuple_flatten(tail)` merely continue along the tree.
+to `component_tree_to_node_list(head)` can be seen as doing the actual flattening, while the
+calls to `component_tree_to_node_list(tail)` merely continue along the tree.
 
 Note that, although labelled `constexpr`, this operation may not be very
 efficient. It hasn't been verified whether or to what extent the compiler is
-able to optimize this operation into oblivion. In the test case below, where
-the flattened tuple is declared, there appear about 18 pairs of `lea, mov`
-instructions (one pair for each element of the tuple?), suggesting that the
-compiler was able to inline the flattened tuple at compile time, and all it
-does at runtime is move the data into local memory, which is encouraging.
+able to optimize this operation into oblivion. In the test case below, compiled
+without optimizations enabled, where the flattened tuple is declared there
+appear about 18 pairs of `lea, mov` instructions (one pair for each element of
+the tuple?), suggesting that the compiler was able to compute the flattened
+tuple at compile time, and all it does at runtime is move the computed data
+structure into local memory; this is certainly encouraging, but likely relies
+on the declaration of the flattened tuple as `constexpr`.
 
 Also note that this implementation is only possible based on the assumption
 that the type of every element in the tree will be unique (from the perspective
 of the type system), so that the return type of any two invocations of
-`tuple_flatten` are guaranteed to be different, meaning there's never an issue
-with inconsistent deduced return types.
+`component_tree_to_node_list` are guaranteed to be different, meaning there's never an issue
+with inconsistent deduced return types. If this assumption ever becomes an
+issue, it may be possible to enforce it by passing arbitrary unique template
+parameters, such as integer constants, to each recursive call to
+`component_tree_to_node_list`.
 
 Notice also that, although the flattened tuple is declared `constexpr`, we are
 still able to extract a mutable reference to our component data from it. Neat!
 
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<Tuple T>
-constexpr auto tuple_flatten(T tree)
+constexpr auto component_tree_to_node_list(T tree)
 {
     if constexpr (std::tuple_size_v<T> == 0) return tree;
     auto head = tuple_head(tree);
     auto tail = tuple_tail(tree);
-    if constexpr (Tuple<decltype(head)>) return std::tuple_cat(tuple_flatten(head), tuple_flatten(tail));
-    else return std::tuple_cat(std::make_tuple(head), tuple_flatten(tail));
+    if constexpr (Tuple<decltype(head)>) return std::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
+    else return std::tuple_cat(std::make_tuple(head), component_tree_to_node_list(tail));
 }
 // @/
 
 // @+'tests'
-TEST_CASE("tuple_flatten")
+TEST_CASE("component_tree_to_node_list")
 {
-    constexpr auto flattened = tuple_flatten(component_to_tree(accessor_test_container));
+    constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
     static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
 
     auto& in1 = std::get<3>(flattened).ref;
@@ -816,7 +852,7 @@ TEST_CASE("tuple_flatten")
 // @/
 ```
 
-#### Filtering the Tuple
+## Filtering the Node List
 
 A flat tuple is easy to filter. We can pass a predicate metafunction to the
 filter, and then `tuple_cat` wrapped elements or empty tuples depending on the
@@ -824,14 +860,10 @@ result of the predicate. We use `tuple_transform` from `mp11` to transform the
 tuple into one of wrapped values or empty tuples based on the predicate, then
 `std::apply` the result to `tuple_cat` to get a filtered tuple out.
 
-In the following test, `only_in1` is fully inlined by the compiler. No runtime
-computation is required; the address of the variable is simply loaded from
-memory in two instructions.
-
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<template<typename>typename F>
-constexpr auto tuple_filter(Tuple auto tup)
+constexpr auto node_list_filter(Tuple auto tup)
 {
     return std::apply([](auto...args)
     {
@@ -851,14 +883,20 @@ constexpr auto tuple_filter(Tuple auto tup)
 // @/
 ```
 
-#### Searching by Type
+### Searching for a Particular Node
 
 A search can be construed as a filtering operation. Here we leverage
-`tuple_filter` to find elements with a particular type within our flattened
-tuple of tagged component tree nodes.
+`node_list_filter` to find elements with a particular type within our flattened
+tuple of tagged component tree nodes. Based on the assumption that every node
+in the tree has a unique type, this is a way of finding a particular node in
+the tree.
+
+In the following test, `only_in1` is fully inlined by the compiler. No runtime
+computation is required; the address of the variable is simply loaded from
+memory.
 
 ```c++
-// @+'tuple of nodes'
+// @+'tuples of nodes'
 template<typename T>
 struct _tagged_search_by_type
 {
@@ -867,17 +905,16 @@ struct _tagged_search_by_type
 };
 
 template<typename T>
-constexpr auto find(Tuple auto tup)
+constexpr auto node_list_find(Tuple auto tup)
 {
-    return tuple_filter<_tagged_search_by_type<T>::template fn>(tup);
+    return node_list_filter<_tagged_search_by_type<T>::template fn>(tup);
 }
 // @/
 
 // @+'tests'
-TEST_CASE("tuple_filter")
+TEST_CASE("node_list_filter")
 {
-    // returns two endoints, since in11 and in12 are the same type; we std::get the first one only
-    constexpr auto& in1 = find<in11>(tuple_flatten(component_to_tree(accessor_test_container))).ref;
+    constexpr auto& in1 = node_list_find<in11>(component_tree_to_node_list(component_to_tree(accessor_test_container))).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -886,22 +923,18 @@ TEST_CASE("tuple_filter")
 // @/
 ```
 
+### Filter by Node Type
+
+We can filter for a particular type of node (e.g. input endpoints or parts
+containers or components) in a similar fashion. With the definition of a
+`for_each_node_in_list` function that runs a callback for each node in a
+component node list, this provides a succinct method to visit each node that
+matches one of the node types in a variadic list of node tag template type
+parameters, allowing the user to select which types of nodes they wish to visit
+by first filtering the list.
+
 ```c++
-// @+'tuple of nodes'
-template<typename T, typename ... RequestedNodes>
-    requires Component<T> || ComponentContainer<T>
-constexpr auto for_each_node(T& component, auto callback)
-{
-    using boost::mp11::mp_list;
-    using boost::mp11::mp_contains;
-    using boost::mp11::mp_empty;
-
-    using nodes = mp_list<RequestedNodes...>;
-
-    @{for each component container case}
-    @{for each component case}
-}
-
+// @+'tuples of nodes'
 template<typename ... RequestedNodes>
 struct _search_by_tags
 {
@@ -909,19 +942,24 @@ struct _search_by_tags
 };
 
 template<typename ... RequestedNodes>
-constexpr auto tuple_filter_by_tag(Tuple auto tup)
+constexpr auto node_list_filter_by_tag(Tuple auto tup)
 {
-    return tuple_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
+    return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
 }
 
-template<typename T>
-constexpr auto for_each_node_alt(T flattened, auto callback)
+template<typename ... RequestedNodes>
+constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
 {
     auto f = [&](auto tagged_node)
     {
         callback(tagged_node.ref, typename decltype(tagged_node)::tag{});
     };
-    boost::mp11::tuple_for_each(flattened, f);
+    if constexpr (sizeof...(RequestedNodes) > 0)
+    {
+        constexpr auto filtered = node_list_filter_by_tag<RequestedNodes...>(node_list);
+        boost::mp11::tuple_for_each(filtered, f);
+    }
+    else boost::mp11::tuple_for_each(node_list, f);
 }
 // @/
 ```
@@ -960,6 +998,46 @@ TEST_CASE("for each X")
     {
         for_each_output(accessor_test_container, add_names);
         REQUIRE(allnames == string("outout"));
+
+        BENCHMARK("for each output bench")
+        {
+            for_each_output(accessor_test_container, add_names);
+            return allnames;
+        };
+    }
+
+    SECTION("for each output in list (pregen)")
+    {
+        string allnodes{};
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+                component_tree_to_node_list(component_to_tree(accessor_test_container)));
+        for_each_node_in_list(filtered, add_node);
+        REQUIRE(allnodes == string("outout"));
+
+        BENCHMARK("for each output in list (pregen) bench")
+        {
+            string allnodes{};
+            for_each_node_in_list(filtered, add_node);
+            return allnodes;
+        };
+
+        BENCHMARK("for each output in list bench (from component)")
+        {
+            string allnodes{};
+            constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+                    component_tree_to_node_list(component_to_tree(accessor_test_container)));
+            for_each_node_in_list(filtered, add_node);
+            return allnodes;
+        };
+    }
+
+    SECTION("for each output in list")
+    {
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
     }
 
     SECTION("for each node")
@@ -984,25 +1062,49 @@ TEST_CASE("for each X")
         };
     }
 
-    SECTION("for each node alt")
+    SECTION("for each node in list (pregen)")
     {
-        constexpr auto list = tuple_flatten(component_to_tree(accessor_test_container));
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
         string allnodes{};
         auto add_node = [&]<typename T>(T& entity, auto tag)
         {
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
-        for_each_node_alt(list, add_node);
+        for_each_node_in_list(list, add_node);
         REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
 
-        BENCHMARK("for each node alt bench")
+        BENCHMARK("for each node in list (pregen) bench")
         {
             string allnodes{};
             auto add_node = [&]<typename T>(T& entity, auto tag)
             {
                 if constexpr (has_name<T>) allnodes += string(entity.name());
             };
-            for_each_node_alt(list, add_node);
+            for_each_node_in_list(list, add_node);
+            return allnodes;
+        };
+    }
+
+    SECTION("for each node in list (pregen)")
+    {
+        string allnodes{};
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        for_each_node_in_list(list, add_node);
+        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+
+        BENCHMARK("for each node in list (pregen) bench")
+        {
+            constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
+            string allnodes{};
+            auto add_node = [&]<typename T>(T& entity, auto tag)
+            {
+                if constexpr (has_name<T>) allnodes += string(entity.name());
+            };
+            for_each_node_in_list(list, add_node);
             return allnodes;
         };
     }
@@ -1020,6 +1122,23 @@ The function itself takes a variadic list of these tags, allowing the
 user to select which types of nodes they wish to visit. The default, in case
 no tags are provided, is to visit every node.
 
+```c++
+// @+'for each'
+template<typename T, typename ... RequestedNodes>
+    requires Component<T> || ComponentContainer<T>
+constexpr auto for_each_node(T& component, auto callback)
+{
+    using boost::mp11::mp_list;
+    using boost::mp11::mp_contains;
+    using boost::mp11::mp_empty;
+
+    using nodes = mp_list<RequestedNodes...>;
+
+    @{for each component container case}
+    @{for each component case}
+}
+// @/
+```
 
 In case the input is a component container, we optionally call back for said
 container, and then recurse for each contained component.
@@ -1209,9 +1328,9 @@ using boost::mp11::tuple_transform;
 
 @{nodes}
 
-@{for each}
+@{tuples of nodes}
 
-@{tuple of nodes}
+@{for each}
 
 @{clear_flags}
 

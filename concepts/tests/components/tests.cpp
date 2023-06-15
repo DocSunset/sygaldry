@@ -168,7 +168,7 @@ struct accessor_test_container_t
     } c2;
 };
 
-constinit accessor_test_container_t accessor_test_container{};
+accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
@@ -252,9 +252,9 @@ TEST_CASE("tuple head and tail")
     auto empty_tuple = std::tuple<>{};
     auto empty = tuple_head(empty_tuple);
 }
-TEST_CASE("tuple_flatten")
+TEST_CASE("component_tree_to_node_list")
 {
-    constexpr auto flattened = tuple_flatten(component_to_tree(accessor_test_container));
+    constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
     static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
 
     auto& in1 = std::get<3>(flattened).ref;
@@ -263,10 +263,9 @@ TEST_CASE("tuple_flatten")
     in1.extra_value = 3.14f;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
 }
-TEST_CASE("tuple_filter")
+TEST_CASE("node_list_filter")
 {
-    // returns two endoints, since in11 and in12 are the same type; we std::get the first one only
-    constexpr auto& in1 = find<in11>(tuple_flatten(component_to_tree(accessor_test_container))).ref;
+    constexpr auto& in1 = node_list_find<in11>(component_tree_to_node_list(component_to_tree(accessor_test_container))).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -302,6 +301,46 @@ TEST_CASE("for each X")
     {
         for_each_output(accessor_test_container, add_names);
         REQUIRE(allnames == string("outout"));
+
+        BENCHMARK("for each output bench")
+        {
+            for_each_output(accessor_test_container, add_names);
+            return allnames;
+        };
+    }
+
+    SECTION("for each output in list (pregen)")
+    {
+        string allnodes{};
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+                component_tree_to_node_list(component_to_tree(accessor_test_container)));
+        for_each_node_in_list(filtered, add_node);
+        REQUIRE(allnodes == string("outout"));
+
+        BENCHMARK("for each output in list (pregen) bench")
+        {
+            string allnodes{};
+            for_each_node_in_list(filtered, add_node);
+            return allnodes;
+        };
+
+        BENCHMARK("for each output in list bench (from component)")
+        {
+            string allnodes{};
+            constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+                    component_tree_to_node_list(component_to_tree(accessor_test_container)));
+            for_each_node_in_list(filtered, add_node);
+            return allnodes;
+        };
+    }
+
+    SECTION("for each output in list")
+    {
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
     }
 
     SECTION("for each node")
@@ -326,25 +365,49 @@ TEST_CASE("for each X")
         };
     }
 
-    SECTION("for each node alt")
+    SECTION("for each node in list (pregen)")
     {
-        constexpr auto list = tuple_flatten(component_to_tree(accessor_test_container));
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
         string allnodes{};
         auto add_node = [&]<typename T>(T& entity, auto tag)
         {
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
-        for_each_node_alt(list, add_node);
+        for_each_node_in_list(list, add_node);
         REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
 
-        BENCHMARK("for each node alt bench")
+        BENCHMARK("for each node in list (pregen) bench")
         {
             string allnodes{};
             auto add_node = [&]<typename T>(T& entity, auto tag)
             {
                 if constexpr (has_name<T>) allnodes += string(entity.name());
             };
-            for_each_node_alt(list, add_node);
+            for_each_node_in_list(list, add_node);
+            return allnodes;
+        };
+    }
+
+    SECTION("for each node in list (pregen)")
+    {
+        string allnodes{};
+        constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        for_each_node_in_list(list, add_node);
+        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+
+        BENCHMARK("for each node in list (pregen) bench")
+        {
+            constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
+            string allnodes{};
+            auto add_node = [&]<typename T>(T& entity, auto tag)
+            {
+                if constexpr (has_name<T>) allnodes += string(entity.name());
+            };
+            for_each_node_in_list(list, add_node);
             return allnodes;
         };
     }

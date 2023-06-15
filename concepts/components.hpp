@@ -117,26 +117,6 @@ namespace node
     template<>         struct is_endpoint<endpoint> : std::true_type {};
 }
 
-template <typename T> constexpr void for_each_component(T& component, auto callback)
-{
-    for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
-}
-
-template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
-{
-    for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
-}
-
-template<typename T> constexpr void for_each_input(T& component, auto callback)
-{
-    for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
-}
-
-template<typename T> constexpr void for_each_output(T& component, auto callback)
-{
-    for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
-}
-
 template<typename Tag, typename Val>
 struct tagged
 {
@@ -232,16 +212,16 @@ constexpr auto tuple_tail(T tup)
     else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
 }
 template<Tuple T>
-constexpr auto tuple_flatten(T tree)
+constexpr auto component_tree_to_node_list(T tree)
 {
     if constexpr (std::tuple_size_v<T> == 0) return tree;
     auto head = tuple_head(tree);
     auto tail = tuple_tail(tree);
-    if constexpr (Tuple<decltype(head)>) return std::tuple_cat(tuple_flatten(head), tuple_flatten(tail));
-    else return std::tuple_cat(std::make_tuple(head), tuple_flatten(tail));
+    if constexpr (Tuple<decltype(head)>) return std::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
+    else return std::tuple_cat(std::make_tuple(head), component_tree_to_node_list(tail));
 }
 template<template<typename>typename F>
-constexpr auto tuple_filter(Tuple auto tup)
+constexpr auto node_list_filter(Tuple auto tup)
 {
     return std::apply([](auto...args)
     {
@@ -266,10 +246,37 @@ struct _tagged_search_by_type
 };
 
 template<typename T>
-constexpr auto find(Tuple auto tup)
+constexpr auto node_list_find(Tuple auto tup)
 {
-    return tuple_filter<_tagged_search_by_type<T>::template fn>(tup);
+    return node_list_filter<_tagged_search_by_type<T>::template fn>(tup);
 }
+template<typename ... RequestedNodes>
+struct _search_by_tags
+{
+    template<typename Tag> using fn = boost::mp11::mp_contains<std::tuple<RequestedNodes...>, typename Tag::tag>;
+};
+
+template<typename ... RequestedNodes>
+constexpr auto node_list_filter_by_tag(Tuple auto tup)
+{
+    return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
+}
+
+template<typename ... RequestedNodes>
+constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
+{
+    auto f = [&](auto tagged_node)
+    {
+        callback(tagged_node.ref, typename decltype(tagged_node)::tag{});
+    };
+    if constexpr (sizeof...(RequestedNodes) > 0)
+    {
+        constexpr auto filtered = node_list_filter_by_tag<RequestedNodes...>(node_list);
+        boost::mp11::tuple_for_each(filtered, f);
+    }
+    else boost::mp11::tuple_for_each(node_list, f);
+}
+
 template<typename T, typename ... RequestedNodes>
     requires Component<T> || ComponentContainer<T>
 constexpr auto for_each_node(T& component, auto callback)
@@ -347,27 +354,24 @@ constexpr auto for_each_node(T& component, auto callback)
         }
     }
 }
-
-template<typename ... RequestedNodes>
-struct _search_by_tags
+template <typename T> constexpr void for_each_component(T& component, auto callback)
 {
-    template<typename Tag> using fn = boost::mp11::mp_contains<std::tuple<RequestedNodes...>, typename Tag::tag>;
-};
-
-template<typename ... RequestedNodes>
-constexpr auto tuple_filter_by_tag(Tuple auto tup)
-{
-    return tuple_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
+    for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T>
-constexpr auto for_each_node_alt(T flattened, auto callback)
+template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
 {
-    auto f = [&](auto tagged_node)
-    {
-        callback(tagged_node.ref, typename decltype(tagged_node)::tag{});
-    };
-    boost::mp11::tuple_for_each(flattened, f);
+    for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr void for_each_input(T& component, auto callback)
+{
+    for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
+}
+
+template<typename T> constexpr void for_each_output(T& component, auto callback)
+{
+    for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
 void clear_output_flags(auto& component)
