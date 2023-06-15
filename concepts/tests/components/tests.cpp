@@ -1,6 +1,7 @@
 #include <type_traits>
 #include <string>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include "helpers/metadata.hpp"
 #include "helpers/endpoints.hpp"
 #include "concepts/components.hpp"
@@ -103,43 +104,174 @@ struct int_operator { int operator()() {return 1;} };
 static_assert(not has_main_subroutine<member_main>);
 static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
-struct dummy_component {
-    struct inputs_t {
-        struct ep1_t : name_<"ep1">, persistent<float>
-        {
-            float extra_value;
-        } ep1;
-    } inputs;
-
-    struct outputs_t {
-        struct ep2_t : name_<"ep2">, persistent<float>
-        {
-            float another_extra;
-        } ep2;
-    } outputs;
-
-    struct parts_t {
-        struct dummy_part : name_<"dp"> {
-            struct parts_t {
-                static _consteval auto name() {return "dpp";}
-            } parts;
-            void main() {};
-        } part;
-    } parts;
-
-    void main() {}
-};
-
 struct accessor_test_container_t
 {
-    struct c1_t : dummy_component, name_<"c1"> {} c1;
-    struct c2_t : dummy_component, name_<"c2"> {} c2;
-} accessor_test_container;
+    struct c1_t : name_<"c1"> {
+        struct inputs_t {
+            struct in1_t : name_<"in1">, persistent<float>
+            {
+                float extra_value;
+            } in1;
+            struct in2_t : name_<"in2">, persistent<float>
+            {
+                float extra_value;
+            } in2;
+        } inputs;
+
+        struct outputs_t {
+            struct out_t : name_<"out">, persistent<float>
+            {
+                float another_extra;
+            } out;
+        } outputs;
+
+        struct parts_t {
+            struct dummy_part : name_<"dp"> {
+                struct parts_t {
+                    static _consteval auto name() {return "dpp";}
+                } parts;
+                void main() {};
+            } part;
+        } parts;
+
+        void main(){}
+    } c1;
+    struct c2_t : name_<"c2"> {
+        struct inputs_t {
+            struct in1_t : name_<"in1">, persistent<float>
+            {
+                float extra_value;
+            } in1;
+            struct in2_t : name_<"in2">, persistent<float>
+            {
+                float extra_value;
+            } in2;
+        } inputs;
+
+        struct outputs_t {
+            struct out_t : name_<"out">, persistent<float>
+            {
+                float another_extra;
+            } out;
+        } outputs;
+
+        struct parts_t {
+            struct dummy_part : name_<"dp"> {
+                struct parts_t {
+                    static _consteval auto name() {return "dpp";}
+                } parts;
+                void main() {};
+            } part;
+        } parts;
+
+        void main(){}
+    } c2;
+};
+
+constinit accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
-static_assert(Component<dummy_component::parts_t::dummy_part>);
+static_assert(Component<accessor_test_container_t::c1_t::parts_t::dummy_part>);
 static_assert(ComponentContainer<accessor_test_container_t>);
+using atc   = accessor_test_container_t;
+using c1    =     atc::c1_t;
+using ic1   =          c1::inputs_t;
+using in11  =              ic1::in1_t;
+using in21  =              ic1::in2_t;
+using oc1   =          c1::outputs_t;
+using out1  =              oc1::out_t;
+using pc1   =          c1::parts_t;
+using dp1   =              pc1::dummy_part;
+using dppc1 =                  dp1::parts_t;
+using c2    =     atc::c2_t;
+using ic2   =          c2::inputs_t;
+using in12  =              ic2::in1_t;
+using in22  =              ic2::in2_t;
+using oc2   =          c2::outputs_t;
+using out2  =              oc2::out_t;
+using pc2   =          c2::parts_t;
+using dp2   =              pc2::dummy_part;
+using dppc2 =                  dp2::parts_t;
+
+static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
+, std::tuple< tagged<node::component_container,atc>
+            , std::tuple< tagged<node::component,c1>
+                        , std::tuple< tagged<node::inputs_container,ic1>
+                                    , std::tuple<tagged<node::input_endpoint,in11>>
+                                    , std::tuple<tagged<node::input_endpoint,in21>>
+                                    >
+                        , std::tuple< tagged<node::outputs_container,oc1>
+                                    , std::tuple<tagged<node::output_endpoint,out1>>
+                                    >
+                        , std::tuple< tagged<node::parts_container,pc1>
+                                    , std::tuple< tagged<node::component,dp1>
+                                                , std::tuple<tagged<node::parts_container,dppc1>>
+                                                >
+                                    >
+                        >
+            , std::tuple< tagged<node::component,c2>
+                        , std::tuple< tagged<node::inputs_container,ic2>
+                                    , std::tuple<tagged<node::input_endpoint,in12>>
+                                    , std::tuple<tagged<node::input_endpoint,in22>>
+                                    >
+                        , std::tuple< tagged<node::outputs_container,oc2>
+                                    , std::tuple<tagged<node::output_endpoint,out2>>
+                                    >
+                        , std::tuple< tagged<node::parts_container,pc2>
+                                    , std::tuple< tagged<node::component,dp2>
+                                                , std::tuple<tagged<node::parts_container,dppc2>>
+                                                >
+                                    >
+                        >
+            >
+>);
+
+TEST_CASE("component_to_tree")
+{
+    constexpr auto tree = component_to_tree(accessor_test_container);
+    auto& in1 = std::get<0>(std::get<1>(std::get<1>(std::get<1>(tree)))).ref;
+    accessor_test_container.c1.inputs.in1.extra_value = 0.0;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
+    in1.extra_value = 3.14f;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
+}
+TEST_CASE("tuple head and tail")
+{
+    struct {
+        int a;
+        int b;
+        int c;
+    } x = {0,0,0};
+
+    auto tup = boost::pfr::structure_tie(x);
+    auto head = tuple_head(tup);
+    static_assert(std::same_as<int, decltype(head)>);
+    auto tail = tuple_head(tup);
+
+    auto empty_tuple = std::tuple<>{};
+    auto empty = tuple_head(empty_tuple);
+}
+TEST_CASE("tuple_flatten")
+{
+    constexpr auto flattened = tuple_flatten(component_to_tree(accessor_test_container));
+    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
+
+    auto& in1 = std::get<3>(flattened).ref;
+    accessor_test_container.c1.inputs.in1.extra_value = 0.0;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
+    in1.extra_value = 3.14f;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
+}
+TEST_CASE("tuple_filter")
+{
+    // returns two endoints, since in11 and in12 are the same type; we std::get the first one only
+    constexpr auto& in1 = find<in11>(tuple_flatten(component_to_tree(accessor_test_container))).ref;
+    accessor_test_container.c1.inputs.in1.extra_value = 0.0;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
+    in1.extra_value = 3.14f;
+    REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
+}
 TEST_CASE("for each X")
 {
     string allnames{};
@@ -157,19 +289,19 @@ TEST_CASE("for each X")
     SECTION("for each endpoint")
     {
         for_each_endpoint(accessor_test_container, add_names);
-        REQUIRE(allnames == string("ep1ep2ep1ep2"));
+        REQUIRE(allnames == string("in1in2outin1in2out"));
     }
 
     SECTION("for each input")
     {
         for_each_input(accessor_test_container, add_names);
-        REQUIRE(allnames == string("ep1ep1"));
+        REQUIRE(allnames == string("in1in2in1in2"));
     }
 
     SECTION("for each output")
     {
         for_each_output(accessor_test_container, add_names);
-        REQUIRE(allnames == string("ep2ep2"));
+        REQUIRE(allnames == string("outout"));
     }
 
     SECTION("for each node")
@@ -180,83 +312,40 @@ TEST_CASE("for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node(accessor_test_container, add_node);
-        REQUIRE(allnodes == string("containerc1ep1ep2dpdppc2ep1ep2dpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+
+        BENCHMARK("for each node bench")
+        {
+            string allnodes{};
+            auto add_node = [&]<typename T>(T& entity, auto tag)
+            {
+                if constexpr (has_name<T>) allnodes += string(entity.name());
+            };
+            for_each_node(accessor_test_container, add_node);
+            return allnodes;
+        };
+    }
+
+    SECTION("for each node alt")
+    {
+        constexpr auto list = tuple_flatten(component_to_tree(accessor_test_container));
+        string allnodes{};
+        auto add_node = [&]<typename T>(T& entity, auto tag)
+        {
+            if constexpr (has_name<T>) allnodes += string(entity.name());
+        };
+        for_each_node_alt(list, add_node);
+        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+
+        BENCHMARK("for each node alt bench")
+        {
+            string allnodes{};
+            auto add_node = [&]<typename T>(T& entity, auto tag)
+            {
+                if constexpr (has_name<T>) allnodes += string(entity.name());
+            };
+            for_each_node_alt(list, add_node);
+            return allnodes;
+        };
     }
 }
-static_assert(std::same_as< subnodes<accessor_test_container_t>::members
-                          , std::tuple< accessor_test_container_t::c1_t
-                                      , accessor_test_container_t::c2_t
-                                      >
-                          >);
-static_assert(std::same_as<subnodes<accessor_test_container_t>::subcomponents, subnodes<accessor_test_container_t>::members>);
-static_assert(std::same_as<subnodes<accessor_test_container_t>::tagged_components
-                          , std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
-                                      , tagged<node::component, accessor_test_container_t::c2_t>
-                                      >
-                          >);
-static_assert(std::same_as< subnodes<accessor_test_container_t>::subsubnodes
-                          , std::tuple< subnodes<accessor_test_container_t::c1_t>
-                                      , subnodes<accessor_test_container_t::c2_t>
-                                      >
-                          >);
-static_assert(std::same_as< subnodes<accessor_test_container_t>::sublists
-                          , std::tuple< subnodes<accessor_test_container_t::c1_t>::list
-                                      , subnodes<accessor_test_container_t::c2_t>::list
-                                      >
-                          >);
-static_assert(std::same_as< subnodes<accessor_test_container_t>::interleaved
-                          , std::tuple< std::tuple< tagged<node::component, accessor_test_container_t::c1_t>
-                                                  , subnodes<accessor_test_container_t::c1_t>::list
-                                                  >
-                                      , std::tuple< tagged<node::component, accessor_test_container_t::c2_t>
-                                                  , subnodes<accessor_test_container_t::c2_t>::list
-                                                  >
-                                      >
-                          >);
-using c1 = accessor_test_container_t::c1_t;
-using dp = c1::parts_t::dummy_part;
-static_assert(std::same_as<subnodes<c1>::inputs_t,  std::tuple<tagged<node::inputs_container,  c1::inputs_t>>>);
-static_assert(std::same_as<subnodes<c1>::outputs_t, std::tuple<tagged<node::outputs_container, c1::outputs_t>>>);
-static_assert(std::same_as<subnodes<c1>::parts_t,   std::tuple<tagged<node::parts_container,   c1::parts_t>>>);
-static_assert(std::same_as<subnodes<c1>::inputs,  std::tuple<c1::inputs_t::ep1_t>>);
-static_assert(std::same_as<subnodes<c1>::outputs, std::tuple<c1::outputs_t::ep2_t>>);
-static_assert(std::same_as<subnodes<c1>::parts,   std::tuple<dp>>);
-static_assert(std::same_as<subnodes<c1>::parts, subnodes<c1>::component_parts>);
-static_assert(std::same_as<subnodes<c1>::tagged_inputs, std::tuple<tagged<node::input_endpoint, c1::inputs_t::ep1_t>>>);
-static_assert(std::same_as<subnodes<c1>::tagged_outputs, std::tuple<tagged<node::output_endpoint, c1::outputs_t::ep2_t>>>);
-static_assert(std::same_as<subnodes<c1>::tagged_parts, std::tuple<tagged<node::component, dp>>>);
-static_assert(std::same_as<subnodes<c1>::subsubnodes, std::tuple<subnodes<dp>>>);
-
-static_assert(std::same_as<subnodes<dp>::inputs_t, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::outputs_t, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::inputs, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::outputs, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::parts_t, std::tuple<tagged<node::parts_container, dp::parts_t>>>);
-static_assert(std::same_as<subnodes<dp>::parts, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::component_parts, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::tagged_inputs, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::tagged_outputs, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::tagged_parts, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::subsubnodes, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::sublists, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::interleaved_components, std::tuple<>>);
-static_assert(std::same_as<subnodes<dp>::list, subnodes<dp>::parts_t>);
-
-static_assert(std::same_as<subnodes_t<accessor_test_container_t>, std::tuple<
-   tagged<node::component, accessor_test_container_t::c1_t>
-,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
-,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
-,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
-,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
-,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
-,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
-,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
-,   tagged<node::component, accessor_test_container_t::c2_t>
-,       tagged<node::inputs_container, accessor_test_container_t::c2_t::inputs_t>
-,           tagged<node::input_endpoint, accessor_test_container_t::c2_t::inputs_t::ep1_t>
-,       tagged<node::outputs_container, accessor_test_container_t::c2_t::outputs_t>
-,           tagged<node::output_endpoint, accessor_test_container_t::c2_t::outputs_t::ep2_t>
-,       tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t>
-,           tagged<node::component, accessor_test_container_t::c2_t::parts_t::dummy_part>
-,               tagged<node::parts_container, accessor_test_container_t::c2_t::parts_t::dummy_part::parts_t>
->>);
