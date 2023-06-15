@@ -168,7 +168,7 @@ struct accessor_test_container_t
     } c2;
 };
 
-accessor_test_container_t accessor_test_container{};
+constinit accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
@@ -310,6 +310,8 @@ static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
                     >
         >);
 
+auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
+static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
 TEST_CASE("for each X")
 {
     string allnames{};

@@ -429,7 +429,7 @@ struct accessor_test_container_t
     } c2;
 };
 
-accessor_test_container_t accessor_test_container{};
+constinit accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<accessor_test_container_t::c1_t>);
 static_assert(Component<accessor_test_container_t::c2_t>);
@@ -1063,6 +1063,26 @@ template<typename T, typename C>
 constexpr auto path_of(C& component)
 {
     return path_of<T>(component_to_tree(component));
+}
+// @/
+```
+
+## Untagged List
+
+```c++
+// @+'tests'
+auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
+static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
+// @/
+
+// @+'tuples of nodes'
+template<typename Tag> using untagged = Tag::type;
+
+template<Tuple T>
+constexpr auto remove_node_tags(T&& tup)
+{
+    using return_type = mp_transform<untagged, T>;
+    return std::make_from_tuple<return_type>(tuple_transform([](auto&& tagged) {return tagged.ref;}, tup));
 }
 // @/
 ```

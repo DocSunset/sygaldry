@@ -303,6 +303,14 @@ constexpr auto path_of(C& component)
 {
     return path_of<T>(component_to_tree(component));
 }
+template<typename Tag> using untagged = Tag::type;
+
+template<Tuple T>
+constexpr auto remove_node_tags(T&& tup)
+{
+    using return_type = mp_transform<untagged, T>;
+    return std::make_from_tuple<return_type>(tuple_transform([](auto&& tagged) {return tagged.ref;}, tup));
+}
 
 template<typename T, typename ... RequestedNodes>
     requires Component<T> || ComponentContainer<T>
