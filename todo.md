@@ -11,16 +11,14 @@
     -[ ] write tutorials
     -[ ] write how-to recipes
     -[ ] contemplate: does the literate source provide sufficient explanation?
--[ ] user inter-file linking
+-[ ] use inter-file linking
 
 # Build system
 
 -[ ] automate documentation link checking
--[ ] compile litlit as a dependency
--[ ] litlit should return fail on any warning or error...
--[ ] drive litlit tangling from cmake
--[ ] automatically generate litlit.md files
--[ ] rename litlit to lili?
+-[ ] compile lili as a dependency
+-[ ] lili should return fail on any warning or error...
+-[ ] drive lili tangling from cmake
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
 -[ ] include deps in ESP32 projects automatically, e.g. by linking against top syg proj
 -[ ] automate flashing and running ESP32 tests

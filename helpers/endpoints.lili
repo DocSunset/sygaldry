@@ -3,7 +3,7 @@
 This document is concerned with providing a convenient means for definine
 endpoints that adhere to certain concepts. The concepts themselves, along with
 generic functions for accessing the signals and metadata associated with
-endpoints, are defined seperately in `endpoints/concepts.litlit`. It is advised
+endpoints, are defined seperately in `endpoints/concepts.lili`. It is advised
 to read this document first.
 
 # Endpoint Bases
@@ -50,7 +50,7 @@ metadata with such an endpoint.
 
 ## Name and Other Text
 
-Names and other textual metadata are addressed in `helpers/metadata.litlit`.
+Names and other textual metadata are addressed in `helpers/metadata.lili`.
 
 ## Range and Initial Value
 

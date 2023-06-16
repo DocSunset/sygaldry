@@ -39,7 +39,7 @@ struct BasicLogger
                 string_message = std::string_view(buffer, ptr - buffer);
             } else {
                 string_message = "error:\n\
-                    bindings/basic_logger/basic_logger.litlit:'convert a number'\n\
+                    bindings/basic_logger/basic_logger.lili:'convert a number'\n\
                     std::to_chars scratch buffer unexpectedly too small!";
             }
         }

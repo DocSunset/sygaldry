@@ -1,9 +1,9 @@
 # Motivation
 
-As outlined in `bindings/cli/cli.litlit`, some bindings may require
+As outlined in `bindings/cli/cli.lili`, some bindings may require
 to accept textual input, such as from a serial UART device or the
 standard input given by an operating system. As with the logging
-plugin described in `bindings/basic_logger/basic_logger.litlit`,
+plugin described in `bindings/basic_logger/basic_logger.lili`,
 we would like to provide a plugin type that compenents can use
 easily, and that binding authors can easily port to different
 environments. The plugin design described here borrows much

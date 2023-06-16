@@ -271,7 +271,7 @@ endpoints, throughpoints, parts, or plugins.
 To detect whether a component has parts, inputs, or outputs, we employ the same
 structure parameterized on the expected name of the nested simple aggregate
 structure. We use a macro to avoid repetition. A similar pattern is used
-[to define `has_name`](concepts/metadata.litlit).
+[to define `has_name`](concepts/metadata.lili).
 
 ```c++
 // @+'base component implementation details'
@@ -312,7 +312,7 @@ static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular
 
 ## Main Subroutine
 
-Using our small [function reflection library](concepts/functions.litlit) we can
+Using our small [function reflection library](concepts/functions.lili) we can
 tell whether a component has a main subroutine by checking whether the return
 type of the expected methods (`T::main` or `T::operator()`) have the expected
 type (void). This concept will not be satisfied if `T::main` is a variable,

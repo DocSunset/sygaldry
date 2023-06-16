@@ -1,6 +1,6 @@
 # Motivation
 
-As outlined in `bindings/cli/cli.litlit`, there may be a need for bindings and
+As outlined in `bindings/cli/cli.lili`, there may be a need for bindings and
 devices to have some means of writing textual messages, e.g. to a serial
 interface such as a UART, to a text-based UI such as a console, or simply to
 debugging logs. Our preferred method of achieving this is to inject a logger
@@ -236,7 +236,7 @@ if (ec == std::errc()) {
     string_message = std::string_view(buffer, ptr - buffer);
 } else {
     string_message = "error:\n\
-        bindings/basic_logger/basic_logger.litlit:'convert a number'\n\
+        bindings/basic_logger/basic_logger.lili:'convert a number'\n\
         std::to_chars scratch buffer unexpectedly too small!";
 }
 // @/
