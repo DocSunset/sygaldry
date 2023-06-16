@@ -8,11 +8,9 @@
 
 namespace sygaldry { namespace concepts {
 
-using boost::mp11::mp_any;
-using boost::mp11::mp_apply;
-using boost::mp11::mp_if_c;
 using boost::mp11::mp_transform;
 using boost::mp11::tuple_transform;
+using boost::mp11::tuple_for_each;
 
 template<typename T>
 concept SimpleAggregate
@@ -71,7 +69,7 @@ template<typename T>
 struct contains_component<T>
 {
     using members = aggregate_members_t<T>;
-    using type = mp_apply<mp_any, mp_transform<contains_component, members>>;
+    using type = boost::mp11::mp_apply<boost::mp11::mp_any, mp_transform<contains_component, members>>;
     static constexpr const bool value = type::value;
 };
 
@@ -127,10 +125,10 @@ struct tagged
 template<typename Tag, Component T>
 constexpr auto endpoint_subtree(T& component)
 {
-    using ContainerTag = mp_if_c< std::same_as<Tag, node::input_endpoint>
-                                , node::inputs_container
-                                , node::outputs_container
-                                >;
+    using ContainerTag = boost::mp11::mp_if_c< std::same_as<Tag, node::input_endpoint>
+                                             , node::inputs_container
+                                             , node::outputs_container
+                                             >;
 
     constexpr auto f = []<typename Container>(Container& container)
     {
