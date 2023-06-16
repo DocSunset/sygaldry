@@ -4,7 +4,7 @@
 #include <concepts>
 #include <boost/mp11.hpp>
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 
 template<typename NotAFunction>
@@ -92,4 +92,4 @@ struct function_reflection
     using parent_reflection = function_type_reflection<std::decay_t<decltype(f)>>; // for tests
 };
 
-} }
+}

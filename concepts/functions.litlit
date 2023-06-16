@@ -268,7 +268,7 @@ static_assert(function_reflectable<&int_main::main>);
 #include <concepts>
 #include <boost/mp11.hpp>
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 @{type list}
 
@@ -282,13 +282,13 @@ namespace sygaldry { namespace concepts {
 
 @{function reflection}
 
-} }
+}
 // @/
 
 // @#'tests/functions/tests.cpp'
 #include "concepts/functions.hpp"
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 
 @{tests}
 // @/

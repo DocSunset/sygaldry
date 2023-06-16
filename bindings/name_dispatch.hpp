@@ -4,12 +4,7 @@
 #include <boost/pfr.hpp>
 #include "concepts/components.hpp"
 
-namespace sygaldry
-{
-namespace bindings
-{
-
-using namespace sygaldry::concepts;
+namespace sygaldry { namespace bindings {
 
 struct dispatch_default_matcher
 {
@@ -82,5 +77,4 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
     }
 }
 
-}
-}
+} }

@@ -7,8 +7,6 @@
 
 namespace sygaldry { namespace components { namespace esp32 {
 
-using namespace sygaldry::helpers;
-
 template<gpio_num_t pin_number>
 struct GPIO
 : name_<"GPIO Pin">

@@ -5,8 +5,6 @@
 
 namespace sygaldry { namespace bindings {
 
-using namespace sygaldry::concepts;
-
 template<typename Components>
 struct CstdioOutputLogger
 {
@@ -43,4 +41,5 @@ struct CstdioOutputLogger
 //        }, last_endpoints_out);
     }
 };
+
 } }

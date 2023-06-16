@@ -6,6 +6,7 @@
 #include "helpers/metadata.hpp"
 
 using std::string_view;
+using namespace sygaldry;
 using namespace sygaldry::bindings;
 
 TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
@@ -54,7 +55,6 @@ TEST_CASE("Upper/lower")
 
 TEST_CASE("Spelling with helpers")
 {
-    using namespace sygaldry::helpers;
     struct example_t : name_<"Helper Example"> {} x;
     CHECK(string_view(upper_snake_case(x)) == string_view("HELPER_EXAMPLE"));
     CHECK(string_view(lower_kebab_case(x)) == string_view("helper-example"));

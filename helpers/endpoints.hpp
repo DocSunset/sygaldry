@@ -5,7 +5,7 @@
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 
-namespace sygaldry { namespace helpers {
+namespace sygaldry {
 
 template<typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
@@ -77,4 +77,4 @@ struct bng : persistent<bool>, name_<str>
     void reset() {value = false;}
 };
 
-} } // namespaces
+} // namespaces

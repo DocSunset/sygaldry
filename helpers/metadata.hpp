@@ -3,7 +3,7 @@
 #include <cstddef>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace helpers {
+namespace sygaldry {
 
 template<std::size_t N>
 struct string_literal
@@ -34,4 +34,4 @@ metadata_struct(date);
 
 #undef metadata_struct
 
-} }
+}

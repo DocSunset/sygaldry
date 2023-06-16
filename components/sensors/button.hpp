@@ -5,8 +5,6 @@
 
 namespace sygaldry { namespace components {
 
-using namespace sygaldry::helpers;
-
 struct ButtonGestureModel
 {
     static _consteval auto name() {return "Button Gesture Model";}

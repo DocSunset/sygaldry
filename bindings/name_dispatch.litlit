@@ -28,8 +28,8 @@ generalised to work with subassemblies and pure assembly components.
 
 using std::string_view;
 
+using namespace sygaldry;
 using namespace sygaldry::bindings;
-using namespace sygaldry::helpers;
 
 struct Named1 { static _consteval auto name() {return "name1";} int value;};
 struct Named2 { static _consteval auto name() {return "a longer name";} float value;};
@@ -230,12 +230,7 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 #include <boost/pfr.hpp>
 #include "concepts/components.hpp"
 
-namespace sygaldry
-{
-namespace bindings
-{
-
-using namespace sygaldry::concepts;
+namespace sygaldry { namespace bindings {
 
 @{default matcher}
 
@@ -253,8 +248,7 @@ concept tuple_like = requires (T tup)
 
 @{dispatch entry point}
 
-}
-}
+} }
 // @/
 ```
 

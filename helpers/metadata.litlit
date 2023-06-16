@@ -19,7 +19,7 @@ such classes, allowing us to easily add other textual metadata in this way.
 #include <cstddef>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace helpers {
+namespace sygaldry {
 
 template<std::size_t N>
 struct string_literal
@@ -50,7 +50,7 @@ metadata_struct(date);
 
 #undef metadata_struct
 
-} }
+}
 // @/
 ```
 
@@ -83,7 +83,7 @@ with our overall strategy.
 #include <boost/pfr.hpp>
 #include "helpers/metadata.hpp"
 
-using namespace sygaldry::helpers;
+using namespace sygaldry;
 
 using std::string_view;
 

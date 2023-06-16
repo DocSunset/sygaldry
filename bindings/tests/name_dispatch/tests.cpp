@@ -10,8 +10,8 @@
 
 using std::string_view;
 
+using namespace sygaldry;
 using namespace sygaldry::bindings;
-using namespace sygaldry::helpers;
 
 struct Named1 { static _consteval auto name() {return "name1";} int value;};
 struct Named2 { static _consteval auto name() {return "a longer name";} float value;};

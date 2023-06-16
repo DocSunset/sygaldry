@@ -3,7 +3,7 @@
 #include <concepts>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 #define text_concept(CONCEPT_NAME) template<typename T> \
 concept has_##CONCEPT_NAME = requires \
@@ -30,4 +30,4 @@ text_concept(date);
 
 #undef text_concept
 
-} } // namespaces
+}

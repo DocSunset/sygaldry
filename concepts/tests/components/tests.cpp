@@ -6,8 +6,7 @@
 #include "helpers/endpoints.hpp"
 #include "concepts/components.hpp"
 
-using namespace sygaldry::concepts;
-using namespace sygaldry::helpers;
+using namespace sygaldry;
 using std::string;
 
 struct regular_component_t : name_<"regular component">

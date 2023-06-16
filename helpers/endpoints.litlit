@@ -387,13 +387,13 @@ TEST_CASE("Bang", "[endpoints][bang]")
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 
-namespace sygaldry { namespace helpers {
+namespace sygaldry {
 
 @{endpoint bases}
 
 @{helpers}
 
-} } // namespaces
+} // namespaces
 // @/
 
 // @#'tests/endpoints/tests.cpp'
@@ -407,8 +407,7 @@ namespace sygaldry { namespace helpers {
 #include "concepts/endpoints.hpp"
 #include "helpers/endpoints.hpp"
 
-using namespace sygaldry::helpers;
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using std::string_view;
 
 @{tests}

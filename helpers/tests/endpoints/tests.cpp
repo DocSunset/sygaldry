@@ -8,8 +8,7 @@
 #include "concepts/endpoints.hpp"
 #include "helpers/endpoints.hpp"
 
-using namespace sygaldry::helpers;
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using std::string_view;
 
 struct struct_with_range : range_<0, 127> {};

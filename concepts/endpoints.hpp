@@ -3,7 +3,7 @@
 #include <concepts>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 template<typename T>
 concept has_range = requires
@@ -112,4 +112,4 @@ auto& set_value(T& v, const auto& arg)
     return v;
 }
 
-} } // namespaces
+} // namespaces

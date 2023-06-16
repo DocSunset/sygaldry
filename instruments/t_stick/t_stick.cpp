@@ -5,7 +5,7 @@
 #include "bindings/esp32/all.hpp"
 
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 

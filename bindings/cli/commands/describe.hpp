@@ -9,8 +9,6 @@
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
-using namespace sygaldry::concepts;
-
 struct Describe
 {
     static _consteval auto name() { return "describe"; }

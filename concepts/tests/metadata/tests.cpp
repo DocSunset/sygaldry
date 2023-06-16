@@ -6,7 +6,7 @@
 #include "components/metadata.hpp"
 #include "concepts/metadata.hpp"
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};

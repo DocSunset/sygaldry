@@ -6,7 +6,7 @@
 #include <boost/pfr.hpp>
 #include "helpers/metadata.hpp"
 
-using namespace sygaldry::helpers;
+using namespace sygaldry;
 
 using std::string_view;
 

@@ -1,6 +1,6 @@
 #include "concepts/functions.hpp"
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 
 // this should not be function reflectable
 float not_func;

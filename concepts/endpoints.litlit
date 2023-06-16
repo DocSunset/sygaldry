@@ -543,11 +543,11 @@ if a certain symbol is defined in a class's scope.
 #include <concepts>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 @{concepts}
 
-} } // namespaces
+} // namespaces
 // @/
 
 // @#'tests/endpoints/tests.cpp'
@@ -560,8 +560,7 @@ namespace sygaldry { namespace concepts {
 #include "helpers/endpoints.hpp"
 #include "concepts/endpoints.hpp"
 
-using namespace sygaldry::helpers;
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using std::string_view;
 
 @{tests}

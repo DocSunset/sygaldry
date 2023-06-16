@@ -10,7 +10,7 @@
 
 @{idf preprocessor configuration}
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 

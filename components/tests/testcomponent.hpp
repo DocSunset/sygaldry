@@ -4,8 +4,6 @@
 
 namespace sygaldry { namespace components {
 
-using namespace sygaldry::helpers;
-
 struct TestComponent : name_<"Test Component 1">
 {
     struct inputs_t {

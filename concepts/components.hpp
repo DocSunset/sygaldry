@@ -6,7 +6,7 @@
 #include "concepts/functions.hpp"
 #include "concepts/endpoints.hpp"
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 using boost::mp11::mp_transform;
 using boost::mp11::tuple_transform;
@@ -436,4 +436,4 @@ void activate(T& component)
     clear_input_flags(component);
 }
 
-} }
+}

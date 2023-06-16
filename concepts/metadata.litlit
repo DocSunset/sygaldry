@@ -33,7 +33,7 @@ use one to generate their generic accessors.
 #include <concepts>
 #include "utilities/consteval.hpp"
 
-namespace sygaldry { namespace concepts {
+namespace sygaldry {
 
 #define text_concept(CONCEPT_NAME) template<typename T> \
 concept has_##CONCEPT_NAME = requires \
@@ -60,7 +60,7 @@ text_concept(date);
 
 #undef text_concept
 
-} } // namespaces
+}
 // @/
 ```
 
@@ -74,7 +74,7 @@ text_concept(date);
 #include "components/metadata.hpp"
 #include "concepts/metadata.hpp"
 
-using namespace sygaldry::concepts;
+using namespace sygaldry;
 using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};

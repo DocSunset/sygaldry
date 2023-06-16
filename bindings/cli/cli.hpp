@@ -18,8 +18,6 @@
 
 namespace sygaldry { namespace bindings {
 
-using namespace sygaldry::helpers;
-
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
                  , author_<"Travis J. West">
