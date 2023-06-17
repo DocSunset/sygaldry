@@ -10,11 +10,11 @@ using namespace sygaldry::bindings;
 
 void test_logger(auto& logger, auto& components, string expected_output, auto input_callback)
 {
-    logger.parts.log.put.ss.str("");
+    logger.log.put.ss.str("");
     input_callback();
     components.tc();
     logger(components);
-    CHECK(logger.parts.log.put.ss.str() == string(expected_output));
+    CHECK(logger.log.put.ss.str() == string(expected_output));
 }
 
 struct TestComponents

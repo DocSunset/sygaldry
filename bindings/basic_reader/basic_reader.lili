@@ -55,7 +55,7 @@ namespace sygaldry { namespace bindings {
 
 struct BasicReader
 {
-    [[no_unique_address getter get;
+    [[no_unique_address]] getter get;
 
     bool ready()
     {

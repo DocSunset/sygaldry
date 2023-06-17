@@ -1,4 +1,4 @@
-# Output parts.Logger
+# Output Logger
 
 Following the CLI, the next binding with an optimal balance of usefulness and
 simple implementation was one that simply prints a text-based representation of
@@ -18,11 +18,11 @@ using namespace sygaldry::bindings;
 
 void test_logger(auto& logger, auto& components, string expected_output, auto input_callback)
 {
-    logger.parts.log.put.ss.str("");
+    logger.log.put.ss.str("");
     input_callback();
     components.tc();
     logger(components);
-    CHECK(logger.parts.log.put.ss.str() == string(expected_output));
+    CHECK(logger.log.put.ss.str() == string(expected_output));
 }
 
 struct TestComponents
@@ -83,17 +83,18 @@ catch_discover_tests(output-logger-tests)
 #include "bindings/spelling.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/components.hpp"
+#include "helpers/metadata.hpp"
 #include "bindings/spelling.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
 
 namespace sygaldry { namespace bindings {
 
 template<typename Logger, typename Components>
-struct OutputLogger
+struct OutputLogger : name_<"Output Logger">
 {
-    struct parts_t {
-        Logger log;
-    } parts;
+    struct parts_t {} parts;
+
+    [[no_unique_address]] Logger log;
 
     output_endpoints_t<Components> last_out_list{};
 
@@ -107,16 +108,16 @@ struct OutputLogger
                 if constexpr (Bang<T>)
                 {
                     if (value_of(current_out))
-                        parts.log.println(osc_address_v<path_t<T, Components>>);
+                        log.println(osc_address_v<path_t<T, Components>>);
                     return;
                 }
                 else
                 {
                     last_out = current_out;
-                    parts.log.print(osc_address_v<path_t<T, Components>>);
+                    log.print(osc_address_v<path_t<T, Components>>);
                     if constexpr (has_value<T>)
-                        parts.log.print(" ", value_of(current_out));
-                    parts.log.println();
+                        log.print(" ", value_of(current_out));
+                    log.println();
                 }
             }
         });

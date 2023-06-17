@@ -1,3 +1,8 @@
+# Next
+
+-[ ] even more generic activate that works with plugins and throughpoints
+-[ ] statically assert that all components meet concept requirements, incl. parts has only components, etc.
+
 # Literature
 
 -[ ] usage style documentation

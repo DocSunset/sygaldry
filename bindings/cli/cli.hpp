@@ -25,15 +25,14 @@ struct CustomCli : name_<"CLI">
                  , version_<"0.0.0">
                  , copyright_<"Travis J. West <C) 2023">
 {
-    [[no_unique_address]] struct parts_t {
+    struct parts_t {} parts; // so that component concepts will recognize component
     [[no_unique_address]] Logger log;
     [[no_unique_address]] Reader reader;
     [[no_unique_address]] Commands commands;
-    } parts;
 
     void init()
     {
-        parts.log.println("CLI enabled. Write `help` for a list of available commands.");
+        log.println("CLI enabled. Write `help` for a list of available commands.");
         _prompt();
     }
 
@@ -47,13 +46,13 @@ struct CustomCli : name_<"CLI">
 
     int _try_to_match_and_execute(Components& components)
     {
-        return dispatch<CommandMatcher>(argv[0], parts.commands, 127, [&](auto& command)
+        return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
             {
                 if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
                 {
-                    return command.main(parts.log, parts.commands);
+                    return command.main(log, commands);
                 }
-                else return command.main(argc, argv, parts.log, components);
+                else return command.main(argc, argv, log, components);
             });
     }
     bool _is_whitespace(char c)
@@ -74,7 +73,7 @@ struct CustomCli : name_<"CLI">
 
     void _prompt()
     {
-        parts.log.print("> ");
+        log.print("> ");
     }
 
     void _reset()
@@ -102,7 +101,7 @@ struct CustomCli : name_<"CLI">
         #ifdef ESP_PLATFORM
         char s[2] = {0,0};
         s[0] = c;
-        parts.log.print(s);
+        log.print(s);
         #endif
 
         if (c == '\n')
@@ -114,14 +113,14 @@ struct CustomCli : name_<"CLI">
 
         if (_overflow())
         {
-            parts.log.println("CLI line buffer overflow!");
+            log.println("CLI line buffer overflow!");
             _reset();
         }
     }
 
     void operator()(Components& components)
     {
-        while(parts.reader.ready()) process(parts.reader.getchar(), components);
+        while(reader.ready()) process(reader.getchar(), components);
     }
 };
 

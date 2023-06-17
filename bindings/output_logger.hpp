@@ -2,17 +2,18 @@
 #include "bindings/spelling.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/components.hpp"
+#include "helpers/metadata.hpp"
 #include "bindings/spelling.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
 
 namespace sygaldry { namespace bindings {
 
 template<typename Logger, typename Components>
-struct OutputLogger
+struct OutputLogger : name_<"Output Logger">
 {
-    struct parts_t {
-        Logger log;
-    } parts;
+    struct parts_t {} parts;
+
+    [[no_unique_address]] Logger log;
 
     output_endpoints_t<Components> last_out_list{};
 
@@ -26,16 +27,16 @@ struct OutputLogger
                 if constexpr (Bang<T>)
                 {
                     if (value_of(current_out))
-                        parts.log.println(osc_address_v<path_t<T, Components>>);
+                        log.println(osc_address_v<path_t<T, Components>>);
                     return;
                 }
                 else
                 {
                     last_out = current_out;
-                    parts.log.print(osc_address_v<path_t<T, Components>>);
+                    log.print(osc_address_v<path_t<T, Components>>);
                     if constexpr (has_value<T>)
-                        parts.log.print(" ", value_of(current_out));
-                    parts.log.println();
+                        log.print(" ", value_of(current_out));
+                    log.println();
                 }
             }
         });

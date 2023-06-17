@@ -15,10 +15,10 @@ using namespace sygaldry::bindings;
 
 void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
-    cli.parts.log.put.ss.str("");
-    cli.parts.reader.ss.str(input);
+    cli.log.put.ss.str("");
+    cli.reader.ss.str(input);
     cli(components);
-    REQUIRE(cli.parts.log.put.ss.str() == expected_output);
+    REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 
 void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)

@@ -2,32 +2,37 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <concepts/components.hpp>
+#include <components/esp32/button.hpp>
 #include <bindings/cli/cli.hpp>
 #include <bindings/output_logger.hpp>
-#include <components/esp32/button.hpp>
+#include <bindings/esp32/wifi.hpp>
 
-using namespace sygaldry::components;
-using namespace sygaldry::bindings;
+using namespace sygaldry;
 
-struct components_t
+struct OneBitBongo
 {
-    esp32::Button<GPIO_NUM_23> button;
-} components;
+    struct api_t
+    {
+        bindings::esp32::WiFi wifi;
+        components::esp32::Button<GPIO_NUM_23> button;
+    } api;
 
-CstdioOutputLogger<decltype(components)> log;
-CstdioCli<decltype(components)> cli;
+    bindings::CstdioOutputLogger<decltype(api)> log;
+    bindings::CstdioCli<decltype(api)> cli;
+} bongo;
+
+static_assert(ComponentContainer<OneBitBongo>);
 
 extern "C" void app_main(void)
 {
-    components.button.init();
-    cli.init();
+    init(bongo);
     for (;;)
     {
-        clear_output_flags(components.button);
-        components.button();
-        log(components);
-        cli(components);
-        clear_input_flags(components.button);
+        clear_output_flags(bongo.api.button);
+        bongo.api.button();
+        bongo.log(bongo.api);
+        bongo.cli(bongo.api);
+        clear_input_flags(bongo.api.button);
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }

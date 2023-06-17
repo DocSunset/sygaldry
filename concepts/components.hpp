@@ -419,27 +419,27 @@ constexpr auto for_each_node(T& component, auto callback)
         }
     }
 }
-template <typename T> constexpr void for_each_component(T& component, auto callback)
+template <GeneralComponent T> constexpr void for_each_component(T& component, auto callback)
 {
     for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
+template<GeneralComponent T> constexpr void for_each_endpoint(T& component, auto callback)
 {
     for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr void for_each_input(T& component, auto callback)
+template<GeneralComponent T> constexpr void for_each_input(T& component, auto callback)
 {
     for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<typename T> constexpr void for_each_output(T& component, auto callback)
+template<GeneralComponent T> constexpr void for_each_output(T& component, auto callback)
 {
     for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-void clear_output_flags(auto& component)
+void clear_output_flags(GeneralComponent auto& component)
 {
     for_each_output(component, []<typename Y>(Y& endpoint)
     {
@@ -447,7 +447,7 @@ void clear_output_flags(auto& component)
     });
 }
 
-void clear_input_flags(auto& component)
+void clear_input_flags(GeneralComponent auto& component)
 {
     for_each_input(component, []<typename Y>(Y& endpoint)
     {
@@ -456,16 +456,43 @@ void clear_input_flags(auto& component)
 }
 
 template<Component T>
-void activate(T& component)
+void init(T& component)
 {
-    clear_output_flags(component);
+    if constexpr (requires {component.init();}) component.init();
+}
+
+template<ComponentContainer T>
+void init(T& container)
+{
+    for_each_component(container, [](auto& component) {init(component);});
+};
+
+template<Component T>
+void activate_inner(T& component)
+{
     if constexpr (requires {component.main(component.inputs, component.outputs);})
         component.main(component.inputs, component.outputs);
     else if constexpr (requires {component(component.inputs, component.outputs);})
         component(component.inputs, component.outputs);
     else if constexpr (requires {component();})
         component();
+
+}
+
+template<Component T>
+void activate(T& component)
+{
+    clear_output_flags(component);
+    activate_inner(component);
     clear_input_flags(component);
 }
+
+template<ComponentContainer T>
+void activate(T& container)
+{
+    clear_output_flags(container);
+    for_each_component(container, activate_inner);
+    clear_input_flags(container);
+};
 
 }
