@@ -9,6 +9,7 @@ output endpoint values any time they change.
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "components/tests/testcomponent.hpp"
+#include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/output_logger.hpp"
 
 using std::string;
@@ -21,7 +22,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
     input_callback();
     components.tc();
     logger(components);
-    REQUIRE(logger.parts.log.put.ss.str() == expected_output);
+    CHECK(logger.parts.log.put.ss.str() == string(expected_output));
 }
 
 struct TestComponents
@@ -33,16 +34,15 @@ TEST_CASE("Output Logger", "[bindings][output_logger]")
 {
     auto components = TestComponents{};
     auto& tc = components.tc;
-    auto logger = sygaldry::bindings::CstdioOutputLogger<decltype(components)>{};
-    return;
+    auto logger = sygaldry::bindings::OutputLogger<TestLogger, decltype(components)>{};
 
     // updating causes output
-    test_logger(logger, components, "Test_Component_1/button_out 1\n", [&](){
+    test_logger(logger, components, "/Test_Component_1/button_out 1\n", [&](){
         tc.inputs.button_in = 1;
     });
 
     // changes cause output
-    test_logger(logger, components, "Test_Component_1/button_out 0\n", [&](){
+    test_logger(logger, components, "/Test_Component_1/button_out 0\n", [&](){
         tc.inputs.button_in = 0;
     });
 
@@ -52,18 +52,18 @@ TEST_CASE("Output Logger", "[bindings][output_logger]")
     });
 
     // bangs look different
-    test_logger(logger, components, "Test_Component_1/bang_out", [&](){
-        tc.outputs.bang_out();
+    test_logger(logger, components, "/Test_Component_1/bang_out\n", [&](){
+        tc.inputs.bang_in();
     });
 
-    // no output when bangs aren't cleared
-    test_logger(logger, components, "", [&](){
-        tc.outputs.bang_out();
+    // bangs always output on bang
+    test_logger(logger, components, "/Test_Component_1/bang_out\n", [&](){
+        tc.inputs.bang_in();
     });
 
-    // no output when bangs *are* cleared
+    // no output when bangs are cleared
     test_logger(logger, components, "", [&](){
-        tc.outputs.bang_out = {};
+        tc.inputs.bang_in = {};
     });
 }
 // @/
@@ -81,47 +81,49 @@ catch_discover_tests(output-logger-tests)
 // @#'output_logger.hpp'
 #pragma once
 #include "bindings/spelling.hpp"
+#include "concepts/metadata.hpp"
 #include "concepts/components.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
+#include "bindings/spelling.hpp"
+#include "bindings/basic_logger/cstdio_logger.hpp"
 
 namespace sygaldry { namespace bindings {
 
-template<typename Components>
-struct CstdioOutputLogger
+template<typename Logger, typename Components>
+struct OutputLogger
 {
     struct parts_t {
-        TestLogger log;
+        Logger log;
     } parts;
 
-//    endpoints_tuple<outputs_of<Components>> last_endpoints_out{};
+    output_endpoints_t<Components> last_out_list{};
 
     void operator()(Components& components)
     {
-//        std::apply([&]<typename T>(T& last_out)
-//        {
-//            using Path = path_t<T, Components>;
-//            const T& current_out = find<T>(components);
-//            if (current_out != last_out)
-//            {
-//                last_out = current_out;
-//
-//                if constexpr (Bang<T>) if (not current_out) return;
-//
-//                for_each_type<Path>([&]<typename Y>() {
-//                    if constexpr (not has_name<Y>) return;
-//                    parts.log.print(snake_case_v<T>);
-//                    if constexpr (not std::is_same_v<T, Y>)
-//                        parts.log.print("/");
-//                });
-//
-//                if constexpr (has_value<T>)
-//                    parts.log.print(value_of(current_out));
-//
-//                parts.log.println();
-//            }
-//        }, last_endpoints_out);
+        tuple_for_each(last_out_list, [&]<typename T>(T& last_out)
+        {
+            const T& current_out = find<T>(components);
+            if (value_of(current_out) != value_of(last_out))
+            {
+                if constexpr (Bang<T>)
+                {
+                    if (value_of(current_out))
+                        parts.log.println(osc_address_v<path_t<T, Components>>);
+                    return;
+                }
+                else
+                {
+                    last_out = current_out;
+                    parts.log.print(osc_address_v<path_t<T, Components>>);
+                    if constexpr (has_value<T>)
+                        parts.log.print(" ", value_of(current_out));
+                    parts.log.println();
+                }
+            }
+        });
     }
 };
+
+template<typename Components> using CstdioOutputLogger = OutputLogger<CstdioLogger, Components>;
 
 } }
 // @/

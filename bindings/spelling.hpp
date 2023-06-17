@@ -11,6 +11,10 @@ _consteval auto name_length()
     while (Device::name()[ret] != 0) ret++;
     return ret;
 }
+template<typename> struct osc_address_length : std::integral_constant<std::size_t, 0> {};
+template<template<typename...>typename L, typename ... Path>
+struct osc_address_length<L<Path...>>
+: std::integral_constant<std::size_t, (name_length<Path>() + ...) + sizeof...(Path)> {};
 typedef char (*char_mapping)(char);
 template<char_mapping...mappings> struct compose;
 
@@ -108,5 +112,34 @@ template<typename NamedType> constexpr const char * lower_snake_case_v = lower_s
 template<typename NamedType> constexpr const char * kebab_case_v       =       kebab_case<NamedType>::value.data();
 template<typename NamedType> constexpr const char * upper_kebab_case_v = upper_kebab_case<NamedType>::value.data();
 template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_kebab_case<NamedType>::value.data();
+template<typename> struct osc_address;
+template<template<typename...>typename L, typename ... Path>
+struct osc_address<L<Path...>>
+{
+    static constexpr size_t N = osc_address_length<L<Path...>>() + 1; // + 1 for null terminator
+    static constexpr std::array<char, N> value = []()
+    {
+        L<Path...> path;
+        std::array<char, N> ret;
+        std::size_t write_pos = 0;
+        auto copy_one = [&]<typename T>(T)
+        {
+            ret[write_pos++] = '/';
+            for (std::size_t i = 0; i < name_length<T>(); ++i)
+            {
+                ret[write_pos++] = snake_case_v<T>[i];
+            }
+        };
+        std::apply([&]<typename ... Ts>(Ts... ts)
+        {
+            (copy_one(ts), ...);
+        }, path);
+        ret[write_pos] = 0;
+        return ret;
+    }();
+};
+
+template<typename L>
+constexpr const char * osc_address_v = osc_address<L>::value.data();
 
 } }

@@ -1,7 +1,3 @@
-# All
-
--[ ] clean up using declarations at namespace scope, and namespaces generally
-
 # Literature
 
 -[ ] usage style documentation
@@ -20,7 +16,7 @@
 -[ ] lili should return fail on any warning or error...
 -[ ] drive lili tangling from cmake
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
--[ ] include deps in ESP32 projects automatically, e.g. by linking against top syg proj
+-[ ] include boost deps in ESP32 projects automatically, e.g. by linking against top syg proj
 -[ ] automate flashing and running ESP32 tests
 -[ ] enforce expected internal library dependency graph using cmake
 -[ ] generate a book with a particular linear order to things
@@ -40,15 +36,15 @@
 # Components
 
 -[ ] Liblo on ESP32
--[ ] ESP32 GPIO hold, sleep hold, and other features not yet implemented or tested
 -[ ] ESP32 ADC
 -[ ] Trill on ESP32
--[ ] T-Stick touch gesture
 -[ ] ICM20948 on ESP32
 -[ ] MIMU
+-[ ] T-Stick touch gesture
 -[ ] Button
     -[ ] tap/hold, tap dance, and other useful mappings
     -[ ] tests
+-[ ] ESP32 GPIO hold, sleep hold, and other features not yet implemented or tested
 
 # Bindings
 

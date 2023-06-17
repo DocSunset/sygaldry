@@ -80,6 +80,9 @@ concept ComponentContainer = (not Component<T>)
     && SimpleAggregate<T> && contains_component_v<T>
     ;
 
+template<typename T>
+concept GeneralComponent = Component<T> || ComponentContainer<T>;
+
 namespace node
 {
     struct component_container {};
@@ -189,7 +192,7 @@ constexpr auto component_to_tree(T& component)
 template<typename T> struct is_tuple : std::false_type {};
 template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
-template<typename T> concept Tuple = is_tuple_v<T>;
+template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
 template<Tuple T>
 constexpr auto tuple_head(T tup)
 {
@@ -218,6 +221,11 @@ constexpr auto component_tree_to_node_list(T tree)
     if constexpr (Tuple<decltype(head)>) return std::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
     else return std::tuple_cat(std::make_tuple(head), component_tree_to_node_list(tail));
 }
+template<GeneralComponent T>
+constexpr auto component_to_node_list(T& component)
+{
+    return component_tree_to_node_list(component_to_tree(component));
+}
 template<template<typename>typename F>
 constexpr auto node_list_filter(Tuple auto tup)
 {
@@ -236,6 +244,11 @@ constexpr auto node_list_filter(Tuple auto tup)
         else return std::tuple<>{};
     }, tup));
 }
+template<template<typename>typename F, GeneralComponent T>
+constexpr auto component_filter(T& component)
+{
+    return node_list_filter<F>(component_to_node_list(component));
+}
 template<typename T>
 struct tagged_is_same
 {
@@ -244,9 +257,15 @@ struct tagged_is_same
 };
 
 template<typename T>
-constexpr auto node_list_find(Tuple auto tup)
+constexpr auto& find(Tuple auto tup)
 {
-    return node_list_filter<tagged_is_same<T>::template fn>(tup);
+    return node_list_filter<tagged_is_same<T>::template fn>(tup).ref;
+}
+
+template<typename T>
+constexpr auto& find(GeneralComponent auto& component)
+{
+    return node_list_filter<tagged_is_same<T>::template fn>(component_to_node_list(component)).ref;
 }
 template<typename ... RequestedNodes>
 struct _search_by_tags
@@ -258,6 +277,12 @@ template<typename ... RequestedNodes>
 constexpr auto node_list_filter_by_tag(Tuple auto tup)
 {
     return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
+}
+
+template<GeneralComponent T, typename ... RequestedNodes>
+constexpr auto component_filter_by_tag(T& component)
+{
+    return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(component_to_node_list(component));
 }
 
 template<typename ... RequestedNodes>
@@ -304,14 +329,21 @@ constexpr auto path_of(C& component)
 template<typename Tag> using untagged = Tag::type;
 
 template<Tuple T>
-constexpr auto remove_node_tags(T&& tup)
+constexpr auto remove_node_tags(T tup)
 {
     using return_type = mp_transform<untagged, T>;
     return std::make_from_tuple<return_type>(tuple_transform([](auto&& tagged) {return tagged.ref;}, tup));
 }
+template<GeneralComponent T> using output_endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<T, node::output_endpoint>(std::declval<T&>())));
+template<GeneralComponent T> using input_endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<T, node::input_endpoint>(std::declval<T&>())));
+template<GeneralComponent T> using endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<T, node::input_endpoint, node::output_endpoint>(std::declval<T&>())));
+template<typename T, GeneralComponent C> using path_t =
+    decltype(remove_node_tags(path_of<T>(std::declval<C&>())));
 
-template<typename T, typename ... RequestedNodes>
-    requires Component<T> || ComponentContainer<T>
+template<GeneralComponent T, typename ... RequestedNodes>
 constexpr auto for_each_node(T& component, auto callback)
 {
     using boost::mp11::mp_list;

@@ -108,6 +108,7 @@ TEST_CASE("OccasionalValue", "[components][concepts][OccasionalValue]")
 TEST_CASE("Bang", "[components][concepts][Bang]")
 {
     static_assert(Bang<bng<"foo">>);
+    static_assert(has_value<bng<"foo">>);
 }
 TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
 {

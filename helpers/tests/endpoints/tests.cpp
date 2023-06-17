@@ -89,8 +89,10 @@ TEST_CASE("Bang", "[endpoints][bang]")
 {
     auto b = bng<"foo">{};
     REQUIRE(bool(b) == false);
+    REQUIRE(value_of(b) == false);
     b();
     REQUIRE(bool(b) == true);
+    REQUIRE(value_of(b) == true);
     b.reset();
     REQUIRE(bool(b) == false);
     b = true;

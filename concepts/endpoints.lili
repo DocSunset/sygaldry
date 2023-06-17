@@ -329,6 +329,7 @@ concept Bang = requires (T t)
 TEST_CASE("Bang", "[components][concepts][Bang]")
 {
     static_assert(Bang<bng<"foo">>);
+    static_assert(has_value<bng<"foo">>);
 }
 // @/
 ```
