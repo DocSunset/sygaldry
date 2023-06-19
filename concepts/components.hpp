@@ -20,13 +20,12 @@ concept SimpleAggregate
        )
     ;
 
-template<SimpleAggregate T> struct aggregate_members
-{
-    using agg_t = std::remove_cvref_t<T>;
-    using type = decltype(boost::pfr::structure_to_tuple(std::declval<agg_t>()));
-};
+template<typename T>
+concept has_main_subroutine
+    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+    || std::same_as<void, typename function_reflection<&T::main>::return_type>
+    ;
 
-template<typename T> using aggregate_members_t = aggregate_members<T>::type;
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME = requires (T t)\
 {\
@@ -49,39 +48,46 @@ has_type_or_value(outputs);
 has_type_or_value(parts);
 
 #undef has_type_or_value
-template<typename T>
-concept has_main_subroutine
-    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
-    || std::same_as<void, typename function_reflection<&T::main>::return_type>
-    ;
-
-template<typename T>
-concept Component = has_main_subroutine<T> && has_name<T> &&
-        ( has_inputs<T> || has_outputs<T> || has_parts<T>)
-        // TODO || has_throughpoints<T> || has_plugins<T>
-        ;
 
 
-template<typename T> struct contains_component : std::false_type {};
-template<Component T> struct contains_component<T> : std::true_type {};
 template<typename T>
-    requires SimpleAggregate<T> and (not Component<T>)
-struct contains_component<T>
+concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
+
+template<typename T>
+struct validate_general_component : std::false_type {};
+
+template<typename T>
+    requires requires (T t) { t = {}; }
+struct validate_general_component<T>
 {
-    using members = aggregate_members_t<T>;
-    using type = boost::mp11::mp_apply<boost::mp11::mp_any, mp_transform<contains_component, members>>;
-    static constexpr const bool value = type::value;
+    static constexpr T t{};
+    static constexpr bool value = []()
+    {
+        constexpr auto validate_container = []<typename C>(C container)
+        {
+            if constexpr (std::is_scalar_v<C>) return false;
+            auto tup = boost::pfr::structure_to_tuple(container);
+            if constexpr (std::tuple_size_v<decltype(tup)> == 0) return true;
+
+            auto valid_components = tuple_transform([]<typename Y>(Y& entity) {return validate_general_component<Y>::value;}, tup);
+            bool all_valid = std::apply([](auto ... validities) {return (validities && ...);}, valid_components);
+            return all_valid;
+        };
+
+        if constexpr (ComponentBasics<T>)
+            if constexpr (has_parts<T>)
+                return validate_container(parts_of(t));
+            else return has_inputs<T> || has_outputs<T>; // TODO || has_throughpoints<T> || has_plugins<T>;
+        else return validate_container(t);
+    }();
 };
 
-template <typename T> constexpr const bool contains_component_v = contains_component<T>::value;
-
 template<typename T>
-concept ComponentContainer = (not Component<T>)
-    && SimpleAggregate<T> && contains_component_v<T>
-    ;
+constexpr bool general_component_v = validate_general_component<T>::value;
+template<typename T> concept GeneralComponent = general_component_v<T>;
 
-template<typename T>
-concept GeneralComponent = Component<T> || ComponentContainer<T>;
+template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
+template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;
 
 namespace node
 {

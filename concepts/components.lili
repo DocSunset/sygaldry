@@ -1,26 +1,69 @@
 # Components Concepts
 
-We consider two kinds of general components: regular components, and component
-containers.
-
-```c++
-// @='GeneralComponent'
-template<typename T>
-concept GeneralComponent = Component<T> || ComponentContainer<T>;
-// @/
-```
+We would like to statically determine whether a given type describes a
+component. We consider two kinds of general components: regular components, and
+component containers.
 
 A regular component has a name, a main subroutine, and at least one of
 endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
-parts, these must be simple aggregate containers.
+parts, these must be simple aggregate containers. Components without parts
+are notable for the recursive definition of those with parts, as will
+become clear later.
+
+A component container is merely an aggregate that contains only nested
+containers and/or regular components. It may have a name, but it must be
+declared directly in the container definition in order to preserve
+aggregate-ness (e.g. it must not use the inherited `name_<"name">` helper).
+Component containers, as well as parts structures, are allowed to be empty,
+contain nested component containers, and contain components. These requirements
+are addressed in `validate_container`.
+
+Whereas a regular component's functionality is defined by its main subroutine,
+and its subcomponents should not be managed or activated by the runtime
+platform bindings and their inputs should not in general be modified
+externally, containers are defined in terms of their subcomponents, which
+should be treated as regular components by the runtime platform bindings,
+activated accordingly, and exposed for external control inputs.
 
 ```c++
-// @='Component'
+// @='Component Concepts'
+@{SimpleAggregate}
+
+@{has_main_subroutine}
+
+@{inputs and outputs and parts container}
+
+@{throughpoints and plugins}
+
 template<typename T>
-concept Component = has_main_subroutine<T> && has_name<T> &&
-        ( has_inputs<T> || has_outputs<T> || has_parts<T>)
-        // TODO || has_throughpoints<T> || has_plugins<T>
-        ;
+concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
+
+template<typename T>
+struct validate_general_component : std::false_type {};
+
+template<typename T>
+    requires requires (T t) { t = {}; }
+struct validate_general_component<T>
+{
+    static constexpr T t{};
+    static constexpr bool value = []()
+    {
+        @{validate_container}
+
+        if constexpr (ComponentBasics<T>)
+            if constexpr (has_parts<T>)
+                return validate_container(parts_of(t));
+            else return has_inputs<T> || has_outputs<T>; // TODO || has_throughpoints<T> || has_plugins<T>;
+        else return validate_container(t);
+    }();
+};
+
+template<typename T>
+constexpr bool general_component_v = validate_general_component<T>::value;
+template<typename T> concept GeneralComponent = general_component_v<T>;
+
+template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
+template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;
 // @/
 
 // @+'tests'
@@ -44,26 +87,7 @@ static_assert(has_parts<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(not Component<bng<"a bang">>);
-// @/
-```
 
-A component container is merely an aggregate that contains only nested
-containers and/or regular components. It may have a name, but it must be
-declared directly in the container definition in order to preserve
-aggregate-ness (e.g. it must not use the inherited `name_<"name">` helper).
-Similar to a regular component's parts structure, a container is required to
-contain at least one component or nested container. Indeed, a parts container
-is required to meet the requirements for a component container.
-
-```c++
-// @='ComponentContainer'
-template<typename T>
-concept ComponentContainer = (not Component<T>)
-    && SimpleAggregate<T> && contains_component_v<T>
-    ;
-// @/
-
-// @+'tests'
 struct container_component_t
 {
     static _consteval auto name() {return "container component";}
@@ -73,58 +97,31 @@ struct container_component_t
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(ComponentContainer<container_component_t>);
 static_assert(not Component<container_component_t>);
-static_assert(contains_component_v<container_component_t>);
 
 static_assert(not ComponentContainer<regular_component_t>);
 static_assert(ComponentContainer<regular_component_t::parts_t>);
 // @/
 ```
 
-Whereas a regular component's functionality is defined by its main subroutine,
-and its subcomponents should not be managed or activated by the runtime
-platform bindings and their inputs should not in general be modified
-externally, containers are defined in terms of their subcomponents, which
-should be treated as regular components by the runtime platform bindings,
-activated accordingly, and exposed for external control inputs.
+# Simple Aggregate
 
-```c++
-// @='base component concepts'
-@{base component implementation details}
-
-@{Component}
-
-@{contains_component}
-
-@{ComponentContainer}
-
-@{GeneralComponent}
-// @/
-```
-
-# ComponentContainer
-
-A container is a simple aggregate that contains only components. We begin here,
-since the definition of the `inputs`, `outputs`, and `parts` structures of a
-regular component depends on the definition of a simple aggregate aggregate
-developed here.
-
-## Simple Aggregate
-
-Our notion of a simple aggregate comes from `boost::pfr`, which we rely on for
-the ability to iterate over lists of endpoints and components in the form of
-structures, an essential functionality for our purposes. We would ideally defer
-to `boost::pfr` for our test of simple aggregate requirements, but a straightforward
-concept--
+Component containers, as well as the input, output, and parts structures of
+regular components, are required to be simple aggregates. Our notion of a
+simple aggregate comes from `boost::pfr`, which we rely on for the ability to
+iterate over lists of endpoints and components in the form of structures, an
+essential functionality for our purposes. We would ideally defer to
+`boost::pfr` for our test of simple aggregate requirements, but a
+straightforward concept--
 
 ```c++
 template<typename T>
 concept SimpleAggregate = requires { boost::pfr::tuple_size_v<T>; };
-
 ```
 
 --does not provide the required results. It appears as though the compiler
-considers this to be a valid expression regardless of the result, even if pfr
-itself would raise several static assertion failures with the given `T`.
+considers this to be a valid expression regardless of the result, i.e. even if
+pfr itself would raise several (overly verbose and difficult to debug) static
+assertion failures with the given `T`.
 
 Attempts to defer to `std::is_aggregate_v<T>` in a similar fashion were also
 unsatisfactory, with various test structures passing the test even through
@@ -183,7 +180,7 @@ to pass it a type with a base class, giving us the following
 incomplete-but-likely-sufficient implementation of our `SimpleAggregate` concept:
 
 ```c++
-// @+'base component implementation details'
+// @='SimpleAggregate'
 template<typename T>
 concept SimpleAggregate
     =  not std::is_union_v<T>
@@ -191,8 +188,6 @@ concept SimpleAggregate
        || std::is_scalar_v<T>
        )
     ;
-
-@{aggregate_members}
 // @/
 
 // @+'tests'
@@ -208,74 +203,46 @@ simple-aggregate-ness is that we cannot admit nested aggregates of endpoints in
 case any of our endpoints have inherited a class type; such non-base endpoints
 pass our `SimpleAggregate` concept, but trigger static assertion failures from
 `boost::pfr`. For this reason, we currently assume that endpoint containers are
-not nested. Another limitation is described next.
+not nested.
 
-## Contains Components
+# Component Basics
 
-As well as being a simple aggregate, component containers are required to
-contain at least one component. This is required so that we can distinguish
-component containers from regular components and endpoint containers. Regular
-components also satisfy our `SimpleAggregate` concept despite that they may
-trigger an assertion failure from `boost::pfr` in case they use the `name_`
-helper or any other of our metadata helpers. Similarly, endpoint containers are
-required to be `SimpleAggregate`. Our work around is to treat anything that
-meets the requirements of a regular component as disqualified from being a
-component container, and to require component containers to contain at least
-one component so that they can be distinguished from endpoint containers.
-
-First, we access a type list of data members of the candidate aggregate:
+Using our small [function reflection library](concepts/functions.lili) we can
+tell whether a component has a main subroutine by checking whether the return
+type of the expected methods (`T::main` or `T::operator()`) have the expected
+type (void). This concept will not be satisfied if `T::main` is a variable,
+since function reflection is impossible in this case and checking the return
+type is thus an error.
 
 ```c++
-// @='aggregate_members'
-template<SimpleAggregate T> struct aggregate_members
-{
-    using agg_t = std::remove_cvref_t<T>;
-    using type = decltype(boost::pfr::structure_to_tuple(std::declval<agg_t>()));
-};
-
-template<typename T> using aggregate_members_t = aggregate_members<T>::type;
-// @/
-```
-
-Then, we use `boost::mp11` to check if any member is a component, or a
-component container. We allow our component container to hold nested
-containers, meaning the metafunction that verifies that an aggregate contains a
-component needs to be recursive. Non-component non-aggregate data members are
-one recursion stopping condition. Components are another. And any data member
-that is a simple aggregate, but not a component, is recursively checked to see
-if it contains a component.
-
-```c++
-// @='contains_component'
-
-template<typename T> struct contains_component : std::false_type {};
-template<Component T> struct contains_component<T> : std::true_type {};
+// @='has_main_subroutine'
 template<typename T>
-    requires SimpleAggregate<T> and (not Component<T>)
-struct contains_component<T>
-{
-    using members = aggregate_members_t<T>;
-    using type = boost::mp11::mp_apply<boost::mp11::mp_any, mp_transform<contains_component, members>>;
-    static constexpr const bool value = type::value;
-};
-
-template <typename T> constexpr const bool contains_component_v = contains_component<T>::value;
+concept has_main_subroutine
+    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+    || std::same_as<void, typename function_reflection<&T::main>::return_type>
+    ;
 // @/
 
 // @+'tests'
-static_assert(not contains_component_v<regular_component_t::inputs_t>);
-static_assert(not contains_component_v<regular_component_t::outputs_t>);
-static_assert(contains_component_v<regular_component_t::parts_t>);
-static_assert(contains_component_v<container_component_t>);
+struct void_main { void main() {} };
+struct void_operator { void operator()() {} };
+static_assert(has_main_subroutine<void_main>);
+static_assert(has_main_subroutine<void_operator>);
+
+struct member_main { int main; };
+struct int_main { int main() {return 1;} };
+struct int_operator { int operator()() {return 1;} };
+static_assert(not has_main_subroutine<member_main>);
+static_assert(not has_main_subroutine<int_main>);
+static_assert(not has_main_subroutine<int_operator>);
 // @/
 ```
 
-# Regular Component
+Along with the `has_name` concept defined in [the metadata concept
+header](concepts/metadata.lili.md), this completes the specification of basic
+component requirements.
 
-A regular component has a name, a main subroutine, and at least one of
-endpoints, throughpoints, parts, or plugins.
-
-## Parts, Inputs, Outputs
+# Inputs and Outputs
 
 To detect whether a component has parts, inputs, or outputs, we employ the same
 structure parameterized on the expected name of the nested simple aggregate
@@ -283,7 +250,7 @@ structure. We use a macro to avoid repetition. A similar pattern is used
 [to define `has_name`](concepts/metadata.lili).
 
 ```c++
-// @+'base component implementation details'
+// @='inputs and outputs and parts container'
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME = requires (T t)\
 {\
@@ -319,39 +286,6 @@ static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular
 // @/
 ```
 
-## Main Subroutine
-
-Using our small [function reflection library](concepts/functions.lili) we can
-tell whether a component has a main subroutine by checking whether the return
-type of the expected methods (`T::main` or `T::operator()`) have the expected
-type (void). This concept will not be satisfied if `T::main` is a variable,
-since function reflection is impossible in this case and checking the return
-type is thus an error.
-
-```c++
-// @+'base component implementation details'
-template<typename T>
-concept has_main_subroutine
-    =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
-    || std::same_as<void, typename function_reflection<&T::main>::return_type>
-    ;
-// @/
-
-// @+'tests'
-struct void_main { void main() {} };
-struct void_operator { void operator()() {} };
-static_assert(has_main_subroutine<void_main>);
-static_assert(has_main_subroutine<void_operator>);
-
-struct member_main { int main; };
-struct int_main { int main() {return 1;} };
-struct int_operator { int operator()() {return 1;} };
-static_assert(not has_main_subroutine<member_main>);
-static_assert(not has_main_subroutine<int_main>);
-static_assert(not has_main_subroutine<int_operator>);
-// @/
-```
-
 ## Throughpoints
 
 TODO
@@ -359,6 +293,34 @@ TODO
 ## Plugins
 
 TODO
+
+## Validating Containers
+
+```c++
+// @='validate_container'
+constexpr auto validate_container = []<typename C>(C container)
+{
+    if constexpr (std::is_scalar_v<C>) return false;
+    auto tup = boost::pfr::structure_to_tuple(container);
+    if constexpr (std::tuple_size_v<decltype(tup)> == 0) return true;
+
+    auto valid_components = tuple_transform([]<typename Y>(Y& entity) {return validate_general_component<Y>::value;}, tup);
+    bool all_valid = std::apply([](auto ... validities) {return (validities && ...);}, valid_components);
+    return all_valid;
+};
+// @/
+
+// @+'tests'
+struct almost_container
+{
+    float nope;
+    regular_component_t yep;
+};
+static_assert(not ComponentContainer<almost_container>);
+static_assert(ComponentContainer<regular_component_t::parts_t>);
+static_assert(ComponentContainer<container_component_t>);
+// @/
+```
 
 # Accessing Subcomponents and Endpoints
 
@@ -1556,7 +1518,7 @@ using boost::mp11::mp_transform;
 using boost::mp11::tuple_transform;
 using boost::mp11::tuple_for_each;
 
-@{base component concepts}
+@{Component Concepts}
 
 @{nodes}
 
@@ -1593,6 +1555,7 @@ using std::string;
 
 ```cmake
 # @#'tests/components/CMakeLists.txt'
+add_definitions(-Wfatal-errors)
 add_executable(components-concepts-tests tests.cpp)
 target_link_libraries(components-concepts-tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(components-concepts-tests)

@@ -92,7 +92,7 @@ namespace sygaldry { namespace bindings {
 template<typename Logger, typename Components>
 struct OutputLogger : name_<"Output Logger">
 {
-    struct parts_t {} parts;
+    struct inputs_t {} inputs;
 
     [[no_unique_address]] Logger log;
 

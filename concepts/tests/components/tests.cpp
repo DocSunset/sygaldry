@@ -29,6 +29,7 @@ static_assert(has_parts<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(not Component<bng<"a bang">>);
+
 struct container_component_t
 {
     static _consteval auto name() {return "container component";}
@@ -38,7 +39,6 @@ struct container_component_t
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(ComponentContainer<container_component_t>);
 static_assert(not Component<container_component_t>);
-static_assert(contains_component_v<container_component_t>);
 
 static_assert(not ComponentContainer<regular_component_t>);
 static_assert(ComponentContainer<regular_component_t::parts_t>);
@@ -81,17 +81,6 @@ static_assert(SimpleAggregate<regular_component_t::inputs_t>);
 static_assert(SimpleAggregate<regular_component_t::outputs_t>);
 static_assert(SimpleAggregate<regular_component_t::parts_t>);
 static_assert(SimpleAggregate<container_component_t>);
-static_assert(not contains_component_v<regular_component_t::inputs_t>);
-static_assert(not contains_component_v<regular_component_t::outputs_t>);
-static_assert(contains_component_v<regular_component_t::parts_t>);
-static_assert(contains_component_v<container_component_t>);
-static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
-static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
-static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
-
-static_assert(std::same_as<regular_component_t::inputs_t, type_of_inputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::outputs_t, type_of_outputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular_component_t>>);
 struct void_main { void main() {} };
 struct void_operator { void operator()() {} };
 static_assert(has_main_subroutine<void_main>);
@@ -103,6 +92,21 @@ struct int_operator { int operator()() {return 1;} };
 static_assert(not has_main_subroutine<member_main>);
 static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
+static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
+static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
+
+static_assert(std::same_as<regular_component_t::inputs_t, type_of_inputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::outputs_t, type_of_outputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular_component_t>>);
+struct almost_container
+{
+    float nope;
+    regular_component_t yep;
+};
+static_assert(not ComponentContainer<almost_container>);
+static_assert(ComponentContainer<regular_component_t::parts_t>);
+static_assert(ComponentContainer<container_component_t>);
 struct accessor_test_container_t
 {
     struct c1_t : name_<"c1"> {
