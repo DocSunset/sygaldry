@@ -25,7 +25,6 @@ struct CustomCli : name_<"CLI">
                  , version_<"0.0.0">
                  , copyright_<"Travis J. West <C) 2023">
 {
-    struct inputs_t {} inputs; // so that component concepts will recognize component
     [[no_unique_address]] Logger log;
     [[no_unique_address]] Reader reader;
     [[no_unique_address]] Commands commands;

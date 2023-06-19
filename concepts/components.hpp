@@ -56,11 +56,12 @@ concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
 template<typename T>
 struct validate_general_component : std::false_type {};
 
-template<typename T>
-    requires requires (T t) { t = {}; }
-struct validate_general_component<T>
+template<typename MaybeComponent>
+    requires requires (std::remove_cvref_t<MaybeComponent> t) { t = {}; }
+struct validate_general_component<MaybeComponent>
 {
-    static constexpr T t{};
+    using T = std::remove_cvref_t<MaybeComponent>;
+
     static constexpr bool value = []()
     {
         constexpr auto validate_container = []<typename C>(C container)
@@ -76,9 +77,16 @@ struct validate_general_component<T>
 
         if constexpr (ComponentBasics<T>)
             if constexpr (has_parts<T>)
-                return validate_container(parts_of(t));
-            else return has_inputs<T> || has_outputs<T>; // TODO || has_throughpoints<T> || has_plugins<T>;
-        else return validate_container(t);
+            {
+                type_of_parts_t<T> parts = {};
+                return validate_container(parts);
+            }
+            else return true; //has_inputs<T> || has_outputs<T>; // TODO || has_throughpoints<T> || has_plugins<T>;
+        else
+        {
+            T t = {};
+            return validate_container(t);
+        }
     }();
 };
 

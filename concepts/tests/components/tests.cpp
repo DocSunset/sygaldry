@@ -28,7 +28,6 @@ static_assert(has_outputs<regular_component_t>);
 static_assert(has_parts<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(Component<regular_component_t>);
-static_assert(not Component<bng<"a bang">>);
 
 struct container_component_t
 {

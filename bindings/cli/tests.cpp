@@ -2,6 +2,7 @@
 #include <memory>
 #include <catch2/catch_test_macros.hpp>
 #include "utilities/consteval.hpp"
+#include "concepts/components.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/basic_reader/test_reader.hpp"
@@ -11,6 +12,7 @@ using std::string;
 
 using namespace sygaldry::bindings::clicommands;
 using namespace sygaldry::bindings;
+using namespace sygaldry;
 
 
 void test_cli(auto& cli, auto& components, string input, string expected_output)
@@ -21,7 +23,7 @@ void test_cli(auto& cli, auto& components, string input, string expected_output)
     REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 
-void test_command(auto&& command, auto&& components, int expected_retcode, const char * expected_output, auto ... args)
+void test_command(auto&& command, auto&& components, int expected_retcode, string expected_output, auto ... args)
 {
     int argc = 0;
     char * argv[sizeof...(args)];
@@ -105,6 +107,7 @@ TEST_CASE("CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
     auto cli = CustomCli<TestReader, TestLogger, TestComponents, CliCommands>{};
+    static_assert(Component<decltype(cli)>);
 
     SECTION("Hello world")
     {

@@ -1,5 +1,6 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
+#include "concepts/components.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/output_logger.hpp"
@@ -7,6 +8,7 @@
 using std::string;
 
 using namespace sygaldry::bindings;
+using namespace sygaldry;
 
 void test_logger(auto& logger, auto& components, string expected_output, auto input_callback)
 {
@@ -27,6 +29,8 @@ TEST_CASE("Output Logger", "[bindings][output_logger]")
     auto components = TestComponents{};
     auto& tc = components.tc;
     auto logger = sygaldry::bindings::OutputLogger<TestLogger, decltype(components)>{};
+
+    static_assert(Component<decltype(logger)>);
 
     // updating causes output
     test_logger(logger, components, "/Test_Component_1/button_out 1\n", [&](){

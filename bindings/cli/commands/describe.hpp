@@ -18,10 +18,10 @@ struct Describe
     template<typename T>
     void describe_entity_type(auto& log, T& entity)
     {
-        if constexpr (Component<T>) log.println("component");
-        else if constexpr (Bang<T>) log.println("bang");
+        if constexpr (Bang<T>) log.println("bang");
         else if constexpr (PersistentValue<T>) log.println("persistent value");
         else if constexpr (OccasionalValue<T>) log.println("occasional value");
+        else if constexpr (Component<T>) log.println("component");
         else log.println("unknown");
     }
 
