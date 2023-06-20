@@ -1,4 +1,5 @@
 build
+doxygen
 _build*
 sdkconfig
 *.o
