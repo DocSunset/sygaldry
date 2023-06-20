@@ -1,6 +1,5 @@
 # Now
 
--[/] statically assert that all components meet concept requirements, incl. parts has only components, etc.
 -[ ] test output logger on hardware
 -[ ] wifi component
 
@@ -35,13 +34,14 @@
 
 # Concepts and Helpers
 
--[ ] subassemblies
--[ ] pure assemblies
--[ ] external plugins
+-[ ] update README
+-[ ] refactor concepts as led by component tree?
+-[ ] external plugins concepts
 -[ ] throughpoints
 -[ ] parts parameters
 -[ ] enum tag checker
 -[ ] message inputs and callback outputs
+-[/] statically assert that all components meet concept requirements, incl. parts has only components, etc.
 
 # Components
 

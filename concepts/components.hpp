@@ -38,7 +38,7 @@ template<has_##NAME T> struct type_of_##NAME\
     using type = decltype(std::declval<T>().NAME);\
 };\
 \
-template<typename T> using type_of_##NAME##_t = type_of_##NAME<T>::type;\
+template<typename T> using type_of_##NAME##_t = typename type_of_##NAME<T>::type;\
 \
 template<typename T> requires has_##NAME<T> constexpr auto& NAME##_of(T& t) { return t.NAME; }\
 template<typename T> requires has_##NAME<T> constexpr const auto& NAME##_of(const T& t) { return t.NAME; }\
@@ -326,7 +326,7 @@ constexpr auto path_of(C& component)
 {
     return path_of<T>(component_to_tree(component));
 }
-template<typename Tag> using untagged = Tag::type;
+template<typename Tag> using untagged = typename Tag::type;
 
 template<Tuple T>
 constexpr auto remove_node_tags(T tup)
