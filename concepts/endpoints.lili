@@ -431,19 +431,31 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         {
             persistent<float> v{100.0f};
             REQUIRE(value_of(v) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(v)>>);
 
             const persistent<float> cv{100.0f};
             REQUIRE(value_of(cv) == 100.0f);
             static_assert(std::is_const_v<std::remove_reference_t<decltype(value_of(cv))>>);
             static_assert(std::is_lvalue_reference_v<decltype(value_of(cv))>);
+            static_assert(std::is_same_v<float, value_t<decltype(cv)>>);
+
+            persistent<string> s{"hello world"};
+            REQUIRE(value_of(s) == string("hello world"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
         SECTION("OccasionalValue")
         {
             occasional<float> v = 100.0f;
             REQUIRE(value_of(v) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(v)>>);
 
             const occasional<float> cv = 100.0f;
             REQUIRE(value_of(cv) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(cv)>>);
+
+            occasional<string> s{"hello world"};
+            REQUIRE(value_of(s) == string("hello world"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
     }
     SECTION("set via value_of")
@@ -468,6 +480,11 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
             persistent<float> v = 100.0f;
             set_value(v, 200.0f);
             REQUIRE(value_of(v) == 200.0f);
+
+            occasional<string> s{"hello world"};
+            set_value(s, "value changed");
+            REQUIRE(value_of(s) == string("value changed"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
         SECTION("OccasionalValue")
         {
@@ -490,6 +507,7 @@ This is considered a reasonable and idiomatic way of avoiding repeating
 ourselves, but we should remain suspicious of this function in case our
 assumptions about const-correctness ever seen to be violated. This is unlikely
 to ever be an issue though.
+
 
 ```c++
 // @+'concepts'
@@ -529,11 +547,39 @@ auto& set_value(T& v, const auto& arg)
 // @/
 ```
 
+# Value Reflection
+
+As well as numerical values, we also have helpers for string values. We provide
+a basic concept to help identify them.
+
+```c++
+// @+'concepts'
+template<has_value T>
+using value_t = std::remove_cvref_t<decltype(value_of(std::declval<T&>()))>;
+
+template<typename T> concept string_like = requires (T t, const char * s)
+{
+    t = s;
+};
+// @/
+```
+
 # Tags
 
 We can introduce arbitrary symbols into the scope of a class through a bare
-`enum` declaration e.g. `enum { bang };`. TODO: define accessors for checking
-if a certain symbol is defined in a class's scope.
+`enum` declaration e.g. `enum { bang };`. We provide accessors for checking
+if a symbol with a known meaning is defined in a class's scope.
+
+```c++
+// @+'concepts'
+#define tagged(TAG) template<typename T> concept tagged_##TAG\
+    =  std::is_enum_v<decltype(T::TAG)>\
+    || std::is_enum_v<typename T::TAG>
+tagged(write_only); // don't display or output this endpoint's value
+tagged(session_data); // store this endpoint's value across sessions, e.g. across power cycles on an embedded system
+#undef tagged
+// @/
+```
 
 # Summary
 
@@ -555,6 +601,7 @@ namespace sygaldry {
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
+#include <string>
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "helpers/metadata.hpp"
@@ -563,6 +610,7 @@ namespace sygaldry {
 
 using namespace sygaldry;
 using std::string_view;
+using std::string;
 
 @{tests}
 // @/

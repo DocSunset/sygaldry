@@ -70,8 +70,10 @@ struct BasicLogger
 {
     [[no_unique_address]] putter put;
 
-    template<typename T> void _print(T x)
+    template<typename cvrT> void _print(cvrT& x)
     {
+        using T = std::remove_cvref_t<cvrT>;
+
         @{convert message to a string}
 
         for (char c : string_message)
@@ -179,11 +181,12 @@ string-like values:
 // @+'basic logger includes'
 #include <type_traits>
 #include <string_view>
+#include <string>
 // @/
 
 // @='convert message to a string'
 std::string_view string_message;
-if constexpr (std::is_same_v<std::decay_t<T>, bool>)
+if constexpr (std::is_same_v<T, bool>)
 {
     string_message = x ? "true" : "false";
 }
@@ -191,12 +194,9 @@ else if constexpr (std::is_arithmetic_v<T>)
 {
     @{convert a number}
 }
-else if constexpr (std::is_same_v<T, std::string_view>
-                   or std::is_same_v<T, char *>
-                   or std::is_same_v<T, const char *>)
-{
+else if constexpr (requires {string_message = x;})
     string_message = x;
-}
+else string_message = "unknown type for basic logger";
 // @/
 ```
 

@@ -148,51 +148,68 @@ R"DESCRIBEDEVICE(component: test-component-1
   type:  component
   input:   button-in
     name: "button in"
-    type:  occasional value
+    type:  occasional int
     range: 0 to 1 (init: 0)
     value: (1)
   input:   toggle-in
     name: "toggle in"
-    type:  persistent value
+    type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
   input:   slider-in
     name: "slider in"
-    type:  persistent value
+    type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
   input:   bang-in
     name: "bang in"
     type:  bang
     value: (bang!)
+  input:   text-in
+    name: "text in"
+    type:  persistent text
+    value: ""
   output:  button-out
     name: "button out"
-    type:  occasional value
+    type:  occasional int
     range: 0 to 1 (init: 0)
     value: ()
   output:  toggle-out
     name: "toggle out"
-    type:  persistent value
+    type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
   output:  slider-out
     name: "slider out"
-    type:  persistent value
+    type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
   output:  bang-out
     name: "bang out"
     type:  bang
     value: ()
+  output:  text-out
+    name: "text out"
+    type:  persistent text
+    value: ""
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
     test_command(Describe{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
-  type:  persistent value
+  type:  persistent float
   range: 0 to 1 (init: 0)
   value: 0
 )DESCRIBEENDPOINT", "describe", "test-component-1", "slider-out");
+    components.tc.inputs.text_in = "hello";
+
+    CHECK(components.tc.inputs.text_in.value == string("hello"));
+    test_command(Describe{}, components, 0,
+R"DESCRIBEENDPOINT(endpoint: text-in
+  name: "text in"
+  type:  persistent text
+  value: "hello"
+)DESCRIBEENDPOINT", "describe", "test-component-1", "text-in");
 }
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
@@ -222,6 +239,12 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     {
         test_command(Set{}, components, 0, "", "set", "test-component-1", "bang-in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
+    }
+
+    SECTION("set string")
+    {
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
+        REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 }
 TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")

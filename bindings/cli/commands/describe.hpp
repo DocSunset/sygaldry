@@ -19,8 +19,19 @@ struct Describe
     void describe_entity_type(auto& log, T& entity)
     {
         if constexpr (Bang<T>) log.println("bang");
-        else if constexpr (PersistentValue<T>) log.println("persistent value");
-        else if constexpr (OccasionalValue<T>) log.println("occasional value");
+        else if constexpr (has_value<T>)
+        {
+            if constexpr (PersistentValue<T>)
+                log.print("persistent ");
+            else if constexpr (OccasionalValue<T>)
+                log.print("occasional ");
+            if constexpr (std::integral<value_t<T>>)
+                log.println("int");
+            else if constexpr (std::floating_point<value_t<T>>)
+                log.println("float");
+            else if constexpr (string_like<value_t<T>>)
+                log.println("text");
+        }
         else if constexpr (Component<T>) log.println("component");
         else log.println("unknown");
     }
@@ -33,7 +44,13 @@ struct Describe
             if (entity) log.println("(bang!)");
             else log.println("()");
         }
-        else if constexpr (PersistentValue<decltype(entity)>) log.println(value_of(entity));
+        else if constexpr (PersistentValue<decltype(entity)>)
+        {
+            if constexpr (tagged_write_only<T>) log.println("WRITE ONLY");
+            else if constexpr (string_like<value_t<T>>)
+                log.println("\"", value_of(entity), "\"");
+            else log.println(value_of(entity));
+        }
         else if (entity) log.println("(", value_of(entity), ")");
         else log.println("()");
     }

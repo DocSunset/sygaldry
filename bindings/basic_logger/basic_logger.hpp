@@ -1,6 +1,7 @@
 #pragma once
 #include <type_traits>
 #include <string_view>
+#include <string>
 #include <limits>
 #include <charconv>
 
@@ -11,10 +12,12 @@ struct BasicLogger
 {
     [[no_unique_address]] putter put;
 
-    template<typename T> void _print(T x)
+    template<typename cvrT> void _print(cvrT& x)
     {
+        using T = std::remove_cvref_t<cvrT>;
+
         std::string_view string_message;
-        if constexpr (std::is_same_v<std::decay_t<T>, bool>)
+        if constexpr (std::is_same_v<T, bool>)
         {
             string_message = x ? "true" : "false";
         }
@@ -43,12 +46,9 @@ struct BasicLogger
                     std::to_chars scratch buffer unexpectedly too small!";
             }
         }
-        else if constexpr (std::is_same_v<T, std::string_view>
-                           or std::is_same_v<T, char *>
-                           or std::is_same_v<T, const char *>)
-        {
+        else if constexpr (requires {string_message = x;})
             string_message = x;
-        }
+        else string_message = "unknown type for basic logger";
 
         for (char c : string_message)
             put(c);

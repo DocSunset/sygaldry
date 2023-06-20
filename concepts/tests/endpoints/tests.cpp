@@ -1,6 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
+#include <string>
 #include <type_traits>
 #include <boost/pfr.hpp>
 #include "helpers/metadata.hpp"
@@ -9,6 +10,7 @@
 
 using namespace sygaldry;
 using std::string_view;
+using std::string;
 
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
@@ -150,19 +152,31 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         {
             persistent<float> v{100.0f};
             REQUIRE(value_of(v) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(v)>>);
 
             const persistent<float> cv{100.0f};
             REQUIRE(value_of(cv) == 100.0f);
             static_assert(std::is_const_v<std::remove_reference_t<decltype(value_of(cv))>>);
             static_assert(std::is_lvalue_reference_v<decltype(value_of(cv))>);
+            static_assert(std::is_same_v<float, value_t<decltype(cv)>>);
+
+            persistent<string> s{"hello world"};
+            REQUIRE(value_of(s) == string("hello world"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
         SECTION("OccasionalValue")
         {
             occasional<float> v = 100.0f;
             REQUIRE(value_of(v) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(v)>>);
 
             const occasional<float> cv = 100.0f;
             REQUIRE(value_of(cv) == 100.0f);
+            static_assert(std::is_same_v<float, value_t<decltype(cv)>>);
+
+            occasional<string> s{"hello world"};
+            REQUIRE(value_of(s) == string("hello world"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
     }
     SECTION("set via value_of")
@@ -187,6 +201,11 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
             persistent<float> v = 100.0f;
             set_value(v, 200.0f);
             REQUIRE(value_of(v) == 200.0f);
+
+            occasional<string> s{"hello world"};
+            set_value(s, "value changed");
+            REQUIRE(value_of(s) == string("value changed"));
+            static_assert(std::is_same_v<string, value_t<decltype(s)>>);
         }
         SECTION("OccasionalValue")
         {

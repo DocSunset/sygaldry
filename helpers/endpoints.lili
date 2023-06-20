@@ -238,12 +238,22 @@ TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
 ## Tags
 
 We can introduce arbitrary symbols into the scope of a class through a bare
-`enum` declaration e.g. `enum { bang };`. Our bindings can then be designed to
-look for such symbols, e.g. `if constexpr (requires {endpoint::bang;}) { ... }` and
-behave depending on their presence or absence. There's no real need for a helper
-class for this kind of metadata; trying to define a template class or a macro
-gets cumbersome very quickly, and it's already pretty trivial to add an `enum`
-to an endpoint.
+`enum` declaration e.g. `enum { bang };` or `enum class bang {};`. Our bindings
+can then be designed to look for such symbols, e.g. `if constexpr (requires
+{endpoint::bang;}) { ... }` and behave depending on their presence or absence.
+Although it's easy enough to add such a tag when defining a custom endpoint,
+the following helpers are provided which attach tags with recognized value
+within this project. The interpretation is given in [the endpoints concepts
+document](concepts/endpoints.lili.md);
+
+```c++
+// @+'helpers'
+#define tag(TAG) struct tag_##TAG {enum {TAG}; }
+tag(write_only);
+tag(session_data);
+#undef tag
+// @/
+```
 
 # Basic Endpoints
 
@@ -262,6 +272,12 @@ template<string_literal str, char init = 0>
 struct toggle : persistent<char>, name_<str>, range_<0, 1, init>
 {
     using persistent<char>::operator=;
+};
+
+template<string_literal str>
+struct text : persistent<std::string>, name_<str>
+{
+    using persistent<std::string>::operator=;
 };
 
 template<string_literal str
@@ -386,6 +402,7 @@ TEST_CASE("Bang", "[endpoints][bang]")
 
 #include <string_view>
 #include <optional>
+#include <string>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 

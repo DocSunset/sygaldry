@@ -851,51 +851,68 @@ R"DESCRIBEDEVICE(component: test-component-1
   type:  component
   input:   button-in
     name: "button in"
-    type:  occasional value
+    type:  occasional int
     range: 0 to 1 (init: 0)
     value: (1)
   input:   toggle-in
     name: "toggle in"
-    type:  persistent value
+    type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
   input:   slider-in
     name: "slider in"
-    type:  persistent value
+    type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
   input:   bang-in
     name: "bang in"
     type:  bang
     value: (bang!)
+  input:   text-in
+    name: "text in"
+    type:  persistent text
+    value: ""
   output:  button-out
     name: "button out"
-    type:  occasional value
+    type:  occasional int
     range: 0 to 1 (init: 0)
     value: ()
   output:  toggle-out
     name: "toggle out"
-    type:  persistent value
+    type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
   output:  slider-out
     name: "slider out"
-    type:  persistent value
+    type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
   output:  bang-out
     name: "bang out"
     type:  bang
     value: ()
+  output:  text-out
+    name: "text out"
+    type:  persistent text
+    value: ""
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
     test_command(Describe{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
   name: "slider out"
-  type:  persistent value
+  type:  persistent float
   range: 0 to 1 (init: 0)
   value: 0
 )DESCRIBEENDPOINT", "describe", "test-component-1", "slider-out");
+    components.tc.inputs.text_in = "hello";
+
+    CHECK(components.tc.inputs.text_in.value == string("hello"));
+    test_command(Describe{}, components, 0,
+R"DESCRIBEENDPOINT(endpoint: text-in
+  name: "text in"
+  type:  persistent text
+  value: "hello"
+)DESCRIBEENDPOINT", "describe", "test-component-1", "text-in");
 }
 // @/
 ```
@@ -940,8 +957,19 @@ template<typename T>
 void describe_entity_type(auto& log, T& entity)
 {
     if constexpr (Bang<T>) log.println("bang");
-    else if constexpr (PersistentValue<T>) log.println("persistent value");
-    else if constexpr (OccasionalValue<T>) log.println("occasional value");
+    else if constexpr (has_value<T>)
+    {
+        if constexpr (PersistentValue<T>)
+            log.print("persistent ");
+        else if constexpr (OccasionalValue<T>)
+            log.print("occasional ");
+        if constexpr (std::integral<value_t<T>>)
+            log.println("int");
+        else if constexpr (std::floating_point<value_t<T>>)
+            log.println("float");
+        else if constexpr (string_like<value_t<T>>)
+            log.println("text");
+    }
     else if constexpr (Component<T>) log.println("component");
     else log.println("unknown");
 }
@@ -954,7 +982,13 @@ void describe_entity_value(auto& log, T& entity)
         if (entity) log.println("(bang!)");
         else log.println("()");
     }
-    else if constexpr (PersistentValue<decltype(entity)>) log.println(value_of(entity));
+    else if constexpr (PersistentValue<decltype(entity)>)
+    {
+        if constexpr (tagged_write_only<T>) log.println("WRITE ONLY");
+        else if constexpr (string_like<value_t<T>>)
+            log.println("\"", value_of(entity), "\"");
+        else log.println(value_of(entity));
+    }
     else if (entity) log.println("(", value_of(entity), ")");
     else log.println("()");
 }
@@ -1070,6 +1104,12 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         test_command(Set{}, components, 0, "", "set", "test-component-1", "bang-in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
+
+    SECTION("set string")
+    {
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
+        REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
+    }
 }
 // @/
 ```
@@ -1121,17 +1161,16 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
             log.println("Not enough arguments to set this endpoint.");
             return 2;
         }
-        // TODO: we should determine the type of the value and use it here
-        else return parse_and_set<float>(log, endpoint, argv[0]);
+        else return parse_and_set<value_t<T>>(log, endpoint, argv[0]);
     }
     else return 2;
 }
 // @/
 ```
 
-`parse_and_set` is called in case a number needs to be parsed from the input
+`parse_and_set` is called in case a value needs to be parsed from the input
 tokens. Most of the method consists of checking for errors and returning a
-failure code in case we can't parse the input token as a number.
+failure code in case we can't parse the input token.
 
 ```c++
 // @='parse and set'
@@ -1150,10 +1189,10 @@ int parse_and_set(auto& log, auto& endpoint, const char * argstart)
         return 2;
     }
     bool success = false;
-    T num = from_chars<T>(argstart, argend, success);
+    T val = from_chars<T>(argstart, argend, success);
     if (success)//ec == std::errc{})
     {
-        set_value(endpoint, num);
+        set_value(endpoint, val);
         return 0;
     }
     else
@@ -1208,6 +1247,20 @@ T from_chars(const char * start, const char * end, bool& success)
     else success = false;
     return ret;
 #endif
+}
+// @/
+```
+
+For "parsing" a string, we simply return the token itself.
+
+```c++
+// @+'from_chars'
+template<typename T>
+    requires requires (T t, const char * s) {t = s;}
+T from_chars(const char * start, const char *, bool& success)
+{
+    success = true;
+    return start;
 }
 // @/
 ```
@@ -1338,25 +1391,9 @@ that provides `getchar` and `putchar` from the C standard library.
 #include "bindings/basic_logger/cstdio_logger.hpp"
 #include "bindings/cli/cli.hpp"
 
-struct Component1 {
-    static _consteval auto name() { return "Test Component 1"; }
-    struct {} inputs;
-    struct {} outputs;
-    void main() {};
-};
-
-struct Component2 {
-    static _consteval auto name() { return "Test Component 2"; }
-    struct {} inputs;
-    struct {} outputs;
-    void main() {};
-};
-
 using namespace sygaldry::components;
 
 struct AppComponents {
-    Component1 cpt1;
-    Component2 cpt2;
     TestComponent tc;
     ButtonGestureModel bgm;
 };

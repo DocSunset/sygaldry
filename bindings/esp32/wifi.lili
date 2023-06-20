@@ -25,13 +25,11 @@ struct WiFi
 , description_<"An ESP-IDF WiFi API wrapper">
 {
     struct inputs_t {
+        text<"SSID"> ssid;
+        struct password_t : text<"password">, tag_write_only { using text::operator=; } password;
     } inputs;
 
     struct outputs_t {
-        toggle<"initialized"> initialized;
-        toggle<"started"> started;
-        toggle<"scanning"> scanning;
-        toggle<"connected"> connected;
         // TODO: promiscuous mode
         // TODO: channel state information (csi) callback
     } outputs;

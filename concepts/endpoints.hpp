@@ -111,5 +111,18 @@ auto& set_value(T& v, const auto& arg)
     v = arg;
     return v;
 }
+template<has_value T>
+using value_t = std::remove_cvref_t<decltype(value_of(std::declval<T&>()))>;
+
+template<typename T> concept string_like = requires (T t, const char * s)
+{
+    t = s;
+};
+#define tagged(TAG) template<typename T> concept tagged_##TAG\
+    =  std::is_enum_v<decltype(T::TAG)>\
+    || std::is_enum_v<typename T::TAG>
+tagged(write_only); // don't display or output this endpoint's value
+tagged(session_data); // store this endpoint's value across sessions, e.g. across power cycles on an embedded system
+#undef tagged
 
 } // namespaces

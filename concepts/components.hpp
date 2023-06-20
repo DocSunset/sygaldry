@@ -53,46 +53,32 @@ has_type_or_value(parts);
 template<typename T>
 concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
 
+template<typename T> struct validate_general_component : std::false_type {};
+
 template<typename T>
-struct validate_general_component : std::false_type {};
+    requires ComponentBasics<T> && (not has_parts<T>)
+struct validate_general_component<T> : std::true_type {};
 
-template<typename MaybeComponent>
-    requires requires (std::remove_cvref_t<MaybeComponent> t) { t = {}; }
-struct validate_general_component<MaybeComponent>
+template<typename T>
+    requires ComponentBasics<T> && (has_parts<T>)
+struct validate_general_component<T> : validate_general_component<type_of_parts_t<T>> {};
+
+template<typename T>
+    requires std::is_scalar_v<T>
+struct validate_general_component<T> : std::false_type {};
+
+template<typename T>
+    requires SimpleAggregate<T> && (not ComponentBasics<T>) && (not std::is_scalar_v<T>)
+struct validate_general_component<T>
 {
-    using T = std::remove_cvref_t<MaybeComponent>;
-
-    static constexpr bool value = []()
-    {
-        constexpr auto validate_container = []<typename C>(C container)
-        {
-            if constexpr (std::is_scalar_v<C>) return false;
-            auto tup = boost::pfr::structure_to_tuple(container);
-            if constexpr (std::tuple_size_v<decltype(tup)> == 0) return true;
-
-            auto valid_components = tuple_transform([]<typename Y>(Y& entity) {return validate_general_component<Y>::value;}, tup);
-            bool all_valid = std::apply([](auto ... validities) {return (validities && ...);}, valid_components);
-            return all_valid;
-        };
-
-        if constexpr (ComponentBasics<T>)
-            if constexpr (has_parts<T>)
-            {
-                type_of_parts_t<T> parts = {};
-                return validate_container(parts);
-            }
-            else return true; //has_inputs<T> || has_outputs<T>; // TODO || has_throughpoints<T> || has_plugins<T>;
-        else
-        {
-            T t = {};
-            return validate_container(t);
-        }
-    }();
+    using tup = decltype(boost::pfr::structure_to_tuple(std::declval<T&>()));
+    using valid_components = boost::mp11::mp_transform<validate_general_component, tup>;
+    using all_valid = boost::mp11::mp_apply<boost::mp11::mp_all, valid_components>;
+    static constexpr bool value = all_valid::value;
 };
 
 template<typename T>
-constexpr bool general_component_v = validate_general_component<T>::value;
-template<typename T> concept GeneralComponent = general_component_v<T>;
+concept GeneralComponent = validate_general_component<T>::value;
 
 template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
 template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;

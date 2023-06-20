@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <optional>
+#include <string>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 
@@ -46,6 +47,10 @@ struct persistent
 template <typename T>
 using occasional = std::optional<T>;
 
+#define tag(TAG) struct tag_##TAG {enum {TAG}; }
+tag(write_only);
+tag(session_data);
+#undef tag
 template<string_literal str, char init = 0>
 struct button : occasional<char>, name_<str>, range_<0, 1, init>
 {
@@ -56,6 +61,12 @@ template<string_literal str, char init = 0>
 struct toggle : persistent<char>, name_<str>, range_<0, 1, init>
 {
     using persistent<char>::operator=;
+};
+
+template<string_literal str>
+struct text : persistent<std::string>, name_<str>
+{
+    using persistent<std::string>::operator=;
 };
 
 template<string_literal str

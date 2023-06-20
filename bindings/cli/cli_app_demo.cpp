@@ -5,25 +5,9 @@
 #include "bindings/basic_logger/cstdio_logger.hpp"
 #include "bindings/cli/cli.hpp"
 
-struct Component1 {
-    static _consteval auto name() { return "Test Component 1"; }
-    struct {} inputs;
-    struct {} outputs;
-    void main() {};
-};
-
-struct Component2 {
-    static _consteval auto name() { return "Test Component 2"; }
-    struct {} inputs;
-    struct {} outputs;
-    void main() {};
-};
-
 using namespace sygaldry::components;
 
 struct AppComponents {
-    Component1 cpt1;
-    Component2 cpt2;
     TestComponent tc;
     ButtonGestureModel bgm;
 };

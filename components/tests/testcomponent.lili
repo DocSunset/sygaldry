@@ -20,6 +20,7 @@ struct TestComponent : name_<"Test Component 1">
         toggle<"toggle in"> toggle_in;
         slider<"slider in"> slider_in;
         bng<"bang in"> bang_in;
+        text<"text in"> text_in;
     } inputs;
 
     struct outputs_t {
@@ -27,6 +28,7 @@ struct TestComponent : name_<"Test Component 1">
         toggle<"toggle out"> toggle_out;
         slider<"slider out"> slider_out;
         bng<"bang out"> bang_out;
+        text<"text out"> text_out;
     } outputs;
 
     static constexpr void main(const inputs_t& in, outputs_t& out)

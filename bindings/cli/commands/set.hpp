@@ -47,6 +47,13 @@ struct Set
         return ret;
     #endif
     }
+    template<typename T>
+        requires requires (T t, const char * s) {t = s;}
+    T from_chars(const char * start, const char *, bool& success)
+    {
+        success = true;
+        return start;
+    }
 
     template<typename T>
     int parse_and_set(auto& log, auto& endpoint, const char * argstart)
@@ -61,10 +68,10 @@ struct Set
             return 2;
         }
         bool success = false;
-        T num = from_chars<T>(argstart, argend, success);
+        T val = from_chars<T>(argstart, argend, success);
         if (success)//ec == std::errc{})
         {
-            set_value(endpoint, num);
+            set_value(endpoint, val);
             return 0;
         }
         else
@@ -91,8 +98,7 @@ struct Set
                 log.println("Not enough arguments to set this endpoint.");
                 return 2;
             }
-            // TODO: we should determine the type of the value and use it here
-            else return parse_and_set<float>(log, endpoint, argv[0]);
+            else return parse_and_set<value_t<T>>(log, endpoint, argv[0]);
         }
         else return 2;
     }
