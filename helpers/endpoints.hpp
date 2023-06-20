@@ -51,36 +51,55 @@ using occasional = std::optional<T>;
 tag(write_only);
 tag(session_data);
 #undef tag
-template<string_literal str, char init = 0>
-struct button : occasional<char>, name_<str>, range_<0, 1, init>
+template<string_literal name_str, string_literal desc = "", char init = 0>
+struct button
+: occasional<char>
+, name_<name_str>
+, description_<desc>
+, range_<0, 1, init>
 {
     using occasional<char>::operator=;
 };
 
-template<string_literal str, char init = 0>
-struct toggle : persistent<char>, name_<str>, range_<0, 1, init>
+template<string_literal name_str, string_literal desc = "", char init = 0>
+struct toggle
+: persistent<char>
+, name_<name_str>
+, description_<desc>
+, range_<0, 1, init>
 {
     using persistent<char>::operator=;
 };
 
-template<string_literal str>
-struct text : persistent<std::string>, name_<str>
+template<string_literal name_str, string_literal desc = "">
+struct text
+: persistent<std::string>
+, name_<name_str>
+, description_<desc>
 {
     using persistent<std::string>::operator=;
 };
 
-template<string_literal str
+template< string_literal name_str
+        , string_literal desc = ""
         , arithmetic T = float
         , num_literal<T> min = 0.0f
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min
         >
-struct slider : persistent<float>, name_<str>, range_<min, max, init>
+struct slider
+: persistent<float>
+, name_<name_str>
+, description_<desc>
+, range_<min, max, init>
 {
     using persistent<float>::operator=;
 };
-template<string_literal str>
-struct bng : persistent<bool>, name_<str>
+template<string_literal name_str, string_literal desc = "">
+struct bng
+: persistent<bool>
+, name_<name_str>
+, description_<"">
 {
     using persistent<bool>::operator=;
     enum {bang, impulse};

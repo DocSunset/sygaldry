@@ -14,7 +14,7 @@
 -[ ] usage style documentation
 -[ ] various empty readme files
 -[ ] incorporate [the four types of documentation](https://documentation.divio.com/)
-    -[ ] add reference documentation for public interfaces (Doxygen?)
+    -[ ] add reference documentation for public interfaces (Doxygen)
     -[ ] write tutorials
     -[ ] write how-to recipes
     -[ ] contemplate: does the literate source provide sufficient explanation?
@@ -22,10 +22,11 @@
 
 # Build system
 
+-[ ] switch to nix? or docker?
 -[ ] automate documentation link checking
 -[ ] compile lili as a dependency
--[ ] lili should return fail on any warning or error...
 -[ ] drive lili tangling from cmake
+-[ ] drive installing esp-idf from the build system
 -[ ] determine ESP32 project build command for esp32-install rather than assuming `make`
 -[ ] include boost deps in ESP32 projects automatically, e.g. by linking against top syg proj
 -[ ] automate flashing and running ESP32 tests

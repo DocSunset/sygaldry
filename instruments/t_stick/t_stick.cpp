@@ -10,7 +10,6 @@ using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 
 struct TStick { struct parts_t {
-    StdioLogger log; // a part
     // Eeprom<decltype(log), decltype(api), JsonSerializer> eeprom; // a part with two external plugins, one internal plugin
     esp32::I2cDriver<idf_config::i2c_sda, idf_config::i2c_scl> i2c; // a part with two configuration parameters
     struct api_t : _name("T-Stick")
