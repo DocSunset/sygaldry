@@ -1,6 +1,7 @@
 build
 doxygen
-_build*
+dependencies
+_build*/*
 sdkconfig
 *.o
 *.pd_linux
