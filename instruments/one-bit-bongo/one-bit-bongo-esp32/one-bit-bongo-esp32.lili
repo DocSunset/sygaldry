@@ -19,7 +19,7 @@ idf_component_register(SRCS "one-bit-bongo.cpp"
 # @/
 ```
 
-```c++
+```cpp
 // @#'main/one-bit-bongo.cpp'
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>

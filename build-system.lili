@@ -136,7 +136,7 @@ toolchain configured by the parent cmake appears to be incompatible with the
 IDF project, and the IDF cmake library functions don't appear to make any
 attempt to override the selected toolchain in a way that makes things work out.
 
-```c++
+```cpp
 # @='add_esp32_project function'
     function(add_esp32_project)
     if (${ARGC} LESS 1)

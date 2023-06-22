@@ -19,7 +19,7 @@ To support all these use cases, one approach is for the author of the processor
 to specify different spellings for alternative applications. For example, the
 name of the processor might be specified in this way:
 
-```c++
+```cpp
 struct SimpleLowpass
 {
     static _consteval const char * name() {return "Simple Lowpass";}
@@ -61,7 +61,7 @@ letters with their lowercase equivalent. Uppercase, also called all caps, also
 called yelling, does the inverse of lowercase. These are all simple one-to-one
 transformations that are easily defined on a character by character basis.
 
-```c++
+```cpp
 // @='mappings'
 constexpr char snake(char c) {return c == ' ' ? '_' : c;}
 constexpr char kebab(char c) {return c == ' ' ? '-' : c;}
@@ -81,7 +81,7 @@ constexpr char upper(char c)
 Taking one or more of these mappings as template arguments, we can
 generate a mapping that composes them sequentially:
 
-```c++
+```cpp
 // @='compose'
 typedef char (*char_mapping)(char);
 template<char_mapping...mappings> struct compose;
@@ -122,7 +122,7 @@ string data, called `value` below. We can initialize this string with a lambda
 that applies the mapping to the name of the component, which gives us the
 following implementation:
 
-```c++
+```cpp
 // @='respeller'
 @{composition functor}
 
@@ -151,7 +151,7 @@ struct respeller
 In case there are no mappings given, which may be useful for certain templates
 e.g. as a default parameter, we can save some space by providing a specialization:
 
-```c++
+```cpp
 // @+'respeller'
 template<typename NamedType>
 struct respeller<NamedType>
@@ -168,7 +168,7 @@ count how many characters there are in the string. We trust that the compiler
 will catch if a non-null-terminated string is passed in, e.g. by recognizing
 out of bounds access on the compile-time constant input.
 
-```c++
+```cpp
 // @='string length function'
 template<typename Device>
 _consteval auto name_length()
@@ -189,7 +189,7 @@ the user can write `snake_case(x)` or `snake_case_v<T>` as seen above.
 My initial thought here was to literally use a template type alias for the
 function-like syntax--
 
-```c++
+```cpp
 template<typename NamedType> using snake_case = respeller<NamedType, snake>;
 ```
 
@@ -207,7 +207,7 @@ class templates
 Instead, we can use derived classes. We have to re-define the constructor from `NamedType`,
 but it'll do.
 
-```c++
+```cpp
 // @='template aliases'
 template<typename NamedType>
 struct passthrough_spelling : respeller<NamedType>
@@ -271,7 +271,7 @@ each node in the path. The implementation is fairly similar to that of the
 respeller. We allocate a `std::array` with the appropriate size and copy the
 snake case names of each node.
 
-```c++
+```cpp
 // @+'string length function'
 template<typename> struct osc_address_length : std::integral_constant<std::size_t, 0> {};
 template<template<typename...>typename L, typename ... Path>
@@ -314,7 +314,7 @@ constexpr const char * osc_address_v = osc_address<L>::value.data();
 
 # Tests
 
-```c++
+```cpp
 // @#'tests/spelling/tests.cpp'
 #include <string_view>
 #include <array>
@@ -430,7 +430,7 @@ strings and capitalization mappings.
 
 # Summary
 
-```c++
+```cpp
 // @#'spelling.hpp'
 #pragma once
 #include <array>

@@ -117,7 +117,7 @@ each command could do almost anything. Given this, we may wish to adopt a famili
 convention for the interface to a command. We can imagine, for instance, the
 following abstract base class for all commands:
 
-```c++
+```cpp
 struct ShellProgram
 {
     virtual int main(int argc, char ** argv) = 0;
@@ -152,7 +152,7 @@ other components. Many components, like our CLI commands, may require some way o
 outputting errors, error messages, and other text logs. We might consider
 treating these as `outputs` in the same way we treat other output signals:
 
-```c++
+```cpp
 struct CliCommand
 {
     static _consteval auto name() { return "Example Command"; }
@@ -281,7 +281,7 @@ added runtime costs. This leads to the following plan, demonstrated with a
 simple `echo` command, for the commands' general interface, borrowing the
 conceptual design of the logger feature injection scheme from Avendish:
 
-```c++
+```cpp
 // @+'test commands'
 struct Echo
 {
@@ -316,7 +316,7 @@ attempt to generate tests for me, that accepts a string as input to the CLI and
 returns a string representing whatever the CLI prints in response. We also
 define some test components;
 
-```c++
+```cpp
 // @='cli test wrapper'
 void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
@@ -348,7 +348,7 @@ struct TestComponents
 We can then test the CLI using a few trivial commands, such as the `echo` command
 defined above, and the following:
 
-```c++
+```cpp
 // @+'test commands'
 struct HelloWorld
 {
@@ -400,7 +400,7 @@ Ideally we should iterate over the commands at compile time and determine
 exactly how big these buffers need to be, but this is left as future work
 for now:
 
-```c++
+```cpp
 // @='cli buffers'
 // TODO: automatically size the buffers depending on the commands
 static constexpr size_t MAX_ARGS = 5;
@@ -429,7 +429,7 @@ Notice that we accept the list of components which the CLI interacts with as an
 argument. We assume that this is in the form of a reflectable simple-aggregate
 struct, which we will discuss further below.
 
-```c++
+```cpp
 // @='cli process'
 void process(const char c, Components& components)
 {
@@ -475,7 +475,7 @@ as a special case in our callback lambda, and using a kebab-case
 respeller in our matcher. The same matcher is used by all of
 the CLI commands, so it is defined in its own header.
 
-```c++
+```cpp
 // @#'matcher.hpp'
 #pragma once
 
@@ -527,7 +527,7 @@ template alias is provided `Cli` that specifies the default list of commands.
 By the same sort of reasoning, we also provide a template alias that
 incorporates the `cstdio` input/output plugins.
 
-```c++
+```cpp
 // @='cli default type alias'
 struct DefaultCommands
 {
@@ -544,7 +544,7 @@ using CstdioCli = Cli<CstdioReader, CstdioLogger, Components>;
 
 ### Details
 
-```c++
+```cpp
 // @+'cli implementation details'
 bool _is_whitespace(char c)
 {
@@ -581,7 +581,7 @@ void _complain_about_command_failure(int retcode)
 
 ### CLI Summary
 
-```c++
+```cpp
 // @#'cli.hpp'
 #pragma once
 #include <memory>
@@ -638,7 +638,7 @@ the implementation and presentation of the tests. The command and components
 are passed by reference to allow the main test case to check for expected
 side-effects of running the command.
 
-```c++
+```cpp
 // @='command test wrapper'
 void test_command(auto&& command, auto&& components, int expected_retcode, string expected_output, auto ... args)
 {
@@ -675,7 +675,7 @@ possible to deduce anything from the signature `int main(argc, argv, log,
 components)`. For now, we'll take the easiest route and require commands to
 provide their usage text if the command takes arguments.
 
-```c++
+```cpp
 // @+'test commands'
 struct Command1 {
     static _consteval auto name() { return "test-command-1"; }
@@ -716,7 +716,7 @@ Since the help command is a special case, which operates over commands instead
 of components, we allow it to buck the pattern established with the list command
 and have a `main` method that takes a parameter pack of commands to describe.
 
-```c++
+```cpp
 // @#'commands/help.hpp'
 #pragma once
 #include <boost/pfr.hpp>
@@ -766,7 +766,7 @@ clicommands::Help help;
 
 The list command should output a new-line separated list of component names:
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("List command outputs", "[cli][commands][list]")
 {
@@ -788,7 +788,7 @@ size to statically store the generated strings, which needlessly duplicates the
 names of components. Instead, we'll iterate over the component types using a fold
 expression and print each one's name using the injected logger.
 
-```c++
+```cpp
 // @#'commands/list.hpp'
 #pragma once
 
@@ -838,7 +838,7 @@ This command is used to get the metadata associated with an entity, as well as
 its current value if it has one. The first argument is the component to study.
 The second optional argument narrows the examination to a single endpoint.
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
 {
@@ -921,7 +921,7 @@ Depending on whether there is one or two arguments besides the name of the
 command, we either describe a component (recursively including its endpoints),
 or we describe a single endpoint.
 
-```c++
+```cpp
 // @='describe main'
 int main(int argc, char** argv, auto& log, auto& components)
 {
@@ -951,7 +951,7 @@ which reflect on the input entity using concepts, recursing over nested
 entities where they are found. Note that `Bang` related branches need to appear
 before others, since a `Bang` is currently implemented as a `PersistentValue`.
 
-```c++
+```cpp
 // @+'describe implementation details'
 template<typename T>
 void describe_entity_type(auto& log, T& entity)
@@ -1029,7 +1029,7 @@ void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 ```
 ### Boilerplate
 
-```c++
+```cpp
 // @#'commands/describe.hpp'
 #pragma once
 
@@ -1073,7 +1073,7 @@ component and its own name (in that order). Note that this does not cause the
 component's main subroutine to trigger under any circumstance, which is instead
 done by the following command.
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
@@ -1117,7 +1117,7 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
 The main subroutine simply checks the arguments and tries to dispatch to the
 right endpoint, deferring the main logic of the command to another subroutine.
 
-```c++
+```cpp
 // @='set main'
 int main(int argc, char** argv, auto& log, auto& components)
 {
@@ -1140,7 +1140,7 @@ int main(int argc, char** argv, auto& log, auto& components)
 Setting the value depends on the type of value. Bangs are set no matter what the
 input. Otherwise, we require more information to parse in order to set the value.
 
-```c++
+```cpp
 // @='set implementation details'
 @{parse and set}
 
@@ -1172,7 +1172,7 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
 tokens. Most of the method consists of checking for errors and returning a
 failure code in case we can't parse the input token.
 
-```c++
+```cpp
 // @='parse and set'
 @{from_chars}
 
@@ -1211,7 +1211,7 @@ function at the time of writing. We define our own `from_chars`
 function that wraps the standard library when available, and falls
 back to `strtoX` otherwise.
 
-```c++
+```cpp
 // @='from_chars'
 template<typename T>
     requires std::integral<T>
@@ -1253,7 +1253,7 @@ T from_chars(const char * start, const char * end, bool& success)
 
 For "parsing" a string, we simply return the token itself.
 
-```c++
+```cpp
 // @+'from_chars'
 template<typename T>
     requires requires (T t, const char * s) {t = s;}
@@ -1267,7 +1267,7 @@ T from_chars(const char * start, const char *, bool& success)
 
 ### Boilerplate
 
-```c++
+```cpp
 // @#'commands/set.hpp'
 #pragma once
 
@@ -1305,7 +1305,7 @@ clicommands::Set set;
 
 TODO write literate annotation for this command
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
 {
@@ -1315,20 +1315,20 @@ TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
 // @/
 ```
 
-```c++
+```cpp
 // @='trigger main'
 return 2;
 // @/
 ```
 
-```c++
+```cpp
 // @='trigger implementation details'
 // @/
 ```
 
 ### Boilerplate
 
-```c++
+```cpp
 // @#'commands/trigger.hpp'
 #pragma once
 
@@ -1382,7 +1382,7 @@ run our components in a simulated environment, feed them test inputs, and examin
 their outputs. The same implementation should also be usable on any environment
 that provides `getchar` and `putchar` from the C standard library.
 
-```c++
+```cpp
 // @#'cli_app_demo.cpp'
 #include "utilities/consteval.hpp"
 #include "components/sensors/button.hpp"
@@ -1420,7 +1420,7 @@ int main()
 
 # Building Tests
 
-```c++
+```cpp
 // @#'tests.cpp'
 #include <string>
 #include <memory>

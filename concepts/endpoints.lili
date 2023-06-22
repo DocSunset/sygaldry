@@ -79,7 +79,7 @@ possesses a static member function that returns such a structure. The use
 of `std::decay_t` and the accessor subroutines follow the logic seen in the
 previous section.
 
-```c++
+```cpp
 // @+'concepts'
 template<typename T>
 concept has_range = requires
@@ -176,7 +176,7 @@ those break our concepts.
 We check the validity of our concept by making sure that a `float` is similar
 to a `float`, and that a `const char *` is not.
 
-```c++
+```cpp
 // @+'concepts'
 template <typename T, typename Y>
 concept strict_similar_to 
@@ -212,7 +212,7 @@ endpoint can be treated as an instance of. We additionally require that
 persistent values be default initializable, e.g. so that binding authors do not
 have to fuss over passing such values any constructor arguments.
 
-```c++
+```cpp
 // @+'concepts'
 template <typename T>
 concept has_value_variable = requires (T t)
@@ -285,7 +285,7 @@ Note that occasional values are not values in the sense defined above. They do
 not behave as though they are instances of their value type, since their
 current state must always be checked before accessing their values.
 
-```c++
+```cpp
 // @+'concepts'
 @{flag}
 
@@ -316,7 +316,7 @@ Our `bang` concept essentially just checks that the type has an enum value
 called `bang` in its scope, and that it is a flag, a concept we also required
 for our `OccasionalValue` concept.
 
-```c++
+```cpp
 // @+'concepts'
 template<typename T>
 concept Bang = requires (T t)
@@ -352,7 +352,7 @@ may prefer to use a different, perhaps more expressive, method of clearing its
 state. But for a binding author, it's useful to have a way to clear a flag
 without having to know anything about it other than that it is a valid flag.
 
-```c++
+```cpp
 // @='flag'
 template<typename T>
 concept Flag = requires (T t)
@@ -421,7 +421,7 @@ value. To allow setting of `OccasionalValue`s that don't already have a value,
 `set_value` is provided, which handles `OccasionalValue`s appropriately and
 is also usable with `PersistentValue`s.
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
 {
@@ -509,7 +509,7 @@ assumptions about const-correctness ever seen to be violated. This is unlikely
 to ever be an issue though.
 
 
-```c++
+```cpp
 // @+'concepts'
 template <typename T>
 concept has_value = OccasionalValue<T> || PersistentValue<T>;
@@ -552,7 +552,7 @@ auto& set_value(T& v, const auto& arg)
 As well as numerical values, we also have helpers for string values. We provide
 a basic concept to help identify them.
 
-```c++
+```cpp
 // @+'concepts'
 template<has_value T>
 using value_t = std::remove_cvref_t<decltype(value_of(std::declval<T&>()))>;
@@ -570,7 +570,7 @@ We can introduce arbitrary symbols into the scope of a class through a bare
 `enum` declaration e.g. `enum { bang };`. We provide accessors for checking
 if a symbol with a known meaning is defined in a class's scope.
 
-```c++
+```cpp
 // @+'concepts'
 #define tagged(TAG) template<typename T> concept tagged_##TAG\
     =  std::is_enum_v<decltype(T::TAG)>\
@@ -583,7 +583,7 @@ tagged(session_data); // store this endpoint's value across sessions, e.g. acros
 
 # Summary
 
-```c++
+```cpp
 // @#'endpoints.hpp'
 #pragma once
 

@@ -24,7 +24,7 @@ repeating ourselves.
 
 # Endpoints
 
-```c++
+```cpp
 // @='gpio_function macro'
 #define gpio_function(c_name, esp_idf_func, ... )\
 static auto c_name() noexcept\
@@ -50,7 +50,7 @@ instance, we could declare the endpoint as a functor. However, since the
 functor has no way to access the data of the parent component, the parent
 must be passed in as an argument:
 
-```c++
+```cpp
 struct my_message_t : name_<"my message">, description_<"a useful hint"> {
     void operator()(Parent& parent) {
         /* ... */
@@ -68,7 +68,7 @@ is for message endpoints to return a function; this nicely solves the latter
 issue while making the interface for a user of the message endpoint in
 a subcomponent quite unfriendly, e.g. for a message with no arguments:
 
-```c++
+```cpp
 decltype(my_component)::messages::my_message::func()(my_component);
 ```
 
@@ -81,7 +81,7 @@ beyond being documentation...
 
 ## Inputs
 
-```c++
+```cpp
 // @='input wrappers'
 // all following input methods return esp_err_t, either ESP_OK or an error code
 gpio_function(remove_interrupt_handler, gpio_isr_handler_remove, pin_number); // "remove interrupt handler", "remove the interrupt handler callback for this pin",
@@ -145,7 +145,7 @@ an exception to the general pattern. The component defers design of an ISR
 to the user, so this port accept a pointer to the ISR function and its
 context as arguments and passes them to the ESP-IDF method.
 
-```c++
+```cpp
 // @+'weird inputs'
 static auto interrupt_handler(void (*handler)(void*), void* args) noexcept
 {
@@ -191,7 +191,7 @@ argument from out port, and instead implement it as a getter. Similarly,
 `gpio_get_level` never returns an error, so the output endpoint for this API
 can also be implemented as a getter.
 
-```c++
+```cpp
 // @='output wrappers'
 static auto level() noexcept {
     return gpio_get_level(pin_number);
@@ -229,7 +229,7 @@ The most detailed documentation on pin functions can be found in the datasheet.
 The documentation also provides additional guidance. The pinout diagram for
 a given MCU board can offer further advice where available.
 
-```c++
+```cpp
 // @='init function with assertions'
 static void init()
 {
@@ -261,7 +261,7 @@ static void init()
 
 # Summary
 
-```c++
+```cpp
 // @#'gpio.hpp'
 #pragma once
 
@@ -295,7 +295,7 @@ struct GPIO
 At the time of writing, we test only the bare minimum functionality required to
 read a single button in a polling loop.
 
-```c++
+```cpp
 // @#'tests/gpio.hpp'
 #pragma once
 

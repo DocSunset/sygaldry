@@ -1,6 +1,6 @@
 # T-Stick
 
-```c++
+```cpp
 //@#'t_stick.cpp'
 #include "utilities/consteval.hpp"
 #include "concepts/components.hpp"

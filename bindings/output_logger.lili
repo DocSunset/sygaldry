@@ -4,7 +4,7 @@ Following the CLI, the next binding with an optimal balance of usefulness and
 simple implementation was one that simply prints a text-based representation of
 output endpoint values any time they change.
 
-```c++
+```cpp
 // @#'tests/output_logger/tests.cpp'
 #include <string>
 #include <catch2/catch_test_macros.hpp>
@@ -81,7 +81,7 @@ catch_discover_tests(output-logger-tests)
 # @/
 ```
 
-```c++
+```cpp
 // @#'output_logger.hpp'
 #pragma once
 #include "bindings/spelling.hpp"

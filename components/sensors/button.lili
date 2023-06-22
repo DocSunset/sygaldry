@@ -24,7 +24,7 @@ number of discrete triggers, limited only by how quickly you can tap.
 For now, the following gesture model only detects state transitions. Other
 useful mappings are left for future work.
 
-```c++
+```cpp
 // @#'button.hpp'
 #pragma once
 

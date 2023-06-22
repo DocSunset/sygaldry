@@ -5,7 +5,7 @@ As of 2023, `clang` version 15+ still have only partial support for
 allowing us to use `consteval` where it is supported, we define a macro that is
 used throughout the repository in place of `consteval` directly.
 
-```c++
+```cpp
 // @#'consteval.hpp'
 #ifdef __clang__
 #define _consteval constexpr

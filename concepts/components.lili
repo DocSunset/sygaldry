@@ -25,7 +25,7 @@ externally, containers are defined in terms of their subcomponents, which
 should be treated as regular components by the runtime platform bindings,
 activated accordingly, and exposed for external control inputs.
 
-```c++
+```cpp
 // @='Component Concepts'
 @{SimpleAggregate}
 
@@ -103,7 +103,7 @@ essential functionality for our purposes. We would ideally defer to
 `boost::pfr` for our test of simple aggregate requirements, but a
 straightforward concept--
 
-```c++
+```cpp
 template<typename T>
 concept SimpleAggregate = requires { boost::pfr::tuple_size_v<T>; };
 ```
@@ -119,7 +119,7 @@ unsatisfactory, with various test structures passing the test even through
 help that `boost::pfr`'s implementation and documentation don't always agree on
 what the requirements are:
 
-```c++
+```cpp
 // @+'tests'
 // docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
@@ -169,7 +169,7 @@ to detect when `T` has a base class. For now, we defer this issue to
 to pass it a type with a base class, giving us the following
 incomplete-but-likely-sufficient implementation of our `SimpleAggregate` concept:
 
-```c++
+```cpp
 // @='SimpleAggregate'
 template<typename T>
 concept SimpleAggregate
@@ -204,7 +204,7 @@ type (void). This concept will not be satisfied if `T::main` is a variable,
 since function reflection is impossible in this case and checking the return
 type is thus an error.
 
-```c++
+```cpp
 // @='has_main_subroutine'
 template<typename T>
 concept has_main_subroutine
@@ -239,7 +239,7 @@ structure parameterized on the expected name of the nested simple aggregate
 structure. We use a macro to avoid repetition. A similar pattern is used
 [to define `has_name`](concepts/metadata.lili).
 
-```c++
+```cpp
 // @='inputs and outputs and parts container'
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME = requires (T t)\
@@ -286,7 +286,7 @@ TODO
 
 ## Validating Containers
 
-```c++
+```cpp
 // @='validate_container'
 template<typename T>
     requires std::is_scalar_v<T>
@@ -327,7 +327,7 @@ in the tree; and find a certain node in the tree, based on its type.
 
 Consider a container of components:
 
-```c++
+```cpp
 // @+'tests'
 struct accessor_test_container_t
 {
@@ -433,7 +433,7 @@ Each node in this tree structure has a certain type, such as described in
 comments above. A set of tag classes and type traits are provided to
 distinguish between these types at compile time.
 
-```c++
+```cpp
 // @='nodes'
 namespace node
 {
@@ -498,7 +498,7 @@ output. Each element of the tree is a tuple whose first element is a node and
 subsequent elements are that node's subtrees as tuples of the same form. Leaf
 nodes are thus represented as tuples containing a single element.
 
-```c++
+```cpp
 // @='tuples of nodes'
 template<typename Tag, typename Val>
 struct tagged
@@ -593,7 +593,7 @@ tail is zero or more subtree tuples, instead of `< head, < <subtree>,
 <subtree>, ...> >` where the tail is a single tuple containing the subtree
 tuples.
 
-```c++
+```cpp
 // @='component container tree case'
 auto subcomponents = boost::pfr::structure_tie(component);
 auto head = std::make_tuple(tagged<node::component_container, T>{component});
@@ -614,7 +614,7 @@ empty tuples, which will vanish during the `tuple_cat` operation. One awkward
 consequence of this strategy is that the `head` of the tree has to be a
 `std::tuple` before being passed to `tuple_cat`.
 
-```c++
+```cpp
 // @='component tree case'
 constexpr auto parts_subtree = [](T& component)
 {
@@ -644,7 +644,7 @@ repetition. The structure is essentially the same as the components container
 case, except that there's no need to recurse into the endpoints, which are
 always leaves.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<typename Tag, Component T>
 constexpr auto endpoint_subtree(T& component)
@@ -699,7 +699,7 @@ template, we define a metafunction, template variable, and concept to constrain
 our functions and help us make compile-time branches depending on whether a given
 type is a tuple:
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<typename T> struct is_tuple : std::false_type {};
 template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
@@ -711,7 +711,7 @@ template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
 To be able to flatten the tree, we need to be able to access the head and tail
 respectively of the tree's tuples.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<Tuple T>
 constexpr auto tuple_head(T tup)
@@ -788,7 +788,7 @@ parameters, such as integer constants, to each recursive call to
 Notice also that, although the flattened tuple is declared `constexpr`, we are
 still able to extract a mutable reference to our component data from it. Neat!
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<Tuple T>
 constexpr auto component_tree_to_node_list(T tree)
@@ -819,7 +819,7 @@ TEST_CASE("component_tree_to_node_list")
 For convenience, a shortcut is provided that takes a component and directly
 returns its node list.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<GeneralComponent T>
 constexpr auto component_to_node_list(T& component)
@@ -837,7 +837,7 @@ result of the predicate. We use `tuple_transform` from `mp11` to transform the
 tuple into one of wrapped values or empty tuples based on the predicate, then
 `std::apply` the result to `tuple_cat` to get a filtered tuple out.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<template<typename>typename F>
 constexpr auto node_list_filter(Tuple auto tup)
@@ -863,7 +863,7 @@ constexpr auto node_list_filter(Tuple auto tup)
 As above, a shortcut is provided to extract a filtered node list directly
 from a component:
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<template<typename>typename F, GeneralComponent T>
 constexpr auto component_filter(T& component)
@@ -885,7 +885,7 @@ In the following test, `only_in1` is fully inlined by the compiler. No runtime
 computation is required; the address of the variable is simply loaded from
 memory.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<typename T>
 struct tagged_is_same
@@ -929,7 +929,7 @@ matches one of the node types in a variadic list of node tag template type
 parameters, allowing the user to select which types of nodes they wish to visit
 by first filtering the list.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<typename ... RequestedNodes>
 struct _search_by_tags
@@ -972,7 +972,7 @@ We model the path of a named node as a tuple whose first element is the root of
 the component tree in which the node is found, whose last element is the named
 node, and whose intervening elements are the named parents of the node in order.
 
-```c++
+```cpp
 // @+'tests'
 auto in11_path = path_of<in11>(component_to_tree(accessor_test_container));
 static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
@@ -1038,7 +1038,7 @@ recursive search over the head subtree and tail subtree(s). If any of these
 find the sought node, the result of the concatenation will be a non-empty
 tuple. Otherwise, it will be an empty tuple.
 
-```c++
+```cpp
 // @+'tuples of nodes'
 template<typename T, Tuple Tup>
 constexpr auto path_of(const Tup tree)
@@ -1072,7 +1072,7 @@ constexpr auto path_of(C& component)
 
 ## Untagged List
 
-```c++
+```cpp
 // @+'tests'
 auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
 static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
@@ -1096,7 +1096,7 @@ Often it's not necessary to access a value instance of a node list, but rather
 it's `std::tuple` type, i.e. a type list. The following template type aliases
 are provided to facilitate direct access to useful type lists.
 
-```c++
+```cpp
 // @+'tests'
 static_assert(std::same_as<decltype(outputs), output_endpoints_t<accessor_test_container_t>>);
 static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_component>>);
@@ -1123,7 +1123,7 @@ time branching. This approach provides nearly identical performance in informal
 benchmarks, compared to `for_each_node_in_list`, provided that the list in the
 latter case is generated at compile time, i.e. declared constexpr.
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("for each X")
 {
@@ -1279,7 +1279,7 @@ The function itself takes a variadic list of these tags, allowing the
 user to select which types of nodes they wish to visit. The default, in case
 no tags are provided, is to visit every node.
 
-```c++
+```cpp
 // @+'for each'
 template<GeneralComponent T, typename ... RequestedNodes>
 constexpr auto for_each_node(T& component, auto callback)
@@ -1299,7 +1299,7 @@ constexpr auto for_each_node(T& component, auto callback)
 In case the input is a component container, we optionally call back for said
 container, and then recurse for each contained component.
 
-```c++
+```cpp
 // @='for each component container case'
 if constexpr (ComponentContainer<T>)
 {
@@ -1320,7 +1320,7 @@ aggregate if the user has not requested the corresponding type of endpoints be
 visited. However, we always recurse over parts in a parts container since the
 user must wish to visit some of its nested nodes, if any exist.
 
-```c++
+```cpp
 // @='for each component case'
 else if constexpr (Component<T>)
 {
@@ -1384,7 +1384,7 @@ else if constexpr (Component<T>)
 The other `for_each_xyz` function are then easily implemented in terms of
 `for_each_node`:
 
-```c++
+```cpp
 // @+'for each'
 template <GeneralComponent T> constexpr void for_each_component(T& component, auto callback)
 {
@@ -1421,7 +1421,7 @@ and clears all of its endpoints with this semantics.
 A test is not provided for this function here, since its use in the CLI binding
 is well tested.
 
-```c++
+```cpp
 // @='clear_flags'
 void clear_output_flags(GeneralComponent auto& component)
 {
@@ -1443,7 +1443,7 @@ void clear_input_flags(GeneralComponent auto& component)
 
 # Init
 
-```c++
+```cpp
 // @='init'
 template<Component T>
 void init(T& component)
@@ -1461,7 +1461,7 @@ void init(T& container)
 
 # Activate
 
-```c++
+```cpp
 // @='activate'
 template<Component T>
 void activate_inner(T& component)
@@ -1495,7 +1495,7 @@ void activate(T& container)
 
 # Summary
 
-```c++
+```cpp
 // @#'components.hpp'
 #pragma once
 
@@ -1529,7 +1529,7 @@ using boost::mp11::tuple_for_each;
 // @/
 ```
 
-```c++
+```cpp
 // @#'tests/components/tests.cpp'
 #include <type_traits>
 #include <string>

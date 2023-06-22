@@ -58,7 +58,7 @@ will be written to accomodate the requirements of the clients via the logger
 so that resource contention or exhaustion issues are avoided. This gives us
 the following overall plan:
 
-```c++
+```cpp
 // @#'basic_logger.hpp'
 #pragma once
 @{basic logger includes}
@@ -98,7 +98,7 @@ struct BasicLogger
 
 With tests initially developed with the help of chatGPT:
 
-```c++
+```cpp
 // @#'test_logger.hpp'
 #pragma once
 #include "basic_logger.hpp"
@@ -177,7 +177,7 @@ will support only numeric conversions, string views, and string literals. As
 seen below, the conversion to string is reasonably trivial for boolean and
 string-like values:
 
-```c++
+```cpp
 // @+'basic logger includes'
 #include <type_traits>
 #include <string_view>
@@ -210,7 +210,7 @@ as `<numeric_limits>` provides information about the maximum number of base 10
 digits representable by a given numeric type, and these are conservatively
 augmented with additional padding space to be safe.
 
-```c++
+```cpp
 // @+'basic logger includes'
 #include <limits>
 #include <charconv>
@@ -249,7 +249,7 @@ above, is used for tests and puts the printed messages into a string. Another,
 useful for informal experimentation and bindings in environments where the C
 library `putc` is available, puts messages onto the standard output:
 
-```c++
+```cpp
 // @#'cstdio_logger.hpp'
 #pragma once
 #include "basic_logger.hpp"

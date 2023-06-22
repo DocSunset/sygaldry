@@ -11,7 +11,7 @@ button's state and its evolution over time. All this implementation has
 left to do is set up the GPIO for the purpose, and forward its data to
 the gesture model.
 
-```c++
+```cpp
 // @#'button.hpp'
 #pragma once
 
@@ -62,7 +62,7 @@ inspection. If the button implementation here ever grows more complex, e.g.
 incorporating interrupts or what have you, then tests should be incorporated at
 that time as well.
 
-```c++
+```cpp
 // @#'tests/button.hpp'
 #include <components/esp32/button.hpp>
 

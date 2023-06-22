@@ -8,7 +8,7 @@ be a bit involved to determine based only on the component's type. We need to
 check that the component has a `main` method or an `operator()`, and if so whether
 it accepts and returns the expected arguments.
 
-```c++
+```cpp
 // these should both count as components, for now
 struct struct_with_void_main_method { void main() {}; };
 struct struct_with_void_operator_call { void operator()() {}; };
@@ -22,7 +22,7 @@ It's easy to check whether the given type has a function call operator; we can
 simply check if it's possible to take its address. But this doesn't allow us
 to check the return type is `void`:
 
-```c++
+```cpp
 template<typename T>
 concept has_call_operator
     = requires (T t) { &T::operator(); };
@@ -34,7 +34,7 @@ A similar check for the `main` method doesn't prove anything; `main` could just
 as well be a static variable, and even if it is a method, we still don't know
 if it returns void.
 
-```c++
+```cpp
 template<typename T>
 concept has_static_main_member = requires (T t) { &T::main; }; // proves nothing!
 
@@ -49,7 +49,7 @@ free or member), access its return and argument types, and tell whether member
 functions are const, volatile, and/or noexcept qualified. We require
 more robust function reflection.
 
-```c++
+```cpp
 // @+'tests'
 // this should not be function reflectable
 float not_func;
@@ -78,7 +78,7 @@ defining e.g. `static constexpr bool exists = false;`. We expect the
 `function_reflection` facility to be used in template metaprograms more often than
 not, where boolean constant types are more ergonomic.
 
-```c++
+```cpp
 // @='function type reflection base case'
 template<typename NotAFunction>
 struct function_type_reflection
@@ -94,7 +94,7 @@ the scope of the template, as well as several flags describing the context and
 qualification of the function type. We `boost::mp11::mp_list` to carry around
 the list of argument types.
 
-```c++
+```cpp
 // @='function type reflection function case'
 template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
@@ -129,7 +129,7 @@ able to save ourselves a bit of repetition by inheriting the basic `exists`,
 `return_type`, and `arguments` type aliases from the base function case, shadowing
 the default `false` flags where the specialization would have them `true`.
 
-```c++
+```cpp
 // @='function type reflection specializations'
 template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(*)(Args...)> : function_type_reflection<Ret(Args...)> {};
@@ -209,7 +209,7 @@ static_assert(not function_type_reflection<decltype(&int_main::main)>::is_free::
 
 Finally, we define a concept to detect when function reflection is available.
 
-```c++
+```cpp
 // @='function reflectable concept'
 template<typename ... Args> concept function_type_reflectable = function_type_reflection<Args...>::exists::value;
 // @/
@@ -230,7 +230,7 @@ lvalue reference, and rvalue reference. Because this metafunction is defined in
 terms of the previous `function_type_reflection` facility, we can also more
 strictly constrain its inputs to those for which reflection is possible.
 
-```c++
+```cpp
 // @='function reflection'
 template<auto f> concept function_reflectable = function_type_reflectable<std::decay_t<decltype(f)>>;
 
@@ -260,7 +260,7 @@ static_assert(function_reflectable<&int_main::main>);
 
 # Summary
 
-```c++
+```cpp
 // @#'functions.hpp'
 #pragma once
 

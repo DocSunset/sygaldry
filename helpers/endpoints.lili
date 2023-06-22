@@ -68,7 +68,7 @@ template parameters.
 
 So it was that after going through several possible solutions--
 
-```c++
+```cpp
 struct myendpoint : range_<0.0f, 1.0f> {} // compiler error with clang
 struct myendpoint : range_<{0.0f, 1.0f}> {} // init list is not an expression
 struct myendpoint : range_<range{0.0f, 1.0f} {}; // redundant and ugly
@@ -82,7 +82,7 @@ it's a minor tradeoff to accept both floats and integers in order to have a
 single way of annotating a range. This gives us the ideal syntax in a way that
 doesn't upset clang.
 
-```c++
+```cpp
 // @+'endpoint bases'
 template<typename T>
 concept arithmetic = std::integral<T> || std::floating_point<T>;
@@ -161,7 +161,7 @@ containers may benefit from having these.
 For now we accept the tradeoffs of inherited assignment operators and ignore
 the performance optimizations associated with trivial types.
 
-```c++
+```cpp
 // @+'endpoint bases'
 template <typename T>
 struct persistent
@@ -212,7 +212,7 @@ this, not least of all that it gives us no control over the API for our
 optional values, but it's a lowly hack that gets us moving on quickly, so we'll
 take it for now.
 
-```c++
+```cpp
 // @+'endpoint bases'
 template <typename T>
 using occasional = std::optional<T>;
@@ -246,7 +246,7 @@ the following helpers are provided which attach tags with recognized value
 within this project. The interpretation is given in [the endpoints concepts
 document](concepts/endpoints.lili.md);
 
-```c++
+```cpp
 // @+'helpers'
 #define tag(TAG) struct tag_##TAG {enum {TAG}; }
 tag(write_only);
@@ -260,7 +260,7 @@ tag(session_data);
 Given the above ingredients, we now define some basic endpoints composed
 from them.
 
-```c++
+```cpp
 // @+'helpers'
 template<string_literal name_str, string_literal desc = "", char init = 0>
 struct button
@@ -375,7 +375,7 @@ semantics might allow for a more space efficient implementation. Callback
 semantics place a greater burden on the binding author that we would prefer to
 avoid at this point.
 
-```c++
+```cpp
 // @+'helpers'
 template<string_literal name_str, string_literal desc = "">
 struct bng
@@ -391,7 +391,7 @@ struct bng
 // @/
 ```
 
-```c++
+```cpp
 // @+'tests'
 TEST_CASE("Bang", "[endpoints][bang]")
 {
@@ -415,7 +415,7 @@ TEST_CASE("Bang", "[endpoints][bang]")
 
 # Summary
 
-```c++
+```cpp
 // @#'endpoints.hpp'
 #pragma once
 

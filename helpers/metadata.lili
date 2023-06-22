@@ -12,7 +12,7 @@ such as a unit, author, or description. We employ a macro to define
 such classes, allowing us to easily add other textual metadata in this way.
 
 
-```c++
+```cpp
 // @#'metadata.hpp'
 #pragma once
 
@@ -73,7 +73,7 @@ metadata types. It seems likely both methods have similar if not identical
 runtime performance. For now, we opt for the base-class approach in keeping
 with our overall strategy.
 
-```c++
+```cpp
 // @#'tests/metadata/tests.cpp'
 #include <catch2/catch_test_macros.hpp>
 

@@ -5,7 +5,7 @@ and output. It's functionality is to copy its input values to its output values.
 This component can be used to test bindings. Be warned! This component should
 not be wantonly modified, as doing so may break numerous tests!
 
-```c++
+```cpp
 // @#'testcomponent.hpp'
 #pragma once
 #include "helpers/metadata.hpp"

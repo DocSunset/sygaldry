@@ -14,7 +14,7 @@ aggregates of entities. The callback function must be able to access and modify
 the state of the matching entity or entities. TODO: this has yet to be
 generalised to work with subassemblies and pure assembly components.
 
-```c++
+```cpp
 // @#'tests/name_dispatch/tests.cpp'
 #include <string_view>
 #include <tuple>
@@ -111,7 +111,7 @@ dispatcher accepts a functor type parameter that is used to confirm a match.
 This matcher functor is pass the name string and the candidate named entity and
 must return a bool. A default is provided that does simple string comparison.
 
-```c++
+```cpp
 // @='default matcher'
 struct dispatch_default_matcher
 {
@@ -152,7 +152,7 @@ tuple to a lambda that has to recursively call itself. Instead, we define a
 template function for the purpose, and then apply a lambda that simply calls
 this function with the tuple elements expanded into the latter.
 
-```c++
+```cpp
 // @='dispatch implementation'
 template<typename Matcher, typename stringish, typename Default, typename Callback, typename NamedT, typename ... NamedTs>
 auto _dispatch_impl(stringish name, Default&& d, Callback&& f, NamedT&& t, NamedTs&&... ts)
@@ -187,7 +187,7 @@ Note that the tuples returned from boost::pfr::structure_tie *must* be stored
 as lvalues, or else the compiler refuses to pass a reference to them into the
 lower-level implementation subroutines.
 
-```c++
+```cpp
 // @='dispatch entry point'
 template <typename Matcher = dispatch_default_matcher, typename stringish, typename Entities, typename Default, typename Callback>
 auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
@@ -222,7 +222,7 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 // @/
 ```
 
-```c++
+```cpp
 // @#'name_dispatch.hpp'
 #pragma once
 #include <tuple>
