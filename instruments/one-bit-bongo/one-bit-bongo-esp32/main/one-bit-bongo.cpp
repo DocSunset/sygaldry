@@ -13,7 +13,7 @@ struct OneBitBongo
 {
     struct api_t
     {
-        bindings::esp32::WiFi wifi;
+        bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         components::esp32::Button<GPIO_NUM_23> button;
     } api;
 

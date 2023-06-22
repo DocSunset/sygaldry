@@ -2,7 +2,6 @@
 
 # Now
 
--[ ] test output logger on hardware
 -[ ] wifi component
 
 # Next
