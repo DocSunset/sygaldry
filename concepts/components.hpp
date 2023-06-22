@@ -87,6 +87,7 @@ namespace node
 {
     struct component_container {};
     struct component {};
+    struct part_component {};
     struct inputs_container {};
     struct outputs_container {};
     struct endpoints_container {};
@@ -97,6 +98,8 @@ namespace node
     template<typename> struct is_component_container : std::false_type {};
     template<>         struct is_component_container<component_container> : std::true_type {};
     template<typename> struct is_component : std::false_type {};
+    template<typename> struct is_part_component : std::false_type {};
+    template<>         struct is_part_component<part_component> : std::true_type {};
     template<>         struct is_component<component> : std::true_type {};
     template<typename> struct is_inputs_container : std::false_type {};
     template<>         struct is_inputs_container<inputs_container> : std::true_type {};
@@ -125,6 +128,30 @@ struct tagged
     using type = Val;
     Val& ref;
 };
+template<typename T> struct is_tuple : std::false_type {};
+template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
+template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
+
+template<Tuple T>
+constexpr auto tuple_head(T tup)
+{
+    if constexpr (std::tuple_size_v<T> == 0) return tup;
+    else return std::get<0>(tup);
+}
+
+template<Tuple T, size_t ... Ns>
+constexpr auto tuple_tail_impl(T tup, std::index_sequence<Ns...>)
+{
+    return std::make_tuple(std::get<Ns + 1>(tup)...);
+}
+
+template<Tuple T>
+constexpr auto tuple_tail(T tup)
+{
+    if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
+    else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
+}
 template<typename Tag, Component T>
 constexpr auto endpoint_subtree(T& component)
 {
@@ -176,7 +203,17 @@ constexpr auto component_to_tree(T& component)
                 auto head = std::make_tuple(tagged<node::parts_container, type_of_parts_t<T>>{container});
                 auto tail = tuple_transform([](auto& subcomponent)
                 {
-                    return component_to_tree(subcomponent);
+                    auto subtree = component_to_tree(subcomponent);
+                    if constexpr (has_main_subroutine<T>)
+                    {
+                        auto component = tuple_head(subtree);
+                        auto head = std::make_tuple(tagged<node::part_component
+                                                          , typename decltype(component)::type
+                                                          >{component.ref});
+                        auto tail = tuple_tail(subtree);
+                        return std::tuple_cat(head, tail);
+                    }
+                    else return subtree;
                 }, subcomponents);
                 return std::make_tuple(std::tuple_cat(head, tail));
             }
@@ -188,29 +225,6 @@ constexpr auto component_to_tree(T& component)
                              );
     }
     else return std::tuple<>{}; // should be unreachable due to constraints
-}
-template<typename T> struct is_tuple : std::false_type {};
-template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
-template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
-template<Tuple T>
-constexpr auto tuple_head(T tup)
-{
-    if constexpr (std::tuple_size_v<T> == 0) return tup;
-    else return std::get<0>(tup);
-}
-
-template<Tuple T, size_t ... Ns>
-constexpr auto tuple_tail_impl(T tup, std::index_sequence<Ns...>)
-{
-    return std::make_tuple(std::get<Ns + 1>(tup)...);
-}
-
-template<Tuple T>
-constexpr auto tuple_tail(T tup)
-{
-    if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
-    else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
 }
 template<Tuple T>
 constexpr auto component_tree_to_node_list(T tree)

@@ -13,10 +13,10 @@ concept has_##CONCEPT_NAME = requires \
     {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<const char *>; \
 }; \
 template<has_##CONCEPT_NAME T> \
-constexpr auto CONCEPT_NAME##_of(const T&) { return T::CONCEPT_NAME(); } \
+constexpr auto get_##CONCEPT_NAME(const T&) { return T::CONCEPT_NAME(); } \
  \
 template<has_##CONCEPT_NAME T> \
-_consteval auto CONCEPT_NAME##_of() { return std::decay_t<T>::CONCEPT_NAME(); }
+_consteval auto get_##CONCEPT_NAME() { return std::decay_t<T>::CONCEPT_NAME(); }
 
 text_concept(name);
 text_concept(author);

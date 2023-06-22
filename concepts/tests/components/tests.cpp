@@ -207,7 +207,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     , std::tuple<tagged<node::output_endpoint,out1>>
                                     >
                         , std::tuple< tagged<node::parts_container,pc1>
-                                    , std::tuple< tagged<node::component,dp1>
+                                    , std::tuple< tagged<node::part_component,dp1>
                                                 , std::tuple<tagged<node::parts_container,dppc1>>
                                                 >
                                     >
@@ -221,7 +221,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     , std::tuple<tagged<node::output_endpoint,out2>>
                                     >
                         , std::tuple< tagged<node::parts_container,pc2>
-                                    , std::tuple< tagged<node::component,dp2>
+                                    , std::tuple< tagged<node::part_component,dp2>
                                                 , std::tuple<tagged<node::parts_container,dppc2>>
                                                 >
                                     >
@@ -306,9 +306,9 @@ using deep_input = deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
         , std::tuple< tagged<node::component,deep_component>
-                    , tagged<node::component,deep_component::parts_t::n1>
-                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2>
-                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
+                    , tagged<node::part_component,deep_component::parts_t::n1>
+                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2>
+                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
                     , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
                     >
         >);

@@ -1,33 +1,35 @@
-/* Originally adapted from Puara Module Manager
- * itself adapted from the esp-idf wifi station and access point examples
+/*
+Originally adapted from Puara Module Manager, itself adapted from the esp-idf
+wifi station and access point examples
 
- * Metalab - Société des Arts Technologiques (SAT)
- * Input Devices and Music Interaction Laboratory (IDMIL), McGill University
- * Edu Meneses (2022) - https://www.edumeneses.com
- * Travis J. West (2023)
+Metalab - Société des Arts Technologiques (SAT)
+Input Devices and Music Interaction Laboratory (IDMIL), McGill University
+Edu Meneses (2022) - https://www.edumeneses.com
+Travis J. West (2023)
 
- * MIT License
+MIT License
 
- * Copyright (c) 2022 Puara, 2023 Travis J. West
+Copyright (c) 2022 Puara, 2023 Travis J. West
 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software (i.e. wifi.hpp) and associated documentation files (i.e.
+wifi.lili) (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following
+conditions:
 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #pragma once
 #include <charconv>
@@ -48,7 +50,9 @@ template<typename Logger>
 struct WiFi
 : name_<"WiFi Manager">
 , author_<"Edu Meneses (2022) and Travis J. West (2023)">
-, copyright_<"Travis J. West (C) 2023">
+, copyright_<"Copyright 2023 Travis J. West">
+, license_<"SPDX-License-Identifier: MIT">
+, version_<"0.0.0">
 , description_<"An ESP-IDF WiFi API wrapper originally adapted from the Puara Module Manager">
 {
     struct inputs_t {
@@ -285,6 +289,7 @@ struct WiFi
                         );
          vEventGroupDelete(handler_state.event_group);
          log.println("Cleaned up event handler.");
+         // TODO: clean up or hide this ugly mess that converts mac and ip addresses to nicely formatted strings
          char mac_string[18] = {0};
          unsigned char mac[6] = {0};
          char * ptr;
@@ -302,7 +307,7 @@ struct WiFi
                  ptr = ptr+2;
                  *ptr++ = ':';
              }
-             *ptr = 0;
+             *--ptr = 0;
          };
 
          esp_wifi_get_mac(WIFI_IF_STA, mac);

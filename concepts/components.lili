@@ -439,6 +439,7 @@ namespace node
 {
     struct component_container {};
     struct component {};
+    struct part_component {};
     struct inputs_container {};
     struct outputs_container {};
     struct endpoints_container {};
@@ -449,6 +450,8 @@ namespace node
     template<typename> struct is_component_container : std::false_type {};
     template<>         struct is_component_container<component_container> : std::true_type {};
     template<typename> struct is_component : std::false_type {};
+    template<typename> struct is_part_component : std::false_type {};
+    template<>         struct is_part_component<part_component> : std::true_type {};
     template<>         struct is_component<component> : std::true_type {};
     template<typename> struct is_inputs_container : std::false_type {};
     template<>         struct is_inputs_container<inputs_container> : std::true_type {};
@@ -541,7 +544,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     , std::tuple<tagged<node::output_endpoint,out1>>
                                     >
                         , std::tuple< tagged<node::parts_container,pc1>
-                                    , std::tuple< tagged<node::component,dp1>
+                                    , std::tuple< tagged<node::part_component,dp1>
                                                 , std::tuple<tagged<node::parts_container,dppc1>>
                                                 >
                                     >
@@ -555,7 +558,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     , std::tuple<tagged<node::output_endpoint,out2>>
                                     >
                         , std::tuple< tagged<node::parts_container,pc2>
-                                    , std::tuple< tagged<node::component,dp2>
+                                    , std::tuple< tagged<node::part_component,dp2>
                                                 , std::tuple<tagged<node::parts_container,dppc2>>
                                                 >
                                     >
@@ -605,6 +608,37 @@ return std::tuple_cat( head, tail);
 // @/
 ```
 
+We could access the head or tail with the following methods:
+
+```cpp
+// @+'tuples of nodes'
+template<typename T> struct is_tuple : std::false_type {};
+template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
+template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
+template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
+
+template<Tuple T>
+constexpr auto tuple_head(T tup)
+{
+    if constexpr (std::tuple_size_v<T> == 0) return tup;
+    else return std::get<0>(tup);
+}
+
+template<Tuple T, size_t ... Ns>
+constexpr auto tuple_tail_impl(T tup, std::index_sequence<Ns...>)
+{
+    return std::make_tuple(std::get<Ns + 1>(tup)...);
+}
+
+template<Tuple T>
+constexpr auto tuple_tail(T tup)
+{
+    if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
+    else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
+}
+// @/
+```
+
 Now consider the case of a regular component. The subtree has the form: `<
 head, <maybe inputs>, <maybe outputs>, <maybe parts> >`. Because only one of
 inputs, outputs, and parts is required, we have to work around the possibility
@@ -626,7 +660,17 @@ constexpr auto parts_subtree = [](T& component)
         auto head = std::make_tuple(tagged<node::parts_container, type_of_parts_t<T>>{container});
         auto tail = tuple_transform([](auto& subcomponent)
         {
-            return component_to_tree(subcomponent);
+            auto subtree = component_to_tree(subcomponent);
+            if constexpr (has_main_subroutine<T>)
+            {
+                auto component = tuple_head(subtree);
+                auto head = std::make_tuple(tagged<node::part_component
+                                                  , typename decltype(component)::type
+                                                  >{component.ref});
+                auto tail = tuple_tail(subtree);
+                return std::tuple_cat(head, tail);
+            }
+            else return subtree;
         }, subcomponents);
         return std::make_tuple(std::tuple_cat(head, tail));
     }
@@ -694,44 +738,11 @@ The tree structure is useful for certain applications, but most of the time it i
 convenient to work with a flat tuple. The following function flattens a given node tree,
 returning such a flat tuple.
 
-As we move now towards operating mainly on instances of the `std::tuple`
-template, we define a metafunction, template variable, and concept to constrain
-our functions and help us make compile-time branches depending on whether a given
-type is a tuple:
-
-```cpp
-// @+'tuples of nodes'
-template<typename T> struct is_tuple : std::false_type {};
-template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
-template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
-// @/
-```
-
 To be able to flatten the tree, we need to be able to access the head and tail
 respectively of the tree's tuples.
 
 ```cpp
 // @+'tuples of nodes'
-template<Tuple T>
-constexpr auto tuple_head(T tup)
-{
-    if constexpr (std::tuple_size_v<T> == 0) return tup;
-    else return std::get<0>(tup);
-}
-
-template<Tuple T, size_t ... Ns>
-constexpr auto tuple_tail_impl(T tup, std::index_sequence<Ns...>)
-{
-    return std::make_tuple(std::get<Ns + 1>(tup)...);
-}
-
-template<Tuple T>
-constexpr auto tuple_tail(T tup)
-{
-    if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
-    else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
-}
 // @/
 
 // @+'tests'
@@ -832,8 +843,7 @@ constexpr auto component_to_node_list(T& component)
 ## Filtering the Node List
 
 A flat tuple is easy to filter. We can pass a predicate metafunction to the
-filter, and then `tuple_cat` wrapped elements or empty tuples depending on the
-result of the predicate. We use `tuple_transform` from `mp11` to transform the
+filter, and then use `tuple_transform` from `mp11` to transform the flat
 tuple into one of wrapped values or empty tuples based on the predicate, then
 `std::apply` the result to `tuple_cat` to get a filtered tuple out.
 
@@ -1007,9 +1017,9 @@ using deep_input = deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
         , std::tuple< tagged<node::component,deep_component>
-                    , tagged<node::component,deep_component::parts_t::n1>
-                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2>
-                    , tagged<node::component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
+                    , tagged<node::part_component,deep_component::parts_t::n1>
+                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2>
+                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
                     , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
                     >
         >);
@@ -1441,7 +1451,12 @@ void clear_input_flags(GeneralComponent auto& component)
 // @/
 ```
 
-# Init
+# Init and Activate
+
+The initialization and main subroutines of components can be generically
+triggered using the following functions. Overloads are also provided that will
+initialize or activate all components in a component container, recursively.
+This currently includes parts in subassemblies, but TODO it probably shouldn't.
 
 ```cpp
 // @='init'
@@ -1458,8 +1473,6 @@ void init(T& container)
 };
 // @/
 ```
-
-# Activate
 
 ```cpp
 // @='activate'
