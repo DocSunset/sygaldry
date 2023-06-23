@@ -2,11 +2,14 @@
 
 # Now
 
--[ ] wifi component
+-[X] wifi component
+-[ ] even more generic activate that works with plugins and throughpoints
+-[ ] aka runtime component
 
 # Next
 
--[ ] even more generic activate that works with plugins and throughpoints
+-[ ] clean up reliance on UB where uninitialized state is usually 0
+-[ ] osc component
 
 # Literature
 

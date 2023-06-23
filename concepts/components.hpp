@@ -20,8 +20,22 @@ concept SimpleAggregate
        )
     ;
 
+template <typename T> struct main_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+struct main_subroutine_reflection<T> : function_reflection<&T::operator()> {};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::main>::return_type>
+struct main_subroutine_reflection<T> : function_reflection<&T::main> {};
+template <typename T> struct init_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::init>::return_type>
+struct init_subroutine_reflection<T> : function_reflection<&T::init> {};
 template<typename T>
-concept has_main_subroutine
+concept has_main_subroutine // = main_subroutine_reflection<T>::exists::value;
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
@@ -152,7 +166,7 @@ constexpr auto tuple_tail(T tup)
     if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
     else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
 }
-template<typename Tag, Component T>
+template<typename Tag, typename T>
 constexpr auto endpoint_subtree(T& component)
 {
     using ContainerTag = boost::mp11::mp_if_c< std::same_as<Tag, node::input_endpoint>
@@ -181,17 +195,7 @@ constexpr auto endpoint_subtree(T& component)
 template<typename T>
 constexpr auto component_to_tree(T& component)
 {
-    if constexpr (ComponentContainer<T>)
-    {
-        auto subcomponents = boost::pfr::structure_tie(component);
-        auto head = std::make_tuple(tagged<node::component_container, T>{component});
-        auto tail = tuple_transform([](auto& subcomponent)
-        {
-            return component_to_tree(subcomponent);
-        }, subcomponents);
-        return std::tuple_cat( head, tail);
-    }
-    else if constexpr (Component<T>)
+    if constexpr (has_name<T> || has_main_subroutine<T> || has_inputs<T> || has_outputs<T> || has_parts<T>)
     {
         constexpr auto parts_subtree = [](T& component)
         {
@@ -224,7 +228,16 @@ constexpr auto component_to_tree(T& component)
                              , parts_subtree(component)
                              );
     }
-    else return std::tuple<>{}; // should be unreachable due to constraints
+    else
+    {
+        auto subcomponents = boost::pfr::structure_tie(component);
+        auto head = std::make_tuple(tagged<node::component_container, T>{component});
+        auto tail = tuple_transform([](auto& subcomponent)
+        {
+            return component_to_tree(subcomponent);
+        }, subcomponents);
+        return std::tuple_cat( head, tail);
+    }
 }
 template<Tuple T>
 constexpr auto component_tree_to_node_list(T tree)
@@ -235,7 +248,7 @@ constexpr auto component_tree_to_node_list(T tree)
     if constexpr (Tuple<decltype(head)>) return std::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
     else return std::tuple_cat(std::make_tuple(head), component_tree_to_node_list(tail));
 }
-template<GeneralComponent T>
+template<typename T>
 constexpr auto component_to_node_list(T& component)
 {
     return component_tree_to_node_list(component_to_tree(component));
@@ -258,7 +271,7 @@ constexpr auto node_list_filter(Tuple auto tup)
         else return std::tuple<>{};
     }, tup));
 }
-template<template<typename>typename F, GeneralComponent T>
+template<template<typename>typename F, typename T>
 constexpr auto component_filter(T& component)
 {
     return node_list_filter<F>(component_to_node_list(component));
@@ -277,7 +290,7 @@ constexpr auto& find(Tuple auto tup)
 }
 
 template<typename T>
-constexpr auto& find(GeneralComponent auto& component)
+constexpr auto& find(auto& component)
 {
     return node_list_filter<tagged_is_same<T>::template fn>(component_to_node_list(component)).ref;
 }
@@ -293,8 +306,8 @@ constexpr auto node_list_filter_by_tag(Tuple auto tup)
     return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(tup);
 }
 
-template<GeneralComponent T, typename ... RequestedNodes>
-constexpr auto component_filter_by_tag(T& component)
+template<typename ... RequestedNodes>
+constexpr auto component_filter_by_tag(auto& component)
 {
     return node_list_filter<_search_by_tags<RequestedNodes...>::template fn>(component_to_node_list(component));
 }
@@ -348,16 +361,16 @@ constexpr auto remove_node_tags(T tup)
     using return_type = mp_transform<untagged, T>;
     return std::make_from_tuple<return_type>(tuple_transform([](auto&& tagged) {return tagged.ref;}, tup));
 }
-template<GeneralComponent T> using output_endpoints_t =
-    decltype(remove_node_tags(component_filter_by_tag<T, node::output_endpoint>(std::declval<T&>())));
-template<GeneralComponent T> using input_endpoints_t =
-    decltype(remove_node_tags(component_filter_by_tag<T, node::input_endpoint>(std::declval<T&>())));
-template<GeneralComponent T> using endpoints_t =
-    decltype(remove_node_tags(component_filter_by_tag<T, node::input_endpoint, node::output_endpoint>(std::declval<T&>())));
-template<typename T, GeneralComponent C> using path_t =
+template<typename T> using output_endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<node::output_endpoint>(std::declval<T&>())));
+template<typename T> using input_endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<node::input_endpoint>(std::declval<T&>())));
+template<typename T> using endpoints_t =
+    decltype(remove_node_tags(component_filter_by_tag<node::input_endpoint, node::output_endpoint>(std::declval<T&>())));
+template<typename T, typename C> using path_t =
     decltype(remove_node_tags(path_of<T>(std::declval<C&>())));
 
-template<GeneralComponent T, typename ... RequestedNodes>
+template<typename T, typename ... RequestedNodes>
 constexpr auto for_each_node(T& component, auto callback)
 {
     using boost::mp11::mp_list;
@@ -433,27 +446,27 @@ constexpr auto for_each_node(T& component, auto callback)
         }
     }
 }
-template <GeneralComponent T> constexpr void for_each_component(T& component, auto callback)
+template <typename T> constexpr void for_each_component(T& component, auto callback)
 {
     for_each_node<T, node::component>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<GeneralComponent T> constexpr void for_each_endpoint(T& component, auto callback)
+template<typename T> constexpr void for_each_endpoint(T& component, auto callback)
 {
     for_each_node<T, node::endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<GeneralComponent T> constexpr void for_each_input(T& component, auto callback)
+template<typename T> constexpr void for_each_input(T& component, auto callback)
 {
     for_each_node<T, node::input_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-template<GeneralComponent T> constexpr void for_each_output(T& component, auto callback)
+template<typename T> constexpr void for_each_output(T& component, auto callback)
 {
     for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
-void clear_output_flags(GeneralComponent auto& component)
+void clear_output_flags(auto& component)
 {
     for_each_output(component, []<typename Y>(Y& endpoint)
     {
@@ -461,7 +474,7 @@ void clear_output_flags(GeneralComponent auto& component)
     });
 }
 
-void clear_input_flags(GeneralComponent auto& component)
+void clear_input_flags(auto& component)
 {
     for_each_input(component, []<typename Y>(Y& endpoint)
     {

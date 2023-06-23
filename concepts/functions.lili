@@ -91,7 +91,7 @@ struct function_type_reflection
 We then specialize the struct for the case where the argument *is* a function,
 making the return type and list of arguments seperately available as types in
 the scope of the template, as well as several flags describing the context and
-qualification of the function type. We `boost::mp11::mp_list` to carry around
+qualification of the function type. We `std::tuple` to carry around
 the list of argument types.
 
 ```cpp
@@ -100,7 +100,7 @@ template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
     using exists = std::true_type;
     using return_type = Ret;
-    using arguments = boost::mp11::mp_list<Args...>;
+    using arguments = std::tuple<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
     using parent_class = std::false_type;
@@ -113,7 +113,7 @@ struct function_type_reflection<Ret(Args...)> {
 // @+'tests'
 static_assert(function_type_reflection<decltype(free_func)>::exists::value);
 static_assert(std::same_as<void, function_type_reflection<decltype(free_func)>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<int>, function_type_reflection<decltype(free_func)>::arguments>);
+static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(free_func)>::arguments>);
 static_assert(function_type_reflection<decltype(free_func)>::is_free::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_member::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_const::value);
@@ -189,7 +189,7 @@ struct function_type_reflection<Ret(Class::*)(Args...) const volatile noexcept> 
 // @+'tests'
 static_assert(std::same_as<void_operator, function_type_reflection<decltype(&void_operator::operator())>::parent_class>);
 static_assert(std::same_as<void, function_type_reflection<decltype(&void_operator::operator())>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
+static_assert(std::same_as<std::tuple<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
 static_assert(function_type_reflection<decltype(&void_operator::operator())>::is_member::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_free::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_const::value);
@@ -198,7 +198,7 @@ static_assert(not function_type_reflection<decltype(&void_operator::operator())>
 
 static_assert(std::same_as<int_main, function_type_reflection<decltype(&int_main::main)>::parent_class>);
 static_assert(std::same_as<int, function_type_reflection<decltype(&int_main::main)>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
+static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_member::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_const::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_volatile::value);
@@ -264,6 +264,7 @@ static_assert(function_reflectable<&int_main::main>);
 // @#'functions.hpp'
 #pragma once
 
+#include <tuple>
 #include <type_traits>
 #include <concepts>
 #include <boost/mp11.hpp>

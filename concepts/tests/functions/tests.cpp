@@ -15,7 +15,7 @@ struct void_operator { void operator()() {} };
 struct int_main { int main(int i) const volatile noexcept {return i;} };
 static_assert(function_type_reflection<decltype(free_func)>::exists::value);
 static_assert(std::same_as<void, function_type_reflection<decltype(free_func)>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<int>, function_type_reflection<decltype(free_func)>::arguments>);
+static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(free_func)>::arguments>);
 static_assert(function_type_reflection<decltype(free_func)>::is_free::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_member::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_const::value);
@@ -23,7 +23,7 @@ static_assert(not function_type_reflection<decltype(free_func)>::is_volatile::va
 static_assert(not function_type_reflection<decltype(free_func)>::is_noexcept::value);
 static_assert(std::same_as<void_operator, function_type_reflection<decltype(&void_operator::operator())>::parent_class>);
 static_assert(std::same_as<void, function_type_reflection<decltype(&void_operator::operator())>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
+static_assert(std::same_as<std::tuple<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
 static_assert(function_type_reflection<decltype(&void_operator::operator())>::is_member::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_free::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_const::value);
@@ -32,7 +32,7 @@ static_assert(not function_type_reflection<decltype(&void_operator::operator())>
 
 static_assert(std::same_as<int_main, function_type_reflection<decltype(&int_main::main)>::parent_class>);
 static_assert(std::same_as<int, function_type_reflection<decltype(&int_main::main)>::return_type>);
-static_assert(std::same_as<boost::mp11::mp_list<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
+static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_member::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_const::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_volatile::value);

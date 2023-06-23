@@ -1,0 +1,424 @@
+# Runtime
+
+The runtime describes the expected behavior of the host platform of an
+assemblage of components. The runtime must first call every component's `init`
+method, if it has one. Then, in an endless loop, each component's main
+subroutine must be called, in node-tree-order, except for components which are
+parts in a subassembly with its own main subroutine. Between main ticks, all of
+the clearable flag endpoints should be cleared appropriately: input flags
+should be cleared before beginning the tick, and output flags should be cleared
+after it has resolved. Plugins and throughpoints should be automatically
+propagated to components that need them by extracting them from the assemblage.
+
+TODO: COPYRIGHT AND LICENSE NOTICE HERE
+
+# Design Rationale
+
+Originally planned as further overloads of the the `init` and `activate`
+functions in [the components concepts library](concepts/components.lili.md),
+the runtime class below allows the plugins and throughpoints of components
+having them to be automatically extracted by type from a component container
+when calling the `init` and `activate` methods of components. The decision was
+made to construct this as a class in order to ensure that the compiler would
+have the best chance of computing the argument extraction at compile time. It
+is a kind of ultimate binding that is meant to drive all other components,
+including binding components. The runtime is included in the concepts library
+so that components in the components library may make use of it to simplify
+their implementation using parts.
+
+# Example
+
+```cpp
+// @+'tests'
+template<string_literal str>
+struct testcomponent1_t : name_<str>
+{
+    struct inputs_t {
+        struct in1_t {
+            int value;
+        } in1;
+    } inputs;
+
+    struct outputs_t {
+        struct out1_t {
+            int value;
+        } out1;
+        bng<"bang out"> bang_out;
+    } outputs;
+
+    void init() { inputs.in1.value = 42; }
+    void main()
+    {
+        outputs.out1.value = inputs.in1.value + 1;
+        CHECK(false == (bool)outputs.bang_out); // output flags are clear on entry to main
+        outputs.bang_out();
+        CHECK(true == (bool)outputs.bang_out);
+    }
+};
+
+struct testcomponent2_t : name_<"tc2">
+{
+    struct outputs_t {
+        struct out1_t {
+            int value;
+        } out1;
+        struct out2_t {
+            int value;
+        } out2;
+    } outputs;
+
+    struct parts_t {
+        testcomponent1_t<"part"> part;
+    } parts;
+
+    void main(const testcomponent1_t<"tc1">::outputs_t& sources, testcomponent1_t<"tc1">& plugin)
+    {
+        CHECK(true == (bool)plugin.outputs.bang_out); // flags propagate during main tick
+        outputs.out1.value = sources.out1.value + 1;
+        outputs.out2.value = plugin.outputs.out1.value + 1;
+    }
+};
+
+struct components1_t
+{
+    testcomponent1_t<"tc1"> tc1;
+    testcomponent2_t tc2;
+};
+
+constinit Runtime<components1_t> runtime{};
+
+TEST_CASE("runtime calls")
+{
+    runtime.init();
+    CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
+    CHECK(runtime.container.tc2.parts.part.inputs.in1.value == 0); // part inits are not called
+    runtime.main();
+    CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to main
+    CHECK(runtime.container.tc1.outputs.out1.value == 43); // main routines are called
+    CHECK(runtime.container.tc2.outputs.out1.value == 44); // throughpoints are propagated
+    CHECK(runtime.container.tc2.outputs.out2.value == 44); // plugins are propagated
+                                                            // calls proceed in tree order
+    CHECK(runtime.container.tc2.parts.part.outputs.out1.value == 0); // part mains are not called
+}
+// @/
+```
+
+# Implementation
+
+## Extracting Plugins and Components
+
+Arguably the trickiest aspect of the runtime's responsibilities is to recognize what
+arguments a component's subroutine requires, extract them from the assemblage, and
+apply them to the subroutine. We would like to ensure that this happens efficiently,
+meaning without runtime traversal of the component tree derived from the assemblage.
+
+```cpp
+TEST_CASE("plugins and throughpoints")
+{
+    components1_t components;
+    components.tc1.inputs.in1.value = 0;
+    components.tc1.outputs.bang_out();
+    activate(components.tc2, components); // << this should compile to something like:
+                       // components.tc2.main(components.tc1.outputs, components.tc1);
+    CHECK(components.tc2.outputs.out1.value == 1);
+}
+```
+
+### Use a fold
+
+My first attempt resembled the following. A template struct whose type parameters give
+the (cvref removed) types of the arguments to a component to activate. In the `activate`
+method of this structure, these type parameters are unpacked to into `find` to locate
+the entities with the given types in the component tree. This `runtime_impl` struct is
+then instantiated with the appropriate arguments using our function reflection facilities
+and a bit of template metaprogramming provided by `mp11`.
+
+```cpp
+template<typename ... Args>
+struct runtime_impl
+{
+    template <typename Component, typename ComponentContainer>
+    static void activate(Component& component, ComponentContainer& container)
+    {
+        if constexpr (requires {&Component::operator();})
+            component(find<Args>(container) ...);
+        else if constexpr (requires {&Component::main;})
+            component.main(find<Args>(container) ...);
+    }
+};
+
+template<typename Component, typename ComponentContainer>
+void activate(Component& component, ComponentContainer& container)
+{
+    using args = typename main_subroutine_reflection<Component>::arguments;
+    using runtime = boost::mp11::mp_rename<boost::mp11::mp_transform<std::remove_cvref_t, args>, runtime_impl>;
+    runtime::activate(component, container);
+}
+```
+
+### Traverse at compile time
+
+Unfortunately, the compiler is unable to optimize away the traversal of the
+component tree implied by the multiple calls to `find` in this implementation.
+We need some way of declaring this traversal `constexpr`, or perhaps
+`constinit`. This lead to the following implementation. Roughly the same
+metaprogramming pattern is used to enable the arguments of the function to be
+extracted by expanding a parameter pack into `find` calls. However, instead of
+doing so in a function call context, a tuple is `constexpr` initialized which
+holds the arguments until call time. This structure can be declared
+`constinit`, which should guarantee that the construction of the arguments
+tuple, and thus the traversal of the component tree, happens at compile time;
+in case the compile didn't compute this for some reason, there would still be
+no runtime performance impact, as the traversal would take place before the
+main program properly started running. The only drawback in this case, which
+should be impossible anyways, would be a likely increase in compiled executable
+code size.
+
+```cpp
+activator<testcomponent2_t, components1_t> constinit my_runtime{};
+TEST_CASE("plugins and throughpoints")
+{
+    my_runtime.container.tc1.inputs.in1.value = 0;
+    my_runtime.container.tc1.outputs.bang_out();
+    my_runtime.activate(my_runtime.container.tc2);
+    CHECK(my_runtime.container.tc2.outputs.out1.value == 1);
+}
+```
+
+```cpp
+template<typename Component, typename ComponentContainer, typename ... Args>
+struct activator_impl
+{
+    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+    const arg_pack_t arg_pack;
+
+    constexpr activator_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+
+    void activate(Component& component) const
+    {
+        if constexpr (requires {&Component::operator();})
+            std::apply(component, arg_pack);
+        else if constexpr (requires {&Component::main;})
+            std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
+    }
+};
+
+template<typename Component, typename ComponentContainer>
+struct activator
+{
+    using args = typename main_subroutine_reflection<Component>::arguments;
+    using cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, args>;
+    using prepended = boost::mp11::mp_push_front<cvref_less_args, Component, ComponentContainer>;
+    using impl_t = boost::mp11::mp_rename<prepended, activator_impl>;
+
+    ComponentContainer container;
+    const impl_t impl;
+    constexpr activator() : container{}, impl{container} {};
+    void activate(Component& component) const
+    {
+        impl.activate(component);
+    };
+};
+```
+
+### Generalize
+
+The above implementation is only able to activate a single component. It is
+reasonable straightforward to generalize this to both initialize and activate
+an arbitrary number of components held in a component container.
+
+First, we generalize the innermost implementation structure so that it can
+initialize or activate a component.
+
+```cpp
+// @='component_runtime'
+template<typename Component, typename ... Args>
+struct runtime_impl
+{
+    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+    const arg_pack_t arg_pack;
+
+    constexpr runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+
+    void init(Component& component) const
+    {
+        if constexpr (requires {&Component::init;})
+            std::apply([&](auto& ... args) {component.init(args...);}, arg_pack);
+    }
+
+    void main(Component& component) const
+    {
+        if constexpr (requires {&Component::operator();})
+            std::apply(component, arg_pack);
+        else if constexpr (requires {&Component::main;})
+            std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
+    }
+};
+// @/
+```
+
+We define a helper template that takes a function reflection structure and
+returns an appropriate runtime implementation; either a dummy implementation
+that does nothing, useful in case a component lacks an init or main subroutine,
+or the actual implementation seen above.
+
+```cpp
+// @+'component_runtime'
+template<typename...>
+struct to_impl
+{
+    struct dummy
+    {
+        void init(auto&) const {};
+        void main(auto&) const {};
+    };
+    using impl_t = dummy;
+};
+
+template<typename Component, typename FuncRefl>
+    requires FuncRefl::exists::value
+struct to_impl<Component, FuncRefl>
+{
+    using args = typename FuncRefl::arguments;
+    using cvref_less = boost::mp11::mp_transform<std::remove_cvref_t, args>;
+    using prepended = boost::mp11::mp_push_front<cvref_less, Component, ComponentContainer>;
+    using impl_t = boost::mp11::mp_rename<prepended, runtime_impl>;
+};
+// @/
+```
+
+Finally, we use this helper to get two implementation structures, one for
+initializing and one for activating a given component. These coexist in one
+structure that can then initialize and activate one component.
+
+```cpp
+// @+'component_runtime'
+template<typename Component>
+struct component_runtime
+{
+    using main_impl_t = typename to_impl<Component, main_subroutine_reflection<Component>>::impl_t;
+    const main_impl_t main_impl;
+
+    using init_impl_t = typename to_impl<Component, init_subroutine_reflection<Component>>::impl_t;
+    const init_impl_t init_impl;
+
+    Component& component;
+
+    constexpr component_runtime(Component& c, ComponentContainer& container)
+    : component{c}
+    , main_impl{container}
+    , init_impl{container}
+    {};
+
+    void init() const
+    {
+        init_impl.init(component);
+    };
+
+    void main() const
+    {
+        main_impl.main(component);
+    };
+};
+// @/
+```
+
+Attentive readers will have noticed that the component container has changed
+from a member variable based on a template parameter to being passed as a
+reference to the component runtime constructor, with the template parameter
+mysteriously missing. This is explained by the fact that the above structures
+have been moved inside of the final `Runtime` implementation; the component
+container type parameter is a parameter of the parent `Runtime` structure, as
+is the owned component container variable. Also within the parent structure,
+we now declare a tuple of component runtimes (one per component managed by
+the runtime). The parent runtime's `init` and `main` methods then simply
+delegate to these component runtimes.
+
+```cpp
+// @='runtime'
+template<typename ComponentContainer>
+struct Runtime
+{
+    ComponentContainer container;
+
+    @{component_runtime}
+
+    using component_list_t = decltype(component_filter_by_tag<node::component>(std::declval<ComponentContainer&>()));
+    using component_runtime_list_t = boost::mp11::mp_transform
+            < component_runtime
+            , component_list_t
+            >;
+    component_runtime_list_t component_runtimes;
+
+    constexpr Runtime()
+    : container{}
+    , component_runtimes{tuple_transform
+            ( [&]<typename T>(T& tagged_component)
+              {
+                  return component_runtime<typename T::type>{tagged_component.ref, container};
+              }
+            , component_filter_by_tag<node::component>(std::declval<ComponentContainer&>())
+            )}
+    {};
+
+    void init()
+    {
+        tuple_for_each(component_runtimes, [](auto& r){r.init();});
+    }
+
+    void main()
+    {
+        tuple_for_each(component_runtimes, [](auto& r){r.main();});
+    }
+};
+// @/
+// @+'component_runtime'
+// @/
+
+// @='constructor'
+// @/
+
+// @='init and main'
+// @/
+```
+
+## Initialization
+
+We need to
+
+```cpp
+// @#'runtime.hpp'
+#pragma once
+
+#include <boost/mp11.hpp>
+#include "concepts/functions.hpp"
+#include "concepts/components.hpp"
+#include <iostream>
+
+namespace sygaldry {
+
+@{activate}
+
+@{runtime}
+
+}
+// @/
+
+// @#'tests/runtime/tests.cpp'
+#include <catch2/catch_test_macros.hpp>
+#include "concepts/runtime.hpp"
+#include "helpers/endpoints.hpp"
+
+using namespace sygaldry;
+
+@{tests}
+// @/
+```
+
+```cmake
+# @#'tests/runtime/CMakeLists.txt'
+add_executable(runtime-tests tests.cpp)
+target_link_libraries(runtime-tests PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(runtime-tests)
+# @/
+```

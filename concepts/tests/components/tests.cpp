@@ -106,78 +106,82 @@ struct almost_container
 static_assert(not ComponentContainer<almost_container>);
 static_assert(ComponentContainer<regular_component_t::parts_t>);
 static_assert(ComponentContainer<container_component_t>);
+struct c1_t : name_<"c1"> {
+    struct inputs_t {
+        struct in1_t : name_<"in1">, persistent<float>
+        {
+            float extra_value;
+        } in1;
+        struct in2_t : name_<"in2">, persistent<float>
+        {
+            float extra_value;
+        } in2;
+    } inputs;
+
+    struct outputs_t {
+        struct out_t : name_<"out">, persistent<float>
+        {
+            float another_extra;
+        } out;
+    } outputs;
+
+    struct parts_t {
+        struct dummy_part : name_<"dp"> {
+            struct parts_t {
+                static _consteval auto name() {return "dpp";}
+            } parts;
+            void main() {};
+        } part;
+    } parts;
+
+    void main(){}
+};
+
+struct c2_t : name_<"c2"> {
+    struct inputs_t {
+        struct in1_t : name_<"in1">, persistent<float>
+        {
+            float extra_value;
+        } in1;
+        struct in2_t : name_<"in2">, persistent<float>
+        {
+            float extra_value;
+        } in2;
+    } inputs;
+
+    struct outputs_t {
+        struct out_t : name_<"out">, persistent<float>
+        {
+            float another_extra;
+        } out;
+    } outputs;
+
+    struct parts_t {
+        struct dummy_part : name_<"dp"> {
+            struct parts_t {
+                static _consteval auto name() {return "dpp";}
+            } parts;
+            void main() {};
+        } part;
+    } parts;
+
+    void main(){}
+};
+
 struct accessor_test_container_t
 {
-    struct c1_t : name_<"c1"> {
-        struct inputs_t {
-            struct in1_t : name_<"in1">, persistent<float>
-            {
-                float extra_value;
-            } in1;
-            struct in2_t : name_<"in2">, persistent<float>
-            {
-                float extra_value;
-            } in2;
-        } inputs;
-
-        struct outputs_t {
-            struct out_t : name_<"out">, persistent<float>
-            {
-                float another_extra;
-            } out;
-        } outputs;
-
-        struct parts_t {
-            struct dummy_part : name_<"dp"> {
-                struct parts_t {
-                    static _consteval auto name() {return "dpp";}
-                } parts;
-                void main() {};
-            } part;
-        } parts;
-
-        void main(){}
-    } c1;
-    struct c2_t : name_<"c2"> {
-        struct inputs_t {
-            struct in1_t : name_<"in1">, persistent<float>
-            {
-                float extra_value;
-            } in1;
-            struct in2_t : name_<"in2">, persistent<float>
-            {
-                float extra_value;
-            } in2;
-        } inputs;
-
-        struct outputs_t {
-            struct out_t : name_<"out">, persistent<float>
-            {
-                float another_extra;
-            } out;
-        } outputs;
-
-        struct parts_t {
-            struct dummy_part : name_<"dp"> {
-                struct parts_t {
-                    static _consteval auto name() {return "dpp";}
-                } parts;
-                void main() {};
-            } part;
-        } parts;
-
-        void main(){}
-    } c2;
+    c1_t c1;
+    c2_t c2;
 };
 
 constinit accessor_test_container_t accessor_test_container{};
 
-static_assert(Component<accessor_test_container_t::c1_t>);
-static_assert(Component<accessor_test_container_t::c2_t>);
-static_assert(Component<accessor_test_container_t::c1_t::parts_t::dummy_part>);
+static_assert(Component<c1_t>);
+static_assert(Component<c2_t>);
+static_assert(Component<c1_t::parts_t::dummy_part>);
 static_assert(ComponentContainer<accessor_test_container_t>);
 using atc   = accessor_test_container_t;
-using c1    =     atc::c1_t;
+using c1    =     c1_t;
 using ic1   =          c1::inputs_t;
 using in11  =              ic1::in1_t;
 using in21  =              ic1::in2_t;
@@ -186,7 +190,7 @@ using out1  =              oc1::out_t;
 using pc1   =          c1::parts_t;
 using dp1   =              pc1::dummy_part;
 using dppc1 =                  dp1::parts_t;
-using c2    =     atc::c2_t;
+using c2    =     c2_t;
 using ic2   =          c2::inputs_t;
 using in12  =              ic2::in1_t;
 using in22  =              ic2::in2_t;
