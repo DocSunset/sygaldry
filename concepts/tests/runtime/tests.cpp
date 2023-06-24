@@ -45,6 +45,8 @@ struct testcomponent2_t : name_<"tc2">
         testcomponent1_t<"part"> part;
     } parts;
 
+    void init() {};
+
     void main(const testcomponent1_t<"tc1">::outputs_t& sources, testcomponent1_t<"tc1">& plugin)
     {
         CHECK(true == (bool)plugin.outputs.bang_out); // flags propagate during main tick
@@ -58,9 +60,8 @@ struct components1_t
     testcomponent1_t<"tc1"> tc1;
     testcomponent2_t tc2;
 };
-
-constinit Runtime<components1_t> runtime{};
-
+constinit components1_t components{};
+constexpr auto runtime = Runtime{components};
 TEST_CASE("runtime calls")
 {
     runtime.init();
@@ -73,4 +74,31 @@ TEST_CASE("runtime calls")
     CHECK(runtime.container.tc2.outputs.out2.value == 44); // plugins are propagated
                                                             // calls proceed in tree order
     CHECK(runtime.container.tc2.parts.part.outputs.out1.value == 0); // part mains are not called
+}
+components1_t constinit main_runtime_components{};
+component_runtime<testcomponent2_t, components1_t> constinit main_component_runtime{main_runtime_components.tc2, main_runtime_components};
+TEST_CASE("component runtime main")
+{
+    main_runtime_components.tc1.outputs.out1.value = 0;
+    main_runtime_components.tc1.outputs.bang_out();
+    main_component_runtime.main();
+    CHECK(main_runtime_components.tc2.outputs.out1.value == 1);
+    CHECK(main_runtime_components.tc2.outputs.out2.value == 1);
+}
+components1_t constinit init_runtime_components{};
+component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
+TEST_CASE("component runtime init")
+{
+    init_runtime_components.tc1.inputs.in1.value = 0;
+    init_component_runtime.init();
+    CHECK(init_runtime_components.tc1.inputs.in1.value == 42);
+}
+components1_t constinit runtime_tuple_components{};
+constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
+TEST_CASE("runtime tuple")
+{
+    std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
+    CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called
+    std::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
+    CHECK(runtime_tuple_components.tc1.outputs.out1.value == 43); // main routines are called
 }

@@ -1131,6 +1131,7 @@ static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
 // @+'tuples of nodes'
 template<typename Tag> using untagged = typename Tag::type;
 
+// TODO: shouldn't this return references?
 template<Tuple T>
 constexpr auto remove_node_tags(T tup)
 {

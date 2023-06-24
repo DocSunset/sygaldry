@@ -355,6 +355,7 @@ constexpr auto path_of(C& component)
 }
 template<typename Tag> using untagged = typename Tag::type;
 
+// TODO: shouldn't this return references?
 template<Tuple T>
 constexpr auto remove_node_tags(T tup)
 {

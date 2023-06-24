@@ -71,6 +71,8 @@ struct testcomponent2_t : name_<"tc2">
         testcomponent1_t<"part"> part;
     } parts;
 
+    void init() {};
+
     void main(const testcomponent1_t<"tc1">::outputs_t& sources, testcomponent1_t<"tc1">& plugin)
     {
         CHECK(true == (bool)plugin.outputs.bang_out); // flags propagate during main tick
@@ -84,9 +86,11 @@ struct components1_t
     testcomponent1_t<"tc1"> tc1;
     testcomponent2_t tc2;
 };
+// @/
 
-constinit Runtime<components1_t> runtime{};
-
+// @+'tests'
+constinit components1_t components{};
+constexpr auto runtime = Runtime{components};
 TEST_CASE("runtime calls")
 {
     runtime.init();
@@ -113,7 +117,7 @@ apply them to the subroutine. We would like to ensure that this happens efficien
 meaning without runtime traversal of the component tree derived from the assemblage.
 
 ```cpp
-TEST_CASE("plugins and throughpoints")
+TEST_CASE("example test")
 {
     components1_t components;
     components.tc1.inputs.in1.value = 0;
@@ -175,76 +179,29 @@ should be impossible anyways, would be a likely increase in compiled executable
 code size.
 
 ```cpp
-activator<testcomponent2_t, components1_t> constinit my_runtime{};
-TEST_CASE("plugins and throughpoints")
+// @+'tests'
+components1_t constinit main_runtime_components{};
+component_runtime<testcomponent2_t, components1_t> constinit main_component_runtime{main_runtime_components.tc2, main_runtime_components};
+TEST_CASE("component runtime main")
 {
-    my_runtime.container.tc1.inputs.in1.value = 0;
-    my_runtime.container.tc1.outputs.bang_out();
-    my_runtime.activate(my_runtime.container.tc2);
-    CHECK(my_runtime.container.tc2.outputs.out1.value == 1);
+    main_runtime_components.tc1.outputs.out1.value = 0;
+    main_runtime_components.tc1.outputs.bang_out();
+    main_component_runtime.main();
+    CHECK(main_runtime_components.tc2.outputs.out1.value == 1);
+    CHECK(main_runtime_components.tc2.outputs.out2.value == 1);
 }
+// @/
 ```
 
 ```cpp
+// @='component_runtime 1'
 template<typename Component, typename ComponentContainer, typename ... Args>
-struct activator_impl
+struct component_runtime_impl
 {
     using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
     const arg_pack_t arg_pack;
 
-    constexpr activator_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
-
-    void activate(Component& component) const
-    {
-        if constexpr (requires {&Component::operator();})
-            std::apply(component, arg_pack);
-        else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
-    }
-};
-
-template<typename Component, typename ComponentContainer>
-struct activator
-{
-    using args = typename main_subroutine_reflection<Component>::arguments;
-    using cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, args>;
-    using prepended = boost::mp11::mp_push_front<cvref_less_args, Component, ComponentContainer>;
-    using impl_t = boost::mp11::mp_rename<prepended, activator_impl>;
-
-    ComponentContainer container;
-    const impl_t impl;
-    constexpr activator() : container{}, impl{container} {};
-    void activate(Component& component) const
-    {
-        impl.activate(component);
-    };
-};
-```
-
-### Generalize
-
-The above implementation is only able to activate a single component. It is
-reasonable straightforward to generalize this to both initialize and activate
-an arbitrary number of components held in a component container.
-
-First, we generalize the innermost implementation structure so that it can
-initialize or activate a component.
-
-```cpp
-// @='component_runtime'
-template<typename Component, typename ... Args>
-struct runtime_impl
-{
-    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
-    const arg_pack_t arg_pack;
-
-    constexpr runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
-
-    void init(Component& component) const
-    {
-        if constexpr (requires {&Component::init;})
-            std::apply([&](auto& ... args) {component.init(args...);}, arg_pack);
-    }
+    constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
 
     void main(Component& component) const
     {
@@ -254,137 +211,247 @@ struct runtime_impl
             std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
     }
 };
-// @/
-```
 
-We define a helper template that takes a function reflection structure and
-returns an appropriate runtime implementation; either a dummy implementation
-that does nothing, useful in case a component lacks an init or main subroutine,
-or the actual implementation seen above.
-
-```cpp
-// @+'component_runtime'
-template<typename...>
-struct to_impl
-{
-    struct dummy
-    {
-        void init(auto&) const {};
-        void main(auto&) const {};
-    };
-    using impl_t = dummy;
-};
-
-template<typename Component, typename FuncRefl>
-    requires FuncRefl::exists::value
-struct to_impl<Component, FuncRefl>
-{
-    using args = typename FuncRefl::arguments;
-    using cvref_less = boost::mp11::mp_transform<std::remove_cvref_t, args>;
-    using prepended = boost::mp11::mp_push_front<cvref_less, Component, ComponentContainer>;
-    using impl_t = boost::mp11::mp_rename<prepended, runtime_impl>;
-};
-// @/
-```
-
-Finally, we use this helper to get two implementation structures, one for
-initializing and one for activating a given component. These coexist in one
-structure that can then initialize and activate one component.
-
-```cpp
-// @+'component_runtime'
-template<typename Component>
+template<typename Component, typename ComponentContainer>
 struct component_runtime
 {
-    using main_impl_t = typename to_impl<Component, main_subroutine_reflection<Component>>::impl_t;
-    const main_impl_t main_impl;
-
-    using init_impl_t = typename to_impl<Component, init_subroutine_reflection<Component>>::impl_t;
-    const init_impl_t init_impl;
+    using args = typename main_subroutine_reflection<Component>::arguments;
+    using cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, args>;
+    using prepended = boost::mp11::mp_push_front<cvref_less_args, Component, ComponentContainer>;
+    using impl_t = boost::mp11::mp_rename<prepended, component_runtime_impl>;
 
     Component& component;
-
-    constexpr component_runtime(Component& c, ComponentContainer& container)
-    : component{c}
-    , main_impl{container}
-    , init_impl{container}
-    {};
+    const impl_t impl;
+    constexpr component_runtime(Component& comp, ComponentContainer& cont) : component{comp}, impl{cont} {};
 
     void init() const
     {
-        init_impl.init(component);
+        // TODO
     };
 
     void main() const
     {
-        main_impl.main(component);
+        impl.main(component);
     };
 };
 // @/
 ```
 
-Attentive readers will have noticed that the component container has changed
-from a member variable based on a template parameter to being passed as a
-reference to the component runtime constructor, with the template parameter
-mysteriously missing. This is explained by the fact that the above structures
-have been moved inside of the final `Runtime` implementation; the component
-container type parameter is a parameter of the parent `Runtime` structure, as
-is the owned component container variable. Also within the parent structure,
-we now declare a tuple of component runtimes (one per component managed by
-the runtime). The parent runtime's `init` and `main` methods then simply
-delegate to these component runtimes.
+### Generalize
+
+The above implementation is only able to activate a single component. It is
+reasonably straightforward to generalize this to both initialize and activate
+an arbitrary number of components held in a component container.
+
+First, we pull out the argument pack used in the inner implementation:
 
 ```cpp
-// @='runtime'
-template<typename ComponentContainer>
-struct Runtime
+// @='impl_arg_pack'
+template<typename ComponentContainer, typename ... Args>
+struct impl_arg_pack
 {
-    ComponentContainer container;
+    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+    const arg_pack_t pack;
 
-    @{component_runtime}
-
-    using component_list_t = decltype(component_filter_by_tag<node::component>(std::declval<ComponentContainer&>()));
-    using component_runtime_list_t = boost::mp11::mp_transform
-            < component_runtime
-            , component_list_t
-            >;
-    component_runtime_list_t component_runtimes;
-
-    constexpr Runtime()
-    : container{}
-    , component_runtimes{tuple_transform
-            ( [&]<typename T>(T& tagged_component)
-              {
-                  return component_runtime<typename T::type>{tagged_component.ref, container};
-              }
-            , component_filter_by_tag<node::component>(std::declval<ComponentContainer&>())
-            )}
-    {};
-
-    void init()
-    {
-        tuple_for_each(component_runtimes, [](auto& r){r.init();});
-    }
-
-    void main()
-    {
-        tuple_for_each(component_runtimes, [](auto& r){r.main();});
-    }
+    constexpr impl_arg_pack(ComponentContainer& container) : pack{std::forward_as_tuple(find<Args>(container) ...)} {}
 };
-// @/
-// @+'component_runtime'
-// @/
-
-// @='constructor'
-// @/
-
-// @='init and main'
 // @/
 ```
 
-## Initialization
+Then, we generalize the innermost implementation structure so that it can
+initialize or activate a component, accepting argument packs for both of
+these subroutines.
 
-We need to
+```cpp
+// @='runtime_impl'
+@{impl_arg_pack}
+
+template<typename Component, typename ComponentContainer, typename init_arg_pack, typename main_arg_pack>
+struct runtime_impl
+{
+    init_arg_pack init_args;
+    main_arg_pack main_args;
+
+    constexpr runtime_impl(ComponentContainer& container) : init_args{container}, main_args{container} {}
+
+    void init(Component& component) const
+    {
+        if constexpr (requires {&Component::init;})
+            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+    }
+
+    void main(Component& component) const
+    {
+        if constexpr (requires {&Component::operator();})
+            std::apply(component, main_args.pack);
+        else if constexpr (requires {&Component::main;})
+            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+    }
+};
+// @/
+```
+
+We can reimplement the original component_runtime in terms of the new runtime implementation,
+and the above test passes without issue. We can additionally test the runtime's ability to run
+the init method.
+
+```cpp
+// @+'tests'
+components1_t constinit init_runtime_components{};
+component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
+TEST_CASE("component runtime init")
+{
+    init_runtime_components.tc1.inputs.in1.value = 0;
+    init_component_runtime.init();
+    CHECK(init_runtime_components.tc1.inputs.in1.value == 42);
+}
+// @/
+
+// @='component_runtime 2'
+@{runtime_impl}
+
+template<typename Component, typename ComponentContainer>
+struct component_runtime
+{
+    using init_args = typename init_subroutine_reflection<Component>::arguments;
+    using init_cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, init_args>;
+    using init_prepended = boost::mp11::mp_push_front<init_cvref_less_args, ComponentContainer>;
+    using init_arg_pack = boost::mp11::mp_rename<init_prepended, impl_arg_pack>;
+
+    using main_args = typename main_subroutine_reflection<Component>::arguments;
+    using main_cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, main_args>;
+    using main_prepended = boost::mp11::mp_push_front<main_cvref_less_args, ComponentContainer>;
+    using main_arg_pack = boost::mp11::mp_rename<main_prepended, impl_arg_pack>;
+
+    Component& component;
+    const runtime_impl<Component, ComponentContainer, init_arg_pack, main_arg_pack> impl;
+    constexpr component_runtime(Component& comp, ComponentContainer& cont) : component{comp}, impl{cont} {};
+
+    void init() const { impl.init(component); } 
+    void main() const { impl.main(component); };
+};
+// @/
+```
+
+To avoid repeating the series of template metafunctions used to get the
+argument pack types, we define a helper template that takes a function
+reflection structure and returns an appropriate argument pack. We allow this to
+return a dummy arg pack in case a component lacks an init or main subroutine,
+so that components missing one or the other will not trigger a compiler error.
+
+```cpp
+// @='to_arg_pack'
+template<typename...>
+struct to_arg_pack
+{
+    struct dummy_t {
+        std::tuple<> pack;
+        constexpr dummy_t(auto&) : pack{} {};
+    };
+    using pack_t = dummy_t;
+};
+
+template<typename Component, typename ComponentContainer, typename FuncRefl>
+    requires FuncRefl::exists::value
+struct to_arg_pack<Component, ComponentContainer, FuncRefl>
+{
+    using args = typename FuncRefl::arguments;
+    using cvref_less = boost::mp11::mp_transform<std::remove_cvref_t, args>;
+    using prepended = boost::mp11::mp_push_front<cvref_less, ComponentContainer>;
+    using pack_t = boost::mp11::mp_rename<prepended, impl_arg_pack>;
+};
+// @/
+```
+
+We use this helper to get two argument pack types, one for init and one for
+main, that are then used to instantiate the runtime structure. We thus have a
+general runtime for a single component that passes our tests.
+
+```cpp
+//@='component_runtime'
+@{runtime_impl}
+
+@{to_arg_pack}
+
+template<typename Component, typename ComponentContainer>
+struct component_runtime
+{
+    using init_arg_pack = typename to_arg_pack<Component, ComponentContainer, init_subroutine_reflection<Component>>::pack_t;
+    using main_arg_pack = typename to_arg_pack<Component, ComponentContainer, main_subroutine_reflection<Component>>::pack_t;
+
+    Component& component;
+    const runtime_impl<Component, ComponentContainer, init_arg_pack, main_arg_pack> impl;
+    constexpr component_runtime(Component& comp, ComponentContainer& cont) : component{comp}, impl{cont} {};
+
+    void init() const { impl.init(component); }
+    void main() const { impl.main(component); };
+};
+// @/
+```
+
+### Tuple of runtimes
+
+All that remains is to make a tuple of component runtimes with one for each
+runtime managed component in the component tree. First we define a subroutine
+that will give us a tuple of runtimes.
+
+```cpp
+// @='runtime tuple'
+template<typename ComponentContainer>
+constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
+{
+    auto tup = component_filter_by_tag<node::component>(cont);
+    return boost::mp11::tuple_transform([&](auto& tagged_component)
+    {
+        return component_runtime{tagged_component.ref, cont};
+    }, tup);
+}
+// @/
+
+// @+'tests'
+components1_t constinit runtime_tuple_components{};
+constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
+TEST_CASE("runtime tuple")
+{
+    std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
+    CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called
+    std::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
+    CHECK(runtime_tuple_components.tc1.outputs.out1.value == 43); // main routines are called
+}
+// @/
+```
+
+Then we can assemble the final runtime class. This requires a somewhat awkward
+repetition of the call to `component_to_runtime_tuple`, first to get the type
+of the tuple and then to actually initialize it. Otherwise, the top level
+runtime simply delegates to the inner component runtimes.
+
+```cpp
+// @='Runtime'
+template<typename ComponentContainer>
+struct Runtime
+{
+    ComponentContainer& container;
+
+    decltype(component_to_runtime_tuple(std::declval<ComponentContainer&>())) component_runtimes;
+
+    constexpr Runtime(ComponentContainer& c) : container{c}, component_runtimes{component_to_runtime_tuple(c)} {};
+
+    void init() const { tuple_for_each(component_runtimes, [](auto& r){r.init();}); }
+    void main() const
+    {
+        tuple_for_each(component_runtimes, [](auto& r){r.main();});
+        tuple_for_each(component_runtimes, [](auto& r)
+        {
+            clear_input_flags(r.component);
+            clear_output_flags(r.component);
+        });
+    }
+};
+// @/
+```
+
+# Runtime summary
 
 ```cpp
 // @#'runtime.hpp'
@@ -397,9 +464,11 @@ We need to
 
 namespace sygaldry {
 
-@{activate}
+@{component_runtime}
 
-@{runtime}
+@{runtime tuple}
+
+@{Runtime}
 
 }
 // @/
