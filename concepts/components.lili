@@ -1474,20 +1474,25 @@ is well tested.
 
 ```cpp
 // @='clear_flags'
+template<typename Y>
+void clear_flag(Y& endpoint)
+{
+    if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
+}
+
+void clear_flags(auto& component)
+{
+    for_each_endpoint(component, [](auto& endpoint) { clear_flag(endpoint); });
+}
+
 void clear_output_flags(auto& component)
 {
-    for_each_output(component, []<typename Y>(Y& endpoint)
-    {
-        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
-    });
+    for_each_output(component, [](auto& endpoint) { clear_flag(endpoint); });
 }
 
 void clear_input_flags(auto& component)
 {
-    for_each_input(component, []<typename Y>(Y& endpoint)
-    {
-        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
-    });
+    for_each_input(component, [](auto& endpoint) { clear_flag(endpoint); });
 }
 // @/
 ```

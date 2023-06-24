@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <concepts/components.hpp>
+#include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
 #include <bindings/cli/cli.hpp>
 #include <bindings/output_logger.hpp>
@@ -19,9 +19,9 @@ struct OneBitBongo
 
     bindings::CstdioOutputLogger<decltype(api)> log;
     bindings::CstdioCli<decltype(api)> cli;
-} bongo;
+} constinit bongo{};
 
-static_assert(ComponentContainer<OneBitBongo>);
+constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {

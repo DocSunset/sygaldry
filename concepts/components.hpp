@@ -467,20 +467,25 @@ template<typename T> constexpr void for_each_output(T& component, auto callback)
     for_each_node<T, node::output_endpoint>(component, [&](auto& c, auto) { callback(c); });
 }
 
+template<typename Y>
+void clear_flag(Y& endpoint)
+{
+    if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
+}
+
+void clear_flags(auto& component)
+{
+    for_each_endpoint(component, [](auto& endpoint) { clear_flag(endpoint); });
+}
+
 void clear_output_flags(auto& component)
 {
-    for_each_output(component, []<typename Y>(Y& endpoint)
-    {
-        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
-    });
+    for_each_output(component, [](auto& endpoint) { clear_flag(endpoint); });
 }
 
 void clear_input_flags(auto& component)
 {
-    for_each_input(component, []<typename Y>(Y& endpoint)
-    {
-        if constexpr (ClearableFlag<Y>) clear_flag(endpoint);
-    });
+    for_each_input(component, [](auto& endpoint) { clear_flag(endpoint); });
 }
 
 template<Component T>

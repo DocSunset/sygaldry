@@ -16,7 +16,7 @@ struct Set
         requires std::integral<T>
     T from_chars(const char * start, const char * end, bool& success)
     {
-        T ret;
+        T ret{};
         auto [ptr, ec] = std::from_chars(start, end, ret);
         if (ec == std::errc{}) success = true;
         else success = false;
