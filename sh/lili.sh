@@ -15,6 +15,6 @@ find -iname '*.lili' | parallel '
     [ "$generated" ] && [ {/} -nt "$generated" ] &&
     {
         echo {} "newer than $generated, running lili..."
-        lili {/}
+        lili {/} || exit 1 # short circuit on any lili error with failure return code
     } || exit 0
 '
