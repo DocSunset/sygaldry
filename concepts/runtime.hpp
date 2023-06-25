@@ -105,7 +105,7 @@ identified, e.g. `constexpr auto runtime = Runtime{container};`.
 template<typename ComponentContainer>
 struct Runtime
 {
-    /*! A reference to the component container managed by the `Runtime`.
+    /*! \brief A reference to the component container managed by the `Runtime`. [TOC]
 
     \detail This is intended to refer to the top level component container that
     implements an instrument. In principle, it could also be a lower-level
@@ -114,7 +114,7 @@ struct Runtime
     */
     ComponentContainer& container;
 
-    /*! A tuple of component-level runtimes.
+    /*! \brief A tuple of component-level runtimes.
 
     \detail Each component runtime contains a reference to a component and
     forwarded argument tuples extracted from the main component tree needed
@@ -126,8 +126,15 @@ struct Runtime
     */
     decltype(component_to_runtime_tuple(std::declval<ComponentContainer&>())) component_runtimes;
 
-    /// The constructor should permit the template type parameter to be deduced by the compiler. e.g. `constexpr auto runtime = Runtime{container};`.
-    /// \param[in,out] c The component container managed by the `Runtime`. See \ref container.
+    /*! \brief The constructor, e.g. `constexpr auto runtime = Runtime{container};`
+
+    \detail The constructor permits the template type parameter to be deduced by the compiler. It's
+    important for the runtime to be constexpr for the best performance; see the warning in [the
+    detailed description of the class](#details).
+
+    \param[in,out] c The component container managed by the `Runtime`. See \ref container.
+
+    */
     constexpr Runtime(ComponentContainer& c) : container{c}, component_runtimes{component_to_runtime_tuple(c)} {};
 
     /// Initialize all components in the container.

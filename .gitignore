@@ -1,5 +1,4 @@
 build
-doxygen
 dependencies
 _build*/*
 *.o

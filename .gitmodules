@@ -7,3 +7,6 @@
 [submodule "mp11"]
 	path = dependencies/mp11
 	url = https://github.com/boostorg/mp11.git
+[submodule "dependencies/doxygen-awesome-css"]
+	path = dependencies/doxygen-awesome-css
+	url = https://github.com/jothepro/doxygen-awesome-css.git
