@@ -28,10 +28,8 @@ struct Button
 , author_<"Travis J. West">
 , copyright_<"Travis J. West (C) 2023">
 , description_<"A single button attached to a GPIO">
+, ButtonGestureModel
 {
-    ButtonGestureModel::inputs_t inputs;
-    ButtonGestureModel::outputs_t outputs;
-
     using gpio = GPIO<pin_number>;
 
     void init()
@@ -45,7 +43,7 @@ struct Button
     void operator()()
     {
         inputs.button_state = (char)gpio::level();
-        ButtonGestureModel::main(inputs, outputs);
+        ButtonGestureModel::operator()();
     }
 };
     

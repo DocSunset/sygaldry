@@ -22,17 +22,12 @@ struct TestComponent : name_<"Test Component 1">
         text<"text out"> text_out;
     } outputs;
 
-    static constexpr void main(const inputs_t& in, outputs_t& out)
-    {
-        out.button_out = in.button_in;
-        out.toggle_out = in.toggle_in;
-        out.slider_out = in.slider_in;
-        out.bang_out = in.bang_in;
-    }
-
     constexpr void operator()()
     {
-        main(inputs, outputs);
+        outputs.button_out = inputs.button_in;
+        outputs.toggle_out = inputs.toggle_in;
+        outputs.slider_out = inputs.slider_in;
+        outputs.bang_out = inputs.bang_in;
     }
 };
 

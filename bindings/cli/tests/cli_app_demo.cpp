@@ -1,5 +1,6 @@
 #include "utilities/consteval.hpp"
 #include "concepts/runtime.hpp"
+#include "helpers/metadata.hpp"
 #include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
@@ -13,7 +14,7 @@ struct AppComponents {
     struct api_t
     {
         TestComponent tc;
-        ButtonGestureModel bgm;
+        struct Button : name_<"Button">, ButtonGestureModel {} bgm;
     } api;
 
     sygaldry::bindings::Cli< sygaldry::bindings::CstdioReader

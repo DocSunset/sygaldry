@@ -40,13 +40,12 @@
 # Concepts and Helpers
 
 -[ ] update README
+-[ ] enable binding to the endpoints of raw arrays of parts
+    - e.g. for having N OSC destinations as an array of osc destination parts
+    - or for having N grains in a grain cloud
 -[ ] refactor concepts as led by component tree?
--[ ] external plugins concepts
--[ ] throughpoints
--[ ] parts parameters
 -[ ] enum tag checker
 -[ ] message inputs and callback outputs
--[/] statically assert that all components meet concept requirements, incl. parts has only components, etc.
 
 # Components
 

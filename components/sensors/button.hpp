@@ -7,8 +7,6 @@ namespace sygaldry { namespace components {
 
 struct ButtonGestureModel
 {
-    static _consteval auto name() {return "Button Gesture Model";}
-
     struct inputs_t {
         toggle<"button state"> button_state;
     } inputs;
@@ -22,20 +20,15 @@ struct ButtonGestureModel
         bng<"falling edge"> falling_edge;
     } outputs;
 
-    static void main(const inputs_t& in, outputs_t& out)
-    {
-        if (out.debounced_state != in.button_state)
-        {
-            out.debounced_state = in.button_state;
-            out.any_edge();
-            if (in.button_state) out.rising_edge();
-            else out.falling_edge();
-        }
-    }
-
     void operator()()
     {
-        main(inputs, outputs);
+        if (outputs.debounced_state != inputs.button_state)
+        {
+            outputs.debounced_state = inputs.button_state;
+            outputs.any_edge();
+            if (inputs.button_state) outputs.rising_edge();
+            else outputs.falling_edge();
+        }
     }
 };
 

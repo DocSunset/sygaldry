@@ -1390,6 +1390,7 @@ that provides `getchar` and `putchar` from the C standard library.
 // @#'tests/cli_app_demo.cpp'
 #include "utilities/consteval.hpp"
 #include "concepts/runtime.hpp"
+#include "helpers/metadata.hpp"
 #include "components/sensors/button.hpp"
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
@@ -1403,7 +1404,7 @@ struct AppComponents {
     struct api_t
     {
         TestComponent tc;
-        ButtonGestureModel bgm;
+        struct Button : name_<"Button">, ButtonGestureModel {} bgm;
     } api;
 
     sygaldry::bindings::Cli< sygaldry::bindings::CstdioReader
@@ -1440,7 +1441,7 @@ int main()
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/basic_reader/test_reader.hpp"
-#include "cli.hpp"
+#include "bindings/cli/cli.hpp"
 
 using std::string;
 

@@ -6,7 +6,7 @@
 #include "components/tests/testcomponent.hpp"
 #include "bindings/basic_logger/test_logger.hpp"
 #include "bindings/basic_reader/test_reader.hpp"
-#include "cli.hpp"
+#include "bindings/cli/cli.hpp"
 
 using std::string;
 
