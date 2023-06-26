@@ -77,7 +77,7 @@ library, and completing the `sygaldry` project.
 ## Build Tools
 
 The `sh` and `cmake` directories contain scripts used in the build process.
-For more detail, refer to [the build system document](build-system.lili).
+For more detail, refer to [the build system document](build-system.lili.md).
 
 ## Platform-Specific Tests
 

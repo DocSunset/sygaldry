@@ -105,7 +105,7 @@ identified, e.g. `constexpr auto runtime = Runtime{container};`.
 template<typename ComponentContainer>
 struct Runtime
 {
-    /*! \brief A reference to the component container managed by the `Runtime`. [TOC]
+    /*! \brief A reference to the component container managed by the `Runtime`.
 
     \detail This is intended to refer to the top level component container that
     implements an instrument. In principle, it could also be a lower-level

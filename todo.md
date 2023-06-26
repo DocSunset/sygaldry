@@ -10,6 +10,9 @@
 
 # Literature
 
+-[ ] specify order of inputs to doxygen documentation
+-[ ] document namespaces, add documentation groups
+-[ ] hide non-public API implementation details into `::detail` namespaces and directories and ignore them in doxygen
 -[ ] usage style documentation
 -[ ] various empty readme files
 -[ ] incorporate [the four types of documentation](https://documentation.divio.com/)

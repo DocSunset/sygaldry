@@ -113,7 +113,6 @@ struct range_
     }
 };
 // @/
-```
 
 // @+'tests'
 struct struct_with_range : range_<0, 127> {};
@@ -133,6 +132,7 @@ TEST_CASE("Range", "[endpoints][bases][range]")
     }
 }
 // @/
+```
 
 ## Persistent Values
 
@@ -245,8 +245,8 @@ can then be designed to look for such symbols, e.g. `if constexpr (requires
 {endpoint::bang;}) { ... }` and behave depending on their presence or absence.
 Although it's easy enough to add such a tag when defining a custom endpoint,
 the following helpers are provided which attach tags with recognized value
-within this project. The interpretation is given in [the endpoints concepts
-document](concepts/endpoints.lili.md);
+within this project. The interpretation is given in
+[the endpoints concepts document](concepts/endpoints.lili.md);
 
 ```cpp
 // @+'helpers'

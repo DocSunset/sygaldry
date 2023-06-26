@@ -209,8 +209,8 @@ type is thus an error.
 As well as detecting the existence of a component's main subroutine, it
 may also be necessary to access its type for function reflection. We provide
 simple reflection template structs inheriting most of their functionality
-from the `function_reflection` template developed in [the function concepts
-document](concepts/functions.lili.md).
+from the `function_reflection` template developed in
+[the function concepts document](concepts/functions.lili.md).
 
 ```cpp
 // @+'has_main_subroutine'
@@ -264,9 +264,9 @@ static_assert(not has_main_subroutine<int_operator>);
 // @/
 ```
 
-Along with the `has_name` concept defined in [the metadata concept
-header](concepts/metadata.lili.md), this completes the specification of basic
-component requirements.
+Along with the `has_name` concept defined in
+[the metadata concept header](concepts/metadata.lili.md),
+this completes the specification of basic component requirements.
 
 ## Accessing the main subroutine type
 
