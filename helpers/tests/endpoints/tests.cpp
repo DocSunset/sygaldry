@@ -48,6 +48,16 @@ TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
     REQUIRE(bool(s) == false);
     static_assert(OccasionalValue<occasional_struct>);
 }
+struct tag_foo {enum {foo};};
+struct tag_bar {enum {bar};};
+template<typename ... Tags>
+struct tag_helper_test : tagged_<Tags...> {};
+tag_helper_test<> t1; // make sure this compiles
+tag_helper_test<tag_foo> t2;
+static_assert(t2.foo == tag_foo::foo);
+tag_helper_test<tag_foo, tag_bar> t3;
+static_assert(t3.foo == tag_foo::foo);
+static_assert(t3.bar == tag_bar::bar);
 TEST_CASE("Basic Endpoints", "[endpoints][basic]")
 {
     static_assert(OccasionalValue<button<"foo">>);

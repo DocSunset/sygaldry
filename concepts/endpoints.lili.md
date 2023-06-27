@@ -285,7 +285,7 @@ we define concepts for our `bang` type.
 
 Note that occasional values are not values in the sense defined above. They do
 not behave as though they are instances of their value type, since their
-current state must always be checked before accessing their values.
+current state is meant to be checked before accessing their values.
 
 ```cpp
 // @+'concepts'

@@ -28,10 +28,9 @@ The liblo binding has the following responsibilities:
 
 - Create at least one `lo_address`.
 - Start and manage interaction with the liblo server thread
-    - including creating the thread with `lo_server_thread_new`,
+    - including creating the thread with `lo_server_new`,
     - registering an error handler callback with the same,
-    - registering at least one handler with `lo_server_thread_add_method`,
-    - and starting the thread with `lo_server_thread_start`.
+    - registering at least one handler with `lo_server_add_method`,
 - Route incoming messages to the appropriate endpoints, e.g. within a server
   thread method or methods
 - Recognize when output signals have changed, and produce output messages
@@ -67,23 +66,18 @@ parameters.
 
 ```cpp
 // @+'inputs'
-struct src_port_t
-: text<"source port"
-      , "The UDP port on which to receive incoming messages."
-      >
-, tag_session_data { using text::operator=; } src_port;
-
-struct dst_port_t
-: text<"destination port"
-      , "The UDP port on which to send outgoing messages."
-      >
-, tag_session_data { using text::operator=; } dst_port;
-
-struct dst_addr_t
-: text<"destination address"
-      , "The IP address to send outgoing messages to."
-      >
-, tag_session_data { using text::operator=; } dst_addr;
+text< "source port"
+    , "The UDP port on which to receive incoming messages."
+    , tag_session_data
+    > src_port;
+text< "destination port"
+    , "The UDP port on which to send outgoing messages."
+    , tag_session_data
+    > dst_port;
+text< "destination address"
+    , "The IP address to send outgoing messages to."
+    , tag_session_data
+    > dst_addr;
 // @/
 ```
 
@@ -110,28 +104,29 @@ bool port_is_valid(auto& port)
 
 void set_server()
 {
-    if (server) lo_server_thread_free();
+    if (server) lo_server_free();
     outputs.server_running = 0;
 
     bool no_user_src_port = not port_is_valid(inputs.src_port);
 
     if (no_user_src_port)
-        server = lo_server_thread_new(inputs.src_port.value.c_str(), &LibloOsc::server_error_handler);
+        server = lo_server_new(inputs.src_port.value.c_str(), &LibloOsc::server_error_handler);
     else
-        server = lo_server_thread_new(NULL, &LibloOsc::server_error_handler);
+        server = lo_server_new(NULL, &LibloOsc::server_error_handler);
     if (server == NULL) return;
+
 
     if (no_user_src_port)
     {
         char port_str[6] = {0};
-        int port_num = lo_server_thread_get_port(server);
+        int port_num = lo_server_get_port(server);
         snprintf(port_str, 6, "%d", port_num);
         inputs.src_port.value = port_str;
     }
 
     @{register callbacks}
 
-    outputs.server_running = lo_server_thread_start(server) == 0 ? 1 : 0;
+    outputs.server_running = 1;
 }
 // @/
 
@@ -207,13 +202,11 @@ for_each_input(components, [&]<typename T>(T& in)
         T in = *(T*)user_data;
         set_input(path, types, argv, argc, msg, in);
     };
-    auto method = lo_server_thread_add_method( server
-                                             , osc_address_v<T>, osc_types_v<T>
-                                             , handler, (void*)&in
-                                             );
+    auto method = lo_server_add_method( server
+                                      , osc_address_v<T>, osc_types_v<T>
+                                      , handler, (void*)&in
+                                      );
 });
-// @/
-// @+'init'
 // @/
 ```
 
@@ -222,10 +215,10 @@ for_each_input(components, [&]<typename T>(T& in)
 On each call to the main subroutine, we perform three main tasks:
 - We update the server and destination address parameters if they have changed
     - TODO: this should happen in input callbacks
-- We safely apply changes from the server thread message queue
-- And we send output messages if any endpoints have been updated
+- We poll the server
+- And we send output messages
 
-# Liblo OSC Binding Summary
+# if any endpoints have been updated Liblo OSC Binding Summary
 
 ```cpp
 // @#'liblo.hpp'
@@ -235,7 +228,7 @@ On each call to the main subroutine, we perform three main tasks:
 #pragma once
 #include <charconv>
 #include <lo.h>
-#include <lo_serverthread.h>
+#include <lo_lowlevel.h>
 #include <lo_types.h>
 
 namespace sygaldry { namespace bindings {

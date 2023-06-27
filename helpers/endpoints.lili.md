@@ -52,7 +52,8 @@ metadata with such an endpoint.
 
 ## Name and Other Text
 
-Names and other textual metadata are addressed in `helpers/metadata.lili`.
+Names and other textual metadata are addressed in
+[the metadata helpers document](helpers/metadata.lili.md).
 
 ## Range and Initial Value
 
@@ -77,12 +78,13 @@ struct myendpoint : range_<range{0.0f, 1.0f} {}; // redundant and ugly
 struct myendpoint : with<range{0.0f, 1.0f} {}; // not bad, but we can do better
 ```
 
---it occurred to me while proofreading the previous section that the same
-strategy could likely be employed with numbers as well as strings. Although
-this is redundant for integral types, which are allowed in template parameters,
-it's a minor tradeoff to accept both floats and integers in order to have a
-single way of annotating a range. This gives us the ideal syntax in a way that
-doesn't upset clang.
+--it occurred to me while proofreading
+[the metadata helpers](helpers/metadata.lili.md) that the same strategy could
+likely be employed with numbers as well as strings. Although this is redundant
+for integral types, which are allowed in template parameters, it's a minor
+tradeoff to accept both floats and integers in order to have a single way of
+annotating a range. This gives us the ideal syntax in a way that doesn't upset
+clang.
 
 ```cpp
 // @+'endpoint bases'
@@ -140,17 +142,19 @@ An endpoint that has a persistent value across activations of a component is
 well modelled by storing the value as a persistent member variable. It's
 convenient to store this inside a struct to enable metadata to be associated
 with the value in the form of compile-time evaluated methods, types, and
-enumerators, but this makes accessing the value of the variable it cumbersome,
-as in e.g. `outputs.parameter.value = inputs.parameter.value`. To ease this
-discomfort, we with to provide conversion and assignment operators so that an
-instance of a value class can be treated direclty as though it were the value
+enumerators, but this makes accessing the value of the variable cumbersome, as
+in e.g. `outputs.parameter.value = inputs.parameter.value`. To ease this
+discomfort, we wish to provide conversion and assignment operators so that an
+instance of a value class can be treated directly as though it were the value
 itself rather than a container for it, while also retaining the benefit of
-providing a convenient containment point for metadata.
+providing a convenient containment point for metadata. We then wish for our
+helpers to inherit these operators to provide the value semantics to
+instantiations of the helpers.
 
 Unfortunately, assignment operators in particular are tricky to inherit due to
 C++'s automatically generated default assignment operators, which shadow the
-explicitly defined ones on our persistent value base class. We could explictly
-drawn the base class's assignment into the derived class with a `using`
+explicitly defined ones on our persistent value base class. We can explictly
+draw in the base class's assignment into the derived class with a `using`
 declaration in public scope, e.g. `using persistent<T>::operator=`, but then
 assignment to the derived class would return a reference to the base class.
 
@@ -171,12 +175,16 @@ struct persistent
     using type = T;
     T value;
     constexpr persistent() noexcept : value{} {}
+
+    // convert from T
     constexpr persistent(T&& t) noexcept {value = std::move(t);}
     constexpr persistent(const T& t) noexcept : value{t} {}
-    constexpr operator T&() noexcept {return value;}
-    constexpr operator const T&() const noexcept {return value;}
     constexpr auto& operator=(T&& t) noexcept {value = std::move(t); return *this;}
     constexpr auto& operator=(const T& t) noexcept {value = t; return *this;}
+
+    // convert to T
+    constexpr operator T&() noexcept {return value;}
+    constexpr operator const T&() const noexcept {return value;}
 };
 // @/
 
@@ -204,20 +212,74 @@ clear `std::optional` valued endpoints before activating a component so that it
 can signal hot outputs and recognize hot inputs. Afterwards, the platform is
 expected to inspect hot outputs and take appropriate action if any are present.
 An important consequence of this semantics is that, unlike a persistent value
-endpoint, the state of hot outputs is not expected to be the unaltered by the
+endpoint, the state of hot outputs is not expected to be unaltered by the
 platform across invocations of a component, and so cannot be used to carry
 state across invocations as with a persistent value endpoint.
 
-For now, we wholesale subsume `std::optional` by defining our occasional value
-class as an alias for the former. There are probably good reasons not to do
-this, not least of all that it gives us no control over the API for our
-optional values, but it's a lowly hack that gets us moving on quickly, so we'll
-take it for now.
+Initially, we chose to wholesale subsume `std::optional` by defining our
+occasional value class as an alias for the former. There were good reasons not
+to do this, not least of all that it gave us no control over the API for our
+optional values, but it was a lowly hack that got us moving on quickly.
+However, the semantics just described, where the value of an occasional
+output vanishes between invocations of the associated component, proved to
+be more inconvenient than anticipated. For example, in
+[the button gesture model](components/sensors/button.lili.md), the output
+state is meant to reflect the debounced state of the button. In order to
+recognize when the input state has changed, it needs to be compared with
+the output. Since an occasional value implemented as `std::optional` has
+its state cleared in between calls, this kind of comparison is not possible.
+
+To support this kind of usage, in addition to the value of the endpoint, we
+store a boolean flag that reflects whether the value has been updated. We then
+implement `std::optional`-like semantics around these data members. So the
+interpretation is not that our occasional type "occasionally has a value", but
+that it "has a value that is occasionally updated." Given this, we also allow
+our occasional value type to be converted freely to the type of its underlying
+value, giving it value semantics. Although this makes it ill-formed to have
+an `occasional<bool>`, we consider it an acceptable tradeoff.
+
+Arguably the full `std::optional`-like interface is poorly matched to our
+intention here, since it implies "occasionally has a value". We retain it
+nevertheless with the assumption that doing so will improve the compatibility
+of our components with Avendish.
 
 ```cpp
 // @+'endpoint bases'
 template <typename T>
-using occasional = std::optional<T>;
+struct occasional
+{
+    using type = T;
+    T state;
+    bool updated;
+
+    constexpr occasional() noexcept : state{}, updated{false} {}
+    constexpr auto& operator=(const occasional<T>& other)
+    {
+        if (other.updated)
+        {
+            state = other.state;
+            updated = true;
+        } else updated = false; // keep current value
+        return *this;
+    }
+    constexpr operator T&() noexcept {return state;}
+    constexpr operator const  T&() const noexcept {return state;}
+
+    // optional-like semantics
+    constexpr occasional(T&& t) noexcept : state{std::move(t)}, updated{true} {}
+    constexpr occasional(const T& t) noexcept : state{t}, updated{true} {}
+    constexpr auto& operator=(T&& t) noexcept {state = std::move(t); updated = true; return *this;}
+    constexpr auto& operator=(const T& t) noexcept {state = t; updated = true; return *this;}
+    constexpr operator bool() noexcept {return updated;}
+    constexpr T& operator *() noexcept {return state;}
+    constexpr const T& operator *() const noexcept {return state;}
+    constexpr T* operator ->() noexcept {return &state;}
+    constexpr const T* operator ->() const noexcept {return &state;}
+    constexpr T& value() noexcept {return state;}
+    constexpr const T& value() const noexcept {return state;}
+    constexpr void reset() noexcept {updated = false;} // maintains current state
+};
+
 // @/
 
 // @+'tests'
@@ -248,12 +310,44 @@ the following helpers are provided which attach tags with recognized value
 within this project. The interpretation is given in
 [the endpoints concepts document](concepts/endpoints.lili.md);
 
+First we define structures that each have one recognized tag.
+
 ```cpp
 // @+'helpers'
 #define tag(TAG) struct tag_##TAG {enum {TAG}; }
 tag(write_only);
 tag(session_data);
 #undef tag
+// @/
+```
+
+Then we define a template class that inherits from all its type arguments:
+
+```cpp
+// @+'helpers'
+template<typename ... Tags>
+struct tagged_ : Tags... {};
+// @/
+```
+
+Our endpoint helpers then inherit the `tagged_` class with their own
+variadic template type argument packs, allowing users to add arbitary
+combinations of tags to them. The resultant template instantiations
+inherit the enumerations from the tag classes, allowing this kind of
+metadata to be readily associated with them.
+
+```cpp
+// @+'tests'
+struct tag_foo {enum {foo};};
+struct tag_bar {enum {bar};};
+template<typename ... Tags>
+struct tag_helper_test : tagged_<Tags...> {};
+tag_helper_test<> t1; // make sure this compiles
+tag_helper_test<tag_foo> t2;
+static_assert(t2.foo == tag_foo::foo);
+tag_helper_test<tag_foo, tag_bar> t3;
+static_assert(t3.foo == tag_foo::foo);
+static_assert(t3.bar == tag_bar::bar);
 // @/
 ```
 
@@ -264,31 +358,34 @@ from them.
 
 ```cpp
 // @+'helpers'
-template<string_literal name_str, string_literal desc = "", char init = 0>
+template<string_literal name_str, string_literal desc = "", char init = 0, typename ... Tags>
 struct button
 : occasional<char>
 , name_<name_str>
 , description_<desc>
 , range_<0, 1, init>
+, tagged_<Tags...>
 {
     using occasional<char>::operator=;
 };
 
-template<string_literal name_str, string_literal desc = "", char init = 0>
+template<string_literal name_str, string_literal desc = "", char init = 0, typename ... Tags>
 struct toggle
 : persistent<char>
 , name_<name_str>
 , description_<desc>
 , range_<0, 1, init>
+, tagged_<Tags...>
 {
     using persistent<char>::operator=;
 };
 
-template<string_literal name_str, string_literal desc = "">
+template<string_literal name_str, string_literal desc = "", typename ... Tags>
 struct text
 : persistent<std::string>
 , name_<name_str>
 , description_<desc>
+, tagged_<Tags...>
 {
     using persistent<std::string>::operator=;
 };
@@ -299,12 +396,14 @@ template< string_literal name_str
         , num_literal<T> min = 0.0f
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min
+        , typename ... Tags
         >
 struct slider
 : persistent<float>
 , name_<name_str>
 , description_<desc>
 , range_<min, max, init>
+, tagged_<Tags...>
 {
     using persistent<float>::operator=;
 };
@@ -379,11 +478,12 @@ avoid at this point.
 
 ```cpp
 // @+'helpers'
-template<string_literal name_str, string_literal desc = "">
+template<string_literal name_str, string_literal desc = "", typename ... Tags>
 struct bng
 : persistent<bool>
 , name_<name_str>
 , description_<"">
+, tagged_<Tags...>
 {
     using persistent<bool>::operator=;
     enum {bang, impulse};

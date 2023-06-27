@@ -954,6 +954,8 @@ We generically describe both components and endpoints using the same methods,
 which reflect on the input entity using concepts, recursing over nested
 entities where they are found. Note that `Bang` related branches need to appear
 before others, since a `Bang` is currently implemented as a `PersistentValue`.
+Similarly, since `OccasionalValue` merely imposes additional constraints on
+those of `PersistentValue`, it should be checked before the latter.
 
 ```cpp
 // @+'describe implementation details'
@@ -963,10 +965,10 @@ void describe_entity_type(auto& log, T& entity)
     if constexpr (Bang<T>) log.println("bang");
     else if constexpr (has_value<T>)
     {
-        if constexpr (PersistentValue<T>)
-            log.print("persistent ");
-        else if constexpr (OccasionalValue<T>)
+        if constexpr (OccasionalValue<T>)
             log.print("occasional ");
+        else if constexpr (PersistentValue<T>)
+            log.print("persistent ");
         if constexpr (std::integral<value_t<T>>)
             log.println("int");
         else if constexpr (std::floating_point<value_t<T>>)
@@ -986,15 +988,18 @@ void describe_entity_value(auto& log, T& entity)
         if (entity) log.println("(bang!)");
         else log.println("()");
     }
-    else if constexpr (PersistentValue<decltype(entity)>)
+    else if constexpr (OccasionalValue<T>)
+    {
+        if (entity) log.println("(", value_of(entity), ")");
+        else log.println("()");
+    }
+    else if constexpr (PersistentValue<T>)
     {
         if constexpr (tagged_write_only<T>) log.println("WRITE ONLY");
         else if constexpr (string_like<value_t<T>>)
             log.println("\"", value_of(entity), "\"");
         else log.println(value_of(entity));
     }
-    else if (entity) log.println("(", value_of(entity), ")");
-    else log.println("()");
 }
 
 template<typename T>

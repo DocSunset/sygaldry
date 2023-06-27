@@ -56,47 +56,43 @@ struct WiFi
 , description_<"An ESP-IDF WiFi API wrapper originally adapted from the Puara Module Manager">
 {
     struct inputs_t {
-        struct hostname_t
-        : text<"hostname"
-              , "Name of this device on the network."
-                "Must be less than 31 bytes long."
-                "Requires reboot to take effect."
-              >
-        , tag_session_data { using text::operator=; } hostname;
-        struct ap_ssid_t
-        : text<"access point SSID"
-              , "Name of the device-hosted network."
-                "Must be less than 31 bytes long."
-                "Requires reboot to take effect."
-              >
-        , tag_session_data { using text::operator=; } ap_ssid;
-        struct ap_password_t
-        : text<"access point password"
-              , "Password of the device-hosted network."
-                "Must be greater than 8 and less than 63 bytes long."
-                "Requires reboot to take effect."
-              >
-        , tag_write_only, tag_session_data { using text::operator=; } ap_password;
-        struct wifi_ssid_t
-        : text<"WiFi SSID"
-              , "Name of the WiFi network to connect to."
-                "Must be less than 31 bytes long."
-                "Requires reboot to take effect."
-              >
-        , tag_session_data { using text::operator=; } wifi_ssid;
-        struct password_t
-        : text<"WiFi password"
-              , "Password of the WiFi network to connect to."
-                "Must be greater than 8 and less than 63 bytes long."
-                "Requires reboot to take effect."
-              >
-        , tag_write_only, tag_session_data { using text::operator=; } wifi_password;
-        struct enable_ap_t
-        : toggle<"enable access point"
-                , "Indicate whether to persistently enable the device-hosted network."
-                  "When this toggle is disabled, the access point is only enabled if"
-                  "the device fails to connect to WiFi in station mode.">
-        , tag_session_data { using toggle::operator=; } enable_ap;
+        text< "hostname"
+            , "Name of this device on the network."
+              "Must be less than 31 bytes long."
+              "Requires reboot to take effect."
+            , tag_session_data
+            > hostname;
+        text< "access point SSID"
+            , "Name of the device-hosted network."
+              "Must be less than 31 bytes long."
+              "Requires reboot to take effect."
+            , tag_session_data
+            > ap_ssid;
+        text< "access point password"
+            , "Password of the device-hosted network."
+              "Must be greater than 8 and less than 63 bytes long."
+              "Requires reboot to take effect."
+            , tag_session_data, tag_write_only
+            > ap_password;
+        text< "WiFi SSID"
+            , "Name of the WiFi network to connect to."
+              "Must be less than 31 bytes long."
+              "Requires reboot to take effect."
+            , tag_session_data
+            > wifi_ssid;
+        text< "WiFi password"
+            , "Password of the WiFi network to connect to."
+              "Must be greater than 8 and less than 63 bytes long."
+              "Requires reboot to take effect."
+            , tag_session_data, tag_write_only
+            > wifi_password;
+        toggle< "enable access point"
+              , "Indicate whether to persistently enable the device-hosted network."
+                "When this toggle is disabled, the access point is only enabled if"
+                "the device fails to connect to WiFi in station mode."
+              , 0
+              , tag_session_data
+              > enable_ap;
     } inputs;
 
     struct outputs_t {
