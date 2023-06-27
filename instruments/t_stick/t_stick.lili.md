@@ -36,24 +36,28 @@ struct TStick : _name("T-Stick")
         /* ... */
     };
 
-    struct parts_t {
-        struct instrument_t {
+    struct API {
+        struct Instrument {
             Sensors sensors;
             Synth synth;
             TStickCrossModalMapping<get_outputs_t<decltype(sensors)>, get_inputs_t<decltype(synth)>> mapping;
         } instrument;
 
-        struct bindings {
-            SessionManager<Eeprom<Log, JsonSerializer>, decltype(instrument)>  eeprom;
+        struct Bindings {
             esp32::WifiDriver wifi;
-            LibloOsc<decltype(instrument), idf_config::default_name> liblo;
-            LibmapperDevice<decltype(instrument), idf_config::default_name> libmapper;
+            LibloOsc<Instrument, idf_config::default_name> liblo;
+            LibmapperDevice<Instrument, idf_config::default_name> libmapper;
         } bindings;
 
-        HttpServer< ConfigWebpage<decltype(bindings), idf_config::config_page_url>
-                  , ViewerWebpage<decltype(instrument), idf_config::viewer_page_url>
+        HttpServer< ConfigWebpage<Session::Bindings, idf_config::config_page_url>
+                  , ViewerWebpage<Session::Instrument, idf_config::viewer_page_url>
                   > http_server;
-        Cli<Log, decltype(bindings)> cli;
+    };
+
+    struct parts_t {
+        esp32::SessionManager<API> session_manager;
+        API api;
+        Cli<Log, API> cli;
     } parts;
 } constinit tstick{};
 
