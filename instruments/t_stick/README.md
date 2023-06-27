@@ -1,1 +1,0 @@
-t_stick.lili
