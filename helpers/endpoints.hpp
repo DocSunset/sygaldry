@@ -122,6 +122,16 @@ struct text
     using persistent<std::string>::operator=;
 };
 
+template<string_literal name_str, string_literal desc = "", typename ... Tags>
+struct text_message
+: occasional<std::string>
+, name_<name_str>
+, description_<desc>
+, tagged_<Tags...>
+{
+    using occasional<std::string>::operator=;
+};
+
 template< string_literal name_str
         , string_literal desc = ""
         , arithmetic T = float
