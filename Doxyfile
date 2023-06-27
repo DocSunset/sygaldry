@@ -825,7 +825,7 @@ LAYOUT_FILE            =
 # LATEX_BIB_STYLE. To use this feature you need bibtex and perl available in the
 # search path. See also \cite for info how to create references.
 
-CITE_BIB_FILES         =
+CITE_BIB_FILES         = ./doxygen/citations.bib
 
 #---------------------------------------------------------------------------
 # Configuration options related to warning and progress messages
@@ -943,7 +943,33 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = .
+INPUT                  = ./README.md\
+                         ./concepts/README.md\
+                         ./concepts/metadata.lili.md\
+                         ./concepts/endpoints.lili.md\
+                         ./concepts/components.lili.md\
+                         ./concepts/runtime.lili.md\
+                         ./helpers/metadata.lili.md\
+                         ./helpers/endpoints.lili.md\
+                         #./components/README.md\
+                         #./components/sensors/README.md\
+                         ./components/sensors/button.lili.md\
+                         ./components/sensors/gpio.lili.md\
+                         #./components/esp32/README.md\
+                         ./components/esp32/button.lili.md\
+                         ./components/esp32/gpio.lili.md\
+                         #./bindings/README.md\
+                         ./bindings/liblo.lili.md\
+                         ./bindings/cli/cli.lili.md\
+                         ./bindings/spelling.lili.md\
+                         ./bindings/name_dispatch.lili.md\
+                         ./bindings/esp32/wifi.lili.md\
+                         ./bindings/basic_logger/basic_logger.lili.md\
+                         ./bindings/basic_reader/basic_reader.lili.md\
+                         ./bindings/output_logger.lili.md\
+                         ./instruments/t_stick/t_stick.lili.md\
+                         ./instruments/one-bit-bongo/one-bit-bongo-esp32/one-bit-bongo-esp32.lili.md\
+                         .
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

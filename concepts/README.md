@@ -3,39 +3,33 @@
 The concepts library defines the expected conventions for components and
 bindings. As such, it is the root of the `sygaldry` framework, and used
 extensively by components and bindings alike, but especially by bindings and
-other components with throughpoints and plugins. This document provides an
-overview of the conceptual framework that guides the concepts library, and
-`sygaldry` as a whole by extension.
+other components with *throughpoints* and *plugins* (described later). This
+document provides an overview of the conceptual framework that guides the
+concepts library, and `sygaldry` as a whole by extension.
 
 # Components
 
-A digital musical instrument is an assemblage of components that generate,
-process, and output various forms of information with numerous different
-structures and temporal characteristics. We define a *component* as a part of a
-musical instrument assemblage that implements a specific characteristic
-functionality or meaningfully associated group of functionalities. Components
-themselves may contain subcomponents that are used to implement their
-functionality, or their whole functionality may directly derive from their
-subcomponents.
-
-We presently model two kinds of components depending on how they are
-structured. A regular component defines a main subroutine, and has at least one
-of the following: endpoints, throughpoints, parts, or plugins. The
-functionality of a regular component is determined by its main subroutine. A
-container component is a simple aggregate that usually contains subcomponents.
-It may not have throughpoints or external plugins, as a consequence of having
-no main subroutine. Its functionality is defined by running the main
-subroutines of its subcomponents. Container components are not required to have
-a name.
+A digital musical instrument (DMI) is an assemblage of components that
+generate, process, and output various forms of information with numerous
+different structures and temporal characteristics, with the purpose of creating
+musically meaningful signals (for some interpretation of what constitutes
+meaning). We define a *component* as a part of a DMI assemblage that implements
+a specific characteristic functionality or meaningfully associated group of
+functionalities. Components themselves may contain subcomponents that are used
+to implement their functionality, or their whole functionality may directly
+derive from their subcomponents.
 
 # Ports
 
 We define a *port* as a point in the flow of data that is associated with a
 certain component, and can be said to be a source or destination of data
-flowing through overall assemblage. We define an *endpoint* as a port with
+flowing through the overall assemblage. We define an *endpoint* as a port with
 which metadata is readily associated, such as a name and range. We define
 a *throughpoint* as a port that inherits its semantic interpretation from
 the source or destination of the data flowing through it.
+
+C++ concepts for differentiating different kinds of ports (especially endpoints)
+are provided in [the endpoints concepts document](concepts/endpoints.lili.md)
 
 ## Endpoints
 
@@ -51,17 +45,15 @@ frequency", and from `B`'s perspective the data arriving at these endpoints are
 its *inputs*. Notice that the data that `A` sees as outputs are the same data
 that `B` sees as inputs. However, even through the data may be identical, `A`
 and `B` have differing perspectives on the semantics and interpretation of that
-information. The interpretation of endpoints depends only on the component with
-which they are associated.
+information. The interpretation of an endpoint depends only on the component
+with which it is associated.
 
-Endpoints are declared within the simple aggregate `inputs` and `outputs`
-structures of a component. Each endpoint within these structures must be a
-unique type, which is easy enough to achieve using template classes and/or
-inheritance. This is necessary to allow implementation of throughpoint
-combinators. Input and output structures should also be permitted to
-recursively contain simple aggregate structures that can optionally be named,
-allowing to build hierarchical namespaces of endpoints, although TODO this has
-not been implemented yet.
+We model endpoints as being declared within the simple aggregate `inputs` and
+`outputs` structures of a component. Input and output structures should ideally
+be permitted to recursively contain simple aggregate structures that can
+optionally be named, allowing to build hierarchical namespaces of endpoints,
+although TODO this has not been implemented yet due to challenges related to
+type reflection in C++ (see below).
 
 ## Throughpoints
 
@@ -79,7 +71,7 @@ according to `C`'s view of the data. `B`'s ports in this example are defined as
 *throughpoints*. Whereas shifts in semantic interpretation are implied by
 passing endpoints, semantic interpretation flows unchanged past throughpoints.
 
-TODO A component's throughpoints are declared by first using class template
+A component's throughpoints are declared by first using class template
 parameters that accept `outputs` and/or `inputs` struct types that represent
 the source and destination of the throughpoints. Then the component must accept
 structs of those types by reference as arguments to its main subroutine.
@@ -88,24 +80,22 @@ reference arguments, while `inputs` to a destination component should be
 accepted as mutable reference arguments. TODO A variety of combinator templates
 will be provided to allow the combination and filtering out of endpoints from
 one or more components before passing them to a throughpoint. E.g. the template
-arguments for inputs and outputs may be endpoint structures, or type lists of
-endpoints, and the main subroutine of the throughpoint may accept an arbitrary
-number of input components from which the required endpoints can be located at
-compile time using a generic `find<endpoint struct or list>(list of candidate
-containers...)` method that finds an endpoint struct from a list of components
-or generates a tuple of references to endpoints in said list of components from
-a type list of endpoints. Throughpoints can be detected by whether arguments
-to its main subroutine are endpoint structures or lists of endpoints.
+arguments for inputs and outputs may be endpoint structures, or tuples of
+endpoints.
 
 # Subassemblies and Subcomponents
 
-A component that is itself assembled with other components is said to be a
-*subassembly*, by analogy with a product subassembly in a larger product, or
-sometimes more generically as a super-component. The other components that make
-up a subassembly are called *subcomponents*. A subcomponent is called a *part*,
-in keeping with the product design analogy, if and only if the subassembly is
-solely responsible for managing the subcomponent. A subcomponent that the
-assmebly uses but is not solely responsible for is called a *plugin*.
+A component that is itself assembled from other components is said to be a
+*subassembly*, emphasizing its role in the overall DMI assemblage by analogy
+with a product subassembly in a larger product, or as a super-component,
+emphasizing its role as a container of other components. The other components
+that make up a subassembly are called *subcomponents*. A subcomponent is called
+a *part*, in keeping with the product design analogy, if and only if the
+subassembly is solely responsible for managing the subcomponent. A subcomponent
+that the assmebly uses but is not solely responsible for is called a *plugin*.
+
+Component concepts are provided in
+[the related document](concepts/components.lili.md)
 
 ## Parts
 
@@ -113,9 +103,10 @@ Parts are declared similarly to endpoints, as plain member variables of a
 simple aggregate `parts` structure of the subassembly component, allowing the
 subassembly's parts to be reflected over recursively. Subassemblies are
 required to initialize and manage all interactions with their parts, but the
-ports of their parts TODO are expected to be exposed by bindings from the
-subassembly. This exposure will TODO be controlled through a variety of
-mechanisms to be determined later.
+ports of their parts are expected to be exposed by bindings from the
+subassembly. This exposure will eventually be controlled through a variety of
+mechanisms to be determined later, so that certain endpoints may be hidden
+from the default external exposure.
 
 Often it is unnecessary for a subassembly to know all the details about all of
 its parts, and by using some of its parts implicitly, platform-dependencies can
@@ -134,3 +125,18 @@ known to the plugin user. This situation is handled similarly to throughpoints,
 described above. The required component is declared as a class template type
 parameter, an instance of which type is passed to the subassembly component's
 main subroutine as a mutable reference. This pattern is termed a *plugin*.
+
+# The Component Tree and the Runtime
+
+The design of many useful DMIs can be fully expressed by a declarative list of
+their subcomponents and the throughpoint, part parameter, and plugin
+dependencies between them, e.g. [the
+T-Stick](/instruments/t_stick/t_stick.lili.md). This kind of declarative
+assemblage, realized as a simple aggregate structure of components, can be
+decomposed into a tree-like structure called *the component tree*, which
+enables various forms of filtering and searching. Using type reflection to
+recognize throughpoint and plugin types, these dependencies can be
+automatically propagated to components that need them by extracting references
+to the required dependencies from the component tree. Template metaprogramming
+machinery that implements this technique is described in
+[the runtime document](concepts/runtime.lili.md).
