@@ -66,18 +66,18 @@ parameters.
 
 ```cpp
 // @+'inputs'
-text< "source port"
-    , "The UDP port on which to receive incoming messages."
-    , tag_session_data
-    > src_port;
-text< "destination port"
-    , "The UDP port on which to send outgoing messages."
-    , tag_session_data
-    > dst_port;
-text< "destination address"
-    , "The IP address to send outgoing messages to."
-    , tag_session_data
-    > dst_addr;
+text_message< "source port"
+            , "The UDP port on which to receive incoming messages."
+            , tag_session_data
+            > src_port;
+text_message< "destination port"
+            , "The UDP port on which to send outgoing messages."
+            , tag_session_data
+            > dst_port;
+text_message< "destination address"
+            , "The IP address to send outgoing messages to."
+            , tag_session_data
+            > dst_addr;
 // @/
 ```
 
@@ -104,7 +104,11 @@ bool port_is_valid(auto& port)
 
 void set_server()
 {
+    bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
+    if (outputs.server_running && not port_updated) return;
+
     if (server) lo_server_free();
+
     outputs.server_running = 0;
 
     bool no_user_src_port = not port_is_valid(inputs.src_port);
@@ -114,7 +118,6 @@ void set_server()
     else
         server = lo_server_new(NULL, &LibloOsc::server_error_handler);
     if (server == NULL) return;
-
 
     if (no_user_src_port)
     {
@@ -132,6 +135,19 @@ void set_server()
 
 // @+'init'
 set_server();
+// @/
+```
+
+The error handler simply logs the error. Liblo's error codes are inherited from
+whatever Posix network API implementation generates them, so it's very
+challenging to handle them. In normal use, errors should not occur.
+
+```cpp
+// @='server_error_handler'
+static void server_error_handler(int num, const char *msg, const char *where)
+{
+    fprintf(stderr, "liblo error: %s %s\n", msg, where);
+}
 // @/
 ```
 
@@ -156,7 +172,8 @@ void dst_inputs_are_valid()
 
 void set_dst()
 {
-    if (not dst_inputs_are_valid()) return;
+    bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
+    if (not dst_updated) return;
     if (dst) lo_address_free(dst);
     dst = lo_address_new(inputs.dst_addr.value.c_str(), inputs.dst_port.value.c_str());
     if (dst) outputs.output_running = 1;
@@ -173,7 +190,7 @@ set_dst();
 ## Registering callbacks
 
 There are broadly two appoaches that we could take for the server callback
-methods. One one hand, we could register one method for each input endpoint in
+methods. On one hand, we could register one method for each input endpoint in
 the component tree. This may use more memory at runtime, as each method
 requires a dynamic allocation for a `lo_method` struct. In exchange, liblo
 handles all of the pattern and argument type matching without our intervention.
@@ -186,9 +203,9 @@ get to a working implementation more quickly. If runtime memory becomes an
 issue, this may be one area where gains could be made.
 
 For each input endpoint in the component tree, we register a callback that
-defers setting the input to an overloaded template function that does most
-of the work; the callback basically just holds the type information of the
-endpoint.
+defers setting the input to an overloaded template function that does most of
+the work; the callback registered with liblo basically just holds the type
+information of the endpoint.
 
 ```cpp
 // @='register callbacks'
@@ -210,6 +227,13 @@ for_each_input(components, [&]<typename T>(T& in)
 // @/
 ```
 
+The inner callback simply inspects the endpoint and attempts to apply the
+OSC arguments to it.
+
+```cpp
+// TODO
+```
+
 # Main
 
 On each call to the main subroutine, we perform three main tasks:
@@ -218,7 +242,35 @@ On each call to the main subroutine, we perform three main tasks:
 - We poll the server
 - And we send output messages
 
-# if any endpoints have been updated Liblo OSC Binding Summary
+```cpp
+// @='main'
+set_server();
+set_dst();
+if (outputs.server_running) lo_server_recv_noblock(server, 0);
+if (outputs.output_running)
+{
+    for_each_output(components, [&]<typename T>(const T& output)
+    {
+        if constexpr (Bang<T>)
+        {
+            if (value_of(output)) lo_send(address, osc_path_v<T>, NULL);
+            return;
+        }
+        else if constexpr (has_value<T>)
+        {
+            if constexpr (OccasionalValue<T>) if (not bool(output)) return
+            std::apply([&](auto& ... args)
+            {
+                lo_send(address, osc_path_v<T>, osc_types_v<T>, args...);
+            }, value_tie(output));
+            return;
+        }
+    });
+}
+// @/
+```
+
+# Liblo OSC Binding Summary
 
 ```cpp
 // @#'liblo.hpp'
@@ -226,6 +278,7 @@ On each call to the main subroutine, we perform three main tasks:
 @{copyright statement}
 */
 #pragma once
+#include <stdio.h>
 #include <charconv>
 #include <lo.h>
 #include <lo_lowlevel.h>
@@ -241,6 +294,12 @@ template<typename T> void set_input(const char *path, const char *types
                                    , lo_arg **argv, int argc, lo_message msg
                                    , T& in
                                    ) {};
+
+// TODO: implement value_tie
+template<typename T> std::tuple<> value_tie(T& endpoint)
+{
+    return {};
+}
 
 template<typename Components>
 struct LibloOsc
@@ -264,6 +323,8 @@ struct LibloOsc
     @{set_server}
 
     @{set_dst}
+
+    @{server_error_handler}
 
     void init(Components& components)
     {

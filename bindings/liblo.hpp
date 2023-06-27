@@ -1,6 +1,7 @@
 /*
 */
 #pragma once
+#include <stdio.h>
 #include <charconv>
 #include <lo.h>
 #include <lo_lowlevel.h>
@@ -17,6 +18,12 @@ template<typename T> void set_input(const char *path, const char *types
                                    , T& in
                                    ) {};
 
+// TODO: implement value_tie
+template<typename T> std::tuple<> value_tie(T& endpoint)
+{
+    return {};
+}
+
 template<typename Components>
 struct LibloOsc
 : name_<"Liblo OSC">
@@ -27,18 +34,18 @@ struct LibloOsc
 , description_<"Open Sound Control bindings using the liblo library">
 {
     struct inputs_t {
-        text< "source port"
-            , "The UDP port on which to receive incoming messages."
-            , tag_session_data
-            > src_port;
-        text< "destination port"
-            , "The UDP port on which to send outgoing messages."
-            , tag_session_data
-            > dst_port;
-        text< "destination address"
-            , "The IP address to send outgoing messages to."
-            , tag_session_data
-            > dst_addr;
+        text_message< "source port"
+                    , "The UDP port on which to receive incoming messages."
+                    , tag_session_data
+                    > src_port;
+        text_message< "destination port"
+                    , "The UDP port on which to send outgoing messages."
+                    , tag_session_data
+                    > dst_port;
+        text_message< "destination address"
+                    , "The IP address to send outgoing messages to."
+                    , tag_session_data
+                    > dst_addr;
     } inputs;
 
     struct outputs_t {
@@ -58,7 +65,11 @@ struct LibloOsc
 
     void set_server()
     {
+        bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
+        if (outputs.server_running && not port_updated) return;
+
         if (server) lo_server_free();
+
         outputs.server_running = 0;
 
         bool no_user_src_port = not port_is_valid(inputs.src_port);
@@ -68,7 +79,6 @@ struct LibloOsc
         else
             server = lo_server_new(NULL, &LibloOsc::server_error_handler);
         if (server == NULL) return;
-
 
         if (no_user_src_port)
         {
@@ -105,11 +115,17 @@ struct LibloOsc
 
     void set_dst()
     {
-        if (not dst_inputs_are_valid()) return;
+        bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
+        if (not dst_updated) return;
         if (dst) lo_address_free(dst);
         dst = lo_address_new(inputs.dst_addr.value.c_str(), inputs.dst_port.value.c_str());
         if (dst) outputs.output_running = 1;
         else outputs.output_running = 0;
+    }
+
+    static void server_error_handler(int num, const char *msg, const char *where)
+    {
+        fprintf(stderr, "liblo error: %s %s\n", msg, where);
     }
 
     void init(Components& components)
@@ -121,6 +137,29 @@ struct LibloOsc
 
     void main(Components& components)
     {
+        set_server();
+        set_dst();
+        if (outputs.server_running) lo_server_recv_noblock(server, 0);
+        if (outputs.output_running)
+        {
+            for_each_output(components, [&]<typename T>(const T& output)
+            {
+                if constexpr (Bang<T>)
+                {
+                    if (value_of(output)) lo_send(address, osc_path_v<T>, NULL);
+                    return;
+                }
+                else if constexpr (has_value<T>)
+                {
+                    if constexpr (OccasionalValue<T>) if (not bool(output)) return
+                    std::apply([&](auto& ... args)
+                    {
+                        lo_send(address, osc_path_v<T>, osc_types_v<T>, args...);
+                    }, value_tie(output));
+                    return;
+                }
+            });
+        }
     }
 };
 
