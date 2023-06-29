@@ -90,7 +90,7 @@ catch_discover_tests(output-logger-tests)
 #include "concepts/metadata.hpp"
 #include "concepts/components.hpp"
 #include "helpers/metadata.hpp"
-#include "bindings/spelling.hpp"
+#include "bindings/osc_string_constants.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
 
 namespace sygaldry { namespace bindings {
@@ -114,13 +114,13 @@ struct OutputLogger : name_<"Output Logger">
                 if constexpr (Bang<T>)
                 {
                     if (value_of(current_out))
-                        log.println(osc_address_v<path_t<T, Components>>);
+                        log.println(osc_path_v<T, Components>);
                     return;
                 }
                 else
                 {
                     last_out = current_out;
-                    log.print(osc_address_v<path_t<T, Components>>);
+                    log.print(osc_path_v<T, Components>);
                     if constexpr (has_value<T>)
                         log.print(" ", value_of(current_out));
                     log.println();

@@ -1,4 +1,5 @@
 add_subdirectory(tests/spelling)
+add_subdirectory(tests/osc_string_constants)
 add_subdirectory(tests/name_dispatch)
 add_subdirectory(tests/output_logger)
 add_subdirectory(basic_logger)

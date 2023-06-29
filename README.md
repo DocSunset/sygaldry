@@ -5,6 +5,8 @@ that are replicable, readable, and reliable, using C++20 reflection and
 metaprogramming, a subcomponent-oriented development focus, and literate
 programming.
 
+[TOC]
+
 # Quick Start
 
 The Doxygen-generated documentation is not yet available online. In the

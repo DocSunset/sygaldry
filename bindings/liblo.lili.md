@@ -98,23 +98,23 @@ toggle<"server running"> server_running;
 bool port_is_valid(auto& port)
 {
     int port_num = -1;
-    auto [ ptr, ec ] = std::from_chars(port.value.c_str(), port.value.c_str() + port.value.length(), port_num);
+    auto [ ptr, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
     return 1024 <= port_num && port_num <= 49151;
 }
 
-void set_server()
+void set_server(auto& components)
 {
     bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
     if (outputs.server_running && not port_updated) return;
 
-    if (server) lo_server_free();
+    if (server) lo_server_free(server);
 
     outputs.server_running = 0;
 
     bool no_user_src_port = not port_is_valid(inputs.src_port);
 
     if (no_user_src_port)
-        server = lo_server_new(inputs.src_port.value.c_str(), &LibloOsc::server_error_handler);
+        server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
     else
         server = lo_server_new(NULL, &LibloOsc::server_error_handler);
     if (server == NULL) return;
@@ -124,7 +124,7 @@ void set_server()
         char port_str[6] = {0};
         int port_num = lo_server_get_port(server);
         snprintf(port_str, 6, "%d", port_num);
-        inputs.src_port.value = port_str;
+        inputs.src_port.value() = port_str;
     }
 
     @{register callbacks}
@@ -134,7 +134,7 @@ void set_server()
 // @/
 
 // @+'init'
-set_server();
+set_server(components);
 // @/
 ```
 
@@ -164,10 +164,10 @@ toggle<"output running"> output_running;
 // @/
 
 // @='set_dst'
-void dst_inputs_are_valid()
+bool dst_inputs_are_valid()
 {
     // TODO: implement a more robust verification of the dst ip address
-    return inputs.dst_addr.value.length() >= 7 and port_is_valid(inputs.dst_port);
+    return inputs.dst_addr->length() >= 7 and port_is_valid(inputs.dst_port);
 }
 
 void set_dst()
@@ -175,7 +175,7 @@ void set_dst()
     bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
     if (not dst_updated) return;
     if (dst) lo_address_free(dst);
-    dst = lo_address_new(inputs.dst_addr.value.c_str(), inputs.dst_port.value.c_str());
+    dst = lo_address_new(inputs.dst_addr->c_str(), inputs.dst_port->c_str());
     if (dst) outputs.output_running = 1;
     else outputs.output_running = 0;
 }
@@ -211,16 +211,17 @@ information of the endpoint.
 // @='register callbacks'
 for_each_input(components, [&]<typename T>(T& in)
 {
-    void * handler = +[]( const char *path, const char *types
-                        , lo_arg **argv, int argc, lo_message msg
-                        , void *user_data
-                        )
+    constexpr auto handler = +[]( const char *path, const char *types
+                                , lo_arg **argv, int argc, lo_message msg
+                                , void *user_data
+                                )
     {
         T in = *(T*)user_data;
         set_input(path, types, argv, argc, msg, in);
+        return 0;
     };
     auto method = lo_server_add_method( server
-                                      , osc_address_v<T>, osc_types_v<T>
+                                      , osc_path_v<T, Components>, osc_types_v<T>
                                       , handler, (void*)&in
                                       );
 });
@@ -244,7 +245,7 @@ On each call to the main subroutine, we perform three main tasks:
 
 ```cpp
 // @='main'
-set_server();
+set_server(components);
 set_dst();
 if (outputs.server_running) lo_server_recv_noblock(server, 0);
 if (outputs.output_running)
@@ -253,7 +254,7 @@ if (outputs.output_running)
     {
         if constexpr (Bang<T>)
         {
-            if (value_of(output)) lo_send(address, osc_path_v<T>, NULL);
+            if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
             return;
         }
         else if constexpr (has_value<T>)
@@ -261,7 +262,7 @@ if (outputs.output_running)
             if constexpr (OccasionalValue<T>) if (not bool(output)) return
             std::apply([&](auto& ... args)
             {
-                lo_send(address, osc_path_v<T>, osc_types_v<T>, args...);
+                lo_send(dst, osc_path_v<T, Components>, osc_types_v<T>, args...);
             }, value_tie(output));
             return;
         }
@@ -280,14 +281,14 @@ if (outputs.output_running)
 #pragma once
 #include <stdio.h>
 #include <charconv>
-#include <lo.h>
-#include <lo_lowlevel.h>
-#include <lo_types.h>
+#include <lo/lo.h>
+#include <lo/lo_lowlevel.h>
+#include <lo/lo_types.h>
+#include "concepts/endpoints.hpp"
+#include "helpers/endpoints.hpp"
+#include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings {
-
-// TODO: define a conversion from endpoint to typespec
-template<typename T> constexpr const char * osc_types_v = "f";
 
 // TODO: implement set_input
 template<typename T> void set_input(const char *path, const char *types
@@ -306,7 +307,7 @@ struct LibloOsc
 : name_<"Liblo OSC">
 , author_<"Travis J. West">
 , copyright_<"Copyright 2023 Travis J. West">
-, license_<"SPDX-License-Identifier: LGPL-2.1-or-later"
+, license_<"SPDX-License-Identifier: LGPL-2.1-or-later">
 , version_<"0.0.0">
 , description_<"Open Sound Control bindings using the liblo library">
 {
@@ -343,27 +344,25 @@ struct LibloOsc
 
 ```cpp
 // @#'tests/liblo/demo.cpp'
+#include "concepts/runtime.hpp"
 #include "bindings/liblo.hpp"
 #include "components/tests/testcomponent.hpp"
 
-struct components_t
+using namespace sygaldry;
+using namespace sygaldry::bindings;
+
+struct Demo
 {
     struct api_t
     {
-        TestComponent tc;
+        components::TestComponent tc;
     } api;
     LibloOsc<decltype(api)> lo;
-} components;
+} constinit demo{};
 
-void main()
-{
-    init(components);
+constexpr auto runtime = Runtime<Demo>{demo};
 
-    for (;;)
-    {
-        activate(components);
-    }
-}
+int main() { runtime.app_main(); return 0; }
 // @/
 ```
 

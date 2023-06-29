@@ -1,21 +1,19 @@
+#include "concepts/runtime.hpp"
 #include "bindings/liblo.hpp"
 #include "components/tests/testcomponent.hpp"
 
-struct components_t
+using namespace sygaldry;
+using namespace sygaldry::bindings;
+
+struct Demo
 {
     struct api_t
     {
-        TestComponent tc;
+        components::TestComponent tc;
     } api;
     LibloOsc<decltype(api)> lo;
-} components;
+} constinit demo{};
 
-void main()
-{
-    init(components);
+constexpr auto runtime = Runtime<Demo>{demo};
 
-    for (;;)
-    {
-        activate(components);
-    }
-}
+int main() { runtime.app_main(); return 0; }

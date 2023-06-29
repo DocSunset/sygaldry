@@ -70,17 +70,3 @@ TEST_CASE("Passthrough spelling")
     } x;
     REQUIRE(string_view(passthrough_spelling(x)) == string_view("A Basic Example"));
 }
-
-TEST_CASE("osc address")
-{
-    struct root_t
-    {
-        static _consteval const char * name() {return "Root";}
-    };
-    struct leaf_t
-    {
-        static _consteval const char * name() {return "leaf";}
-    };
-    using Path = std::tuple<root_t, leaf_t>;
-    CHECK(string_view(osc_address_v<Path>) == string_view("/Root/leaf"));
-}
