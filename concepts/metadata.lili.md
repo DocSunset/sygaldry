@@ -17,10 +17,10 @@ concept has_name = requires
     {std::decay_t<T>::name()} -> std::convertible_to<const char *>;
 };
 template<has_name T>
-constexpr auto get_name(const T&) { return T::name(); }
+constexpr auto name_of(T&) { return T::name(); }
 
 template<has_name T>
-_consteval auto get_name() { return std::decay_t<T>::name(); }
+_consteval auto name_of() { return std::decay_t<T>::name(); }
 ```
 
 In the same way that all textual metadata can be defined using the same
@@ -45,10 +45,10 @@ concept has_##CONCEPT_NAME = requires \
     {std::decay_t<T>::CONCEPT_NAME()} -> std::convertible_to<const char *>; \
 }; \
 template<has_##CONCEPT_NAME T> \
-constexpr auto get_##CONCEPT_NAME(const T&) { return T::CONCEPT_NAME(); } \
+constexpr auto CONCEPT_NAME##_of(const T&) { return T::CONCEPT_NAME(); } \
  \
 template<has_##CONCEPT_NAME T> \
-_consteval auto get_##CONCEPT_NAME() { return std::decay_t<T>::CONCEPT_NAME(); }
+_consteval auto CONCEPT_NAME##_of() { return std::decay_t<T>::CONCEPT_NAME(); }
 
 text_concept(name);
 text_concept(author);
@@ -81,7 +81,7 @@ using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][concepts][get_name]")
+TEST_CASE("name_of", "[components][concepts][name_of]")
 {
     static_assert(has_name<base_struct_with_name>);
     static_assert(has_name<struct_with_name>);
@@ -89,28 +89,28 @@ TEST_CASE("get_name", "[components][concepts][get_name]")
     base_struct_with_name yup{};
     SECTION("T")
     {
-        REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(foo)) == string_view("foo"));
+        REQUIRE(string_view(name_of<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(yup)) == string_view("yup"));
+        REQUIRE(string_view(name_of<base_struct_with_name>()) == string_view("yup"));
     }
     SECTION("T&")
     {
         auto& bar = foo;
         auto& baz = yup;
-        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
-        REQUIRE(string_view(get_name<struct_with_name&>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
-        REQUIRE(string_view(get_name<base_struct_with_name&>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(bar)) == string_view("foo"));
+        REQUIRE(string_view(name_of<struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(baz)) == string_view("yup"));
+        REQUIRE(string_view(name_of<base_struct_with_name&>()) == string_view("yup"));
     }
     SECTION("const T&")
     {
         const auto& bar = foo;
         const auto& baz = yup;
-        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
-        REQUIRE(string_view(get_name<const struct_with_name&>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
-        REQUIRE(string_view(get_name<const base_struct_with_name&>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(bar)) == string_view("foo"));
+        REQUIRE(string_view(name_of<const struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(baz)) == string_view("yup"));
+        REQUIRE(string_view(name_of<const base_struct_with_name&>()) == string_view("yup"));
     }
 }
 // @/

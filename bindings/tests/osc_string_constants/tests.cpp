@@ -16,3 +16,12 @@ TEST_CASE("osc path")
     using Path = std::tuple<root_t, leaf_t>;
     CHECK(string_view(osc_path<Path>::value.data()) == string_view("/Root/leaf"));
 }
+TEST_CASE("osc type tag string")
+{
+    CHECK(string_view(osc_type_string_v<button<"test button">>)             == string_view(",i"));
+    CHECK(string_view(osc_type_string_v<toggle<"test toggle">>)             == string_view(",i"));
+    CHECK(string_view(osc_type_string_v<text<"test text">>)                 == string_view(",s"));
+    CHECK(string_view(osc_type_string_v<text_message<"test text message">>) == string_view(",s"));
+    CHECK(string_view(osc_type_string_v<slider<"test slider">>)             == string_view(",f"));
+    CHECK(string_view(osc_type_string_v<bng<"test bang">>)                  == string_view(","));
+}

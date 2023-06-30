@@ -48,21 +48,17 @@ accurate time stamps may not behave as intended.
 
 # Init
 
-## Server and Output Address
+## Server
 
-First, we wish to set up a server and output address.
+First, we wish to set up a liblo server.
 
 ```cpp
 // @+'data members'
 lo_server server;
-lo_address dst;
 // @/
 ```
 
-Both of these require a port, and the output address additionally requires a
-destination IP address. Ideally we could have multiple destinations, but for
-now this is left as future work. We declare text inputs to hold these
-parameters.
+This requires a port. We declare a text input to hold this parameter.
 
 ```cpp
 // @+'inputs'
@@ -70,14 +66,6 @@ text_message< "source port"
             , "The UDP port on which to receive incoming messages."
             , tag_session_data
             > src_port;
-text_message< "destination port"
-            , "The UDP port on which to send outgoing messages."
-            , tag_session_data
-            > dst_port;
-text_message< "destination address"
-            , "The IP address to send outgoing messages to."
-            , tag_session_data
-            > dst_addr;
 // @/
 ```
 
@@ -105,31 +93,54 @@ bool port_is_valid(auto& port)
 void set_server(auto& components)
 {
     bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
-    if (outputs.server_running && not port_updated) return;
+    if (outputs.server_running && not port_updated)
+    {
+        return;
+    }
+
+    fprintf(stdout, "liblo: setting up server\n");
 
     if (server) lo_server_free(server);
-
-    outputs.server_running = 0;
 
     bool no_user_src_port = not port_is_valid(inputs.src_port);
 
     if (no_user_src_port)
-        server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
-    else
+    {
+        fprintf(stdout, "liblo: searching for unused port\n");
         server = lo_server_new(NULL, &LibloOsc::server_error_handler);
-    if (server == NULL) return;
+    }
+    else
+    {
+        fprintf(stdout, "liblo: using given port %s\n", inputs.src_port->c_str());
+        server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
+    }
+    if (server == NULL)
+    {
+        fprintf(stderr, "liblo: server setup failed\n");
+        outputs.server_running = 0;
+        return;
+    }
+
+    fprintf(stderr, "liblo: server setup successful\n");
 
     if (no_user_src_port)
     {
+        fprintf(stderr, "liblo: checking source port ... ");
         char port_str[6] = {0};
         int port_num = lo_server_get_port(server);
         snprintf(port_str, 6, "%d", port_num);
         inputs.src_port.value() = port_str;
+        fprintf(stdout, "connected on port %s\n", inputs.src_port->c_str());
     }
+    else
+        fprintf(stdout, "liblo: connected on port %s\n", inputs.src_port->c_str());
 
+    fprintf(stderr, "liblo: registering callbacks\n");
     @{register callbacks}
+    fprintf(stderr, "liblo: done registering callbacks\n");
 
     outputs.server_running = 1;
+    return;
 }
 // @/
 
@@ -151,12 +162,35 @@ static void server_error_handler(int num, const char *msg, const char *where)
 // @/
 ```
 
-Setting up the address is a similar matter, however, we require an address and
-port before we can create the `lo_address`. We define a subroutine that we will
-call when all the necessary information is available; if the address and port
-are ready during initialization, the address will be set immediately.
-Otherwise, it will be run in the main subroutine when the address and port
-have been set.
+## Destination Address
+
+Setting up the address is a similar matter, however, we require an address
+*and* port before we can create the `lo_address`. Ideally we could have
+multiple destinations, but for now this is left as future work.
+
+```cpp
+// @+'data members'
+lo_address dst;
+// @/
+```
+
+```cpp
+// @+'inputs'
+text_message< "destination port"
+            , "The UDP port on which to send outgoing messages."
+            , tag_session_data
+            > dst_port;
+text_message< "destination address"
+            , "The IP address to send outgoing messages to."
+            , tag_session_data
+            > dst_addr;
+// @/
+```
+
+We define a subroutine that we will call when all the necessary information is
+available; if the address and port are ready during initialization, the address
+will be set immediately. Otherwise, it will be run in the main subroutine when
+the address and port have been set.
 
 ```cpp
 // @+'outputs'
@@ -173,7 +207,7 @@ bool dst_inputs_are_valid()
 void set_dst()
 {
     bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
-    if (not dst_updated) return;
+    if (outputs.output_running && not dst_updated) return;
     if (dst) lo_address_free(dst);
     dst = lo_address_new(inputs.dst_addr->c_str(), inputs.dst_port->c_str());
     if (dst) outputs.output_running = 1;
@@ -211,19 +245,25 @@ information of the endpoint.
 // @='register callbacks'
 for_each_input(components, [&]<typename T>(T& in)
 {
+    fprintf(stdout, "liblo: registering callback for %s ... ", name_of(in));
     constexpr auto handler = +[]( const char *path, const char *types
                                 , lo_arg **argv, int argc, lo_message msg
                                 , void *user_data
                                 )
     {
+        #ifndef NDEBUG
+            fprintf(stdout, "liblo: got message %s", path);
+            lo_message_pp(msg);
+        #endif
         T in = *(T*)user_data;
-        set_input(path, types, argv, argc, msg, in);
+        LibloOsc::set_input(path, types, argv, argc, msg, in);
         return 0;
     };
-    auto method = lo_server_add_method( server
-                                      , osc_path_v<T, Components>, osc_types_v<T>
-                                      , handler, (void*)&in
-                                      );
+    lo_server_add_method( server
+                        , osc_path_v<T, Components>, osc_type_string_v<T>+1
+                        , handler, (void*)&in
+                        );
+    fprintf(stdout, "done\n");
 });
 // @/
 ```
@@ -232,7 +272,43 @@ The inner callback simply inspects the endpoint and attempts to apply the
 OSC arguments to it.
 
 ```cpp
-// TODO
+// @='set_input'
+template<typename T> static void
+set_input(const char *path, const char *types
+         , lo_arg **argv, int argc, lo_message msg
+         , T& in
+         )
+{
+    if constexpr (Bang<T>) in = true;
+    else if constexpr (std::integral<value_t<T>>)
+    {
+        if (types[0] != 'i')
+        {
+            fprintf(stderr, "liblo: wrong type; expected 'i', got '%c'\n", types[0]);
+            return;
+        }
+        value_of(in) = argv[0]->i;
+    }
+    else if constexpr (std::floating_point<value_t<T>>)
+    {
+        if (types[0] != 'f')
+        {
+            fprintf(stderr, "liblo: wrong type; expected 'f', got '%c'\n", types[0]);
+            return;
+        }
+        value_of(in) = argv[0]->f;
+    }
+    else if constexpr (string_like<value_t<T>>)
+    {
+        if (types[0] != 's')
+        {
+            fprintf(stderr, "liblo: wrong type; expected 's', got '%c'\n", types[0]);
+            return;
+        }
+        value_of(in) = &argv[0]->s;
+    }
+};
+// @/
 ```
 
 # Main
@@ -259,11 +335,15 @@ if (outputs.output_running)
         }
         else if constexpr (has_value<T>)
         {
-            if constexpr (OccasionalValue<T>) if (not bool(output)) return
-            std::apply([&](auto& ... args)
+            if constexpr (OccasionalValue<T>)
             {
-                lo_send(dst, osc_path_v<T, Components>, osc_types_v<T>, args...);
-            }, value_tie(output));
+                if (not bool(output)) return;
+            }
+            // TODO: we should have a more generic way to get a char * from a string_like value
+            if constexpr (string_like<value_t<T>>)
+                lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+            else
+                lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
             return;
         }
     });
@@ -284,23 +364,12 @@ if (outputs.output_running)
 #include <lo/lo.h>
 #include <lo/lo_lowlevel.h>
 #include <lo/lo_types.h>
+#include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "helpers/endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings {
-
-// TODO: implement set_input
-template<typename T> void set_input(const char *path, const char *types
-                                   , lo_arg **argv, int argc, lo_message msg
-                                   , T& in
-                                   ) {};
-
-// TODO: implement value_tie
-template<typename T> std::tuple<> value_tie(T& endpoint)
-{
-    return {};
-}
 
 template<typename Components>
 struct LibloOsc
@@ -321,6 +390,8 @@ struct LibloOsc
 
     @{data members}
 
+    @{set_input}
+
     @{set_server}
 
     @{set_dst}
@@ -340,39 +411,4 @@ struct LibloOsc
 
 } }
 // @/
-```
-
-```cpp
-// @#'tests/liblo/demo.cpp'
-#include "concepts/runtime.hpp"
-#include "bindings/liblo.hpp"
-#include "components/tests/testcomponent.hpp"
-
-using namespace sygaldry;
-using namespace sygaldry::bindings;
-
-struct Demo
-{
-    struct api_t
-    {
-        components::TestComponent tc;
-    } api;
-    LibloOsc<decltype(api)> lo;
-} constinit demo{};
-
-constexpr auto runtime = Runtime<Demo>{demo};
-
-int main() { runtime.app_main(); return 0; }
-// @/
-```
-
-```cmake
-# @#'tests/liblo/CMakeLists.txt'
-# https://stackoverflow.com/questions/29191855/what-is-the-proper-way-to-use-pkg-config-from-cmake
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBLO REQUIRED liblo)
-add_executable(liblo-demo demo.cpp)
-target_link_libraries(liblo-demo PRIVATE ${LIBLO_LIBRARIES})
-target_include_directories(liblo-demo PRIVATE ${LIBLO_INCLUDE_DIRS})
-# @/
 ```

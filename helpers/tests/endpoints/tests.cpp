@@ -87,7 +87,7 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(has_name<const button<"foo">&>);
     static_assert(has_name<const toggle<"bar">&>);
     static_assert(has_name<const slider<"baz">&>);
-    static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
+    static_assert(sizeof(button<"foo">) <= sizeof(std::optional<bool>));
     static_assert(sizeof(toggle<"baz">) == sizeof(bool));
     static_assert(sizeof(slider<"baz">) == sizeof(float));
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <tuple>
+#include <concepts>
 #include "concepts/components.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/spelling.hpp"
@@ -42,7 +43,22 @@ struct osc_path<L<Path...>>
 template<typename T, typename Components>
 constexpr const char * osc_path_v = osc_path<path_t<T,Components>>::value.data();
 
-// TODO: define a conversion from endpoint to typespec
-template<typename T> constexpr const char * osc_types_v = "f";
+template<typename T>
+struct osc_type_string
+{
+    static constexpr size_t N = 4;
+    static constexpr std::array<char, 4> value = []()
+    {
+        std::array<char, N> ret{0};
+        ret[0] = ',';
+        if constexpr (Bang<T>) return ret;
+        else if constexpr (std::integral<value_t<T>>) ret[1] = 'i';
+        else if constexpr (std::floating_point<value_t<T>>) ret[1] = 'f';
+        else if constexpr (string_like<value_t<T>>) ret[1] = 's';
+        return ret;
+    }();
+};
+
+template<typename T> constexpr const char * osc_type_string_v = osc_type_string<T>::value.data();
 
 } }

@@ -6,23 +6,12 @@
 #include <lo/lo.h>
 #include <lo/lo_lowlevel.h>
 #include <lo/lo_types.h>
+#include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "helpers/endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings {
-
-// TODO: implement set_input
-template<typename T> void set_input(const char *path, const char *types
-                                   , lo_arg **argv, int argc, lo_message msg
-                                   , T& in
-                                   ) {};
-
-// TODO: implement value_tie
-template<typename T> std::tuple<> value_tie(T& endpoint)
-{
-    return {};
-}
 
 template<typename Components>
 struct LibloOsc
@@ -56,6 +45,42 @@ struct LibloOsc
     lo_server server;
     lo_address dst;
 
+    template<typename T> static void
+    set_input(const char *path, const char *types
+             , lo_arg **argv, int argc, lo_message msg
+             , T& in
+             )
+    {
+        if constexpr (Bang<T>) in = true;
+        else if constexpr (std::integral<value_t<T>>)
+        {
+            if (types[0] != 'i')
+            {
+                fprintf(stderr, "liblo: wrong type; expected 'i', got '%c'\n", types[0]);
+                return;
+            }
+            value_of(in) = argv[0]->i;
+        }
+        else if constexpr (std::floating_point<value_t<T>>)
+        {
+            if (types[0] != 'f')
+            {
+                fprintf(stderr, "liblo: wrong type; expected 'f', got '%c'\n", types[0]);
+                return;
+            }
+            value_of(in) = argv[0]->f;
+        }
+        else if constexpr (string_like<value_t<T>>)
+        {
+            if (types[0] != 's')
+            {
+                fprintf(stderr, "liblo: wrong type; expected 's', got '%c'\n", types[0]);
+                return;
+            }
+            value_of(in) = &argv[0]->s;
+        }
+    };
+
     bool port_is_valid(auto& port)
     {
         int port_num = -1;
@@ -66,7 +91,12 @@ struct LibloOsc
     void set_server(auto& components)
     {
         bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
-        if (outputs.server_running && not port_updated) return;
+        if (outputs.server_running && not port_updated)
+        {
+            return;
+        }
+
+        fprintf(stdout, "liblo: setting up server\n");
 
         if (server) lo_server_free(server);
 
@@ -75,35 +105,59 @@ struct LibloOsc
         bool no_user_src_port = not port_is_valid(inputs.src_port);
 
         if (no_user_src_port)
-            server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
-        else
+        {
+            fprintf(stdout, "liblo: searching for unused port\n");
             server = lo_server_new(NULL, &LibloOsc::server_error_handler);
-        if (server == NULL) return;
+        }
+        else
+        {
+            fprintf(stdout, "liblo: using given port %s\n", inputs.src_port->c_str());
+            server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
+        }
+        if (server == NULL)
+        {
+            fprintf(stderr, "liblo: server setup failed\n");
+            return;
+        }
+
+        fprintf(stderr, "liblo: server setup successful\n");
 
         if (no_user_src_port)
         {
+            fprintf(stderr, "liblo: checking source port ... ");
             char port_str[6] = {0};
             int port_num = lo_server_get_port(server);
             snprintf(port_str, 6, "%d", port_num);
             inputs.src_port.value() = port_str;
+            fprintf(stdout, "connected on port %s\n", inputs.src_port->c_str());
         }
+        else
+            fprintf(stdout, "liblo: connected on port %s\n", inputs.src_port->c_str());
 
+        fprintf(stderr, "liblo: registering callbacks\n");
         for_each_input(components, [&]<typename T>(T& in)
         {
+            fprintf(stdout, "liblo: registering callback for %s ... ", name_of(in));
             constexpr auto handler = +[]( const char *path, const char *types
                                         , lo_arg **argv, int argc, lo_message msg
                                         , void *user_data
                                         )
             {
+                #ifndef NDEBUG
+                    fprintf(stdout, "liblo: got message %s %s", path, types);
+                    lo_message_pp(msg);
+                #endif
                 T in = *(T*)user_data;
-                set_input(path, types, argv, argc, msg, in);
+                LibloOsc::set_input(path, types, argv, argc, msg, in);
                 return 0;
             };
-            auto method = lo_server_add_method( server
-                                              , osc_path_v<T, Components>, osc_types_v<T>
-                                              , handler, (void*)&in
-                                              );
+            lo_server_add_method( server
+                                , osc_path_v<T, Components>, osc_type_string_v<T>+1
+                                , handler, (void*)&in
+                                );
+            fprintf(stdout, "done\n");
         });
+        fprintf(stderr, "liblo: done registering callbacks\n");
 
         outputs.server_running = 1;
     }
@@ -152,11 +206,15 @@ struct LibloOsc
                 }
                 else if constexpr (has_value<T>)
                 {
-                    if constexpr (OccasionalValue<T>) if (not bool(output)) return
-                    std::apply([&](auto& ... args)
+                    if constexpr (OccasionalValue<T>)
                     {
-                        lo_send(dst, osc_path_v<T, Components>, osc_types_v<T>, args...);
-                    }, value_tie(output));
+                        if (not bool(output)) return;
+                    }
+                    // TODO: we should have a more generic way to get a char * from a string_like value
+                    if constexpr (string_like<value_t<T>>)
+                        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+                    else
+                        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
                     return;
                 }
             });

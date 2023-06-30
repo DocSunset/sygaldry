@@ -11,7 +11,7 @@ using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};
 struct base_struct_with_name {static _consteval auto name() {return "yup";}};
-TEST_CASE("get_name", "[components][concepts][get_name]")
+TEST_CASE("name_of", "[components][concepts][name_of]")
 {
     static_assert(has_name<base_struct_with_name>);
     static_assert(has_name<struct_with_name>);
@@ -19,27 +19,27 @@ TEST_CASE("get_name", "[components][concepts][get_name]")
     base_struct_with_name yup{};
     SECTION("T")
     {
-        REQUIRE(string_view(get_name(foo)) == string_view("foo"));
-        REQUIRE(string_view(get_name<struct_with_name>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(yup)) == string_view("yup"));
-        REQUIRE(string_view(get_name<base_struct_with_name>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(foo)) == string_view("foo"));
+        REQUIRE(string_view(name_of<struct_with_name>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(yup)) == string_view("yup"));
+        REQUIRE(string_view(name_of<base_struct_with_name>()) == string_view("yup"));
     }
     SECTION("T&")
     {
         auto& bar = foo;
         auto& baz = yup;
-        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
-        REQUIRE(string_view(get_name<struct_with_name&>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
-        REQUIRE(string_view(get_name<base_struct_with_name&>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(bar)) == string_view("foo"));
+        REQUIRE(string_view(name_of<struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(baz)) == string_view("yup"));
+        REQUIRE(string_view(name_of<base_struct_with_name&>()) == string_view("yup"));
     }
     SECTION("const T&")
     {
         const auto& bar = foo;
         const auto& baz = yup;
-        REQUIRE(string_view(get_name(bar)) == string_view("foo"));
-        REQUIRE(string_view(get_name<const struct_with_name&>()) == string_view("foo"));
-        REQUIRE(string_view(get_name(baz)) == string_view("yup"));
-        REQUIRE(string_view(get_name<const base_struct_with_name&>()) == string_view("yup"));
+        REQUIRE(string_view(name_of(bar)) == string_view("foo"));
+        REQUIRE(string_view(name_of<const struct_with_name&>()) == string_view("foo"));
+        REQUIRE(string_view(name_of(baz)) == string_view("yup"));
+        REQUIRE(string_view(name_of<const base_struct_with_name&>()) == string_view("yup"));
     }
 }

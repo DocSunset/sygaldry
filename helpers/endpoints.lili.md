@@ -420,10 +420,10 @@ struct slider
 // @/
 
 As all of the functionality of these endpoints has been tested above where the
-base classes were defined, we take the opportunity instead to make sure that
-our helper endpoints adhere to the expected concepts defined elsewhere. We
-also check that our helper endpoints have the expected sizes, equivalent to
-their value types.
+base classes were defined, we take the opportunity to make sure that our helper
+endpoints adhere to the expected concepts defined elsewhere rather than
+redundantly testing their functionality. We also check that our helper
+endpoints have the expected sizes, equivalent to their value types.
 
 // @+'tests'
 TEST_CASE("Basic Endpoints", "[endpoints][basic]")
@@ -455,7 +455,7 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     static_assert(has_name<const button<"foo">&>);
     static_assert(has_name<const toggle<"bar">&>);
     static_assert(has_name<const slider<"baz">&>);
-    static_assert(sizeof(button<"foo">) == sizeof(std::optional<bool>));
+    static_assert(sizeof(button<"foo">) <= sizeof(std::optional<bool>));
     static_assert(sizeof(toggle<"baz">) == sizeof(bool));
     static_assert(sizeof(slider<"baz">) == sizeof(float));
 

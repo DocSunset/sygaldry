@@ -1381,57 +1381,6 @@ clicommands::Trigger trigger;
 // @/
 ```
 
-# Using the CLI
-
-## Stdio App
-
-For quick tests and experimentation, we would like to be able to run this as an
-interactive command line application in the OS of our choice, allowing us to
-run our components in a simulated environment, feed them test inputs, and examine
-their outputs. The same implementation should also be usable on any environment
-that provides `getchar` and `putchar` from the C standard library.
-
-```cpp
-// @#'tests/cli_app_demo.cpp'
-#include "utilities/consteval.hpp"
-#include "concepts/runtime.hpp"
-#include "helpers/metadata.hpp"
-#include "components/sensors/button.hpp"
-#include "components/tests/testcomponent.hpp"
-#include "bindings/basic_reader/cstdio_reader.hpp"
-#include "bindings/basic_logger/cstdio_logger.hpp"
-#include "bindings/cli/cli.hpp"
-
-using namespace sygaldry;
-using namespace sygaldry::components;
-
-struct AppComponents {
-    struct api_t
-    {
-        TestComponent tc;
-        struct Button : name_<"Button">, ButtonGestureModel {} bgm;
-    } api;
-
-    sygaldry::bindings::Cli< sygaldry::bindings::CstdioReader
-                           , sygaldry::bindings::CstdioLogger
-                           , decltype(api)
-                           > cli;
-} constinit assemblage{};
-
-constexpr auto runtime = Runtime{assemblage};
-
-int main()
-{
-    runtime.init();
-    for (;;)
-    {
-        runtime.main();
-        usleep(30*1000);
-    }
-}
-// @/
-```
-
 # Summary
 
 # Building Tests
@@ -1473,8 +1422,6 @@ using namespace sygaldry;
 add_executable(cli-tests tests.cpp)
 target_link_libraries(cli-tests PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(cli-tests)
-
-add_executable(cli-demo cli_app_demo.cpp)
 # @/
 ```
 
