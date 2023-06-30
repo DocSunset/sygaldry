@@ -6,11 +6,10 @@ We would like to statically determine whether a given type describes a
 component. We consider two kinds of general components: regular components, and
 component containers.
 
-A regular component has a name, a main subroutine, and at least one of
-endpoints, throughpoints, parts, or plugins. If it has inputs, outputs, or
-parts, these must be simple aggregate containers. Components without parts
-are notable for the recursive definition of those with parts, as will
-become clear later.
+A regular component has a name and at least one of the following: an
+initialization subroutine, a main subroutine, an external sources or
+destinations subroutine, inputs, outputs, or parts. If it has parts,
+a component's parts must also be valid components.
 
 A component container is merely an aggregate that contains only nested
 containers and/or regular components. It may have a name, but it must be
@@ -21,11 +20,10 @@ contain nested component containers, and contain components. These requirements
 are addressed in `validate_container`.
 
 Whereas a regular component's functionality is defined by its main subroutine,
-and its subcomponents should not be managed or activated by the runtime
-platform bindings and their inputs should not in general be modified
-externally, containers are defined in terms of their subcomponents, which
-should be treated as regular components by the runtime platform bindings,
-activated accordingly, and exposed for external control inputs.
+and its subcomponents should not activated by the runtime platform bindings,
+containers are defined in terms of their subcomponents, which should be treated
+as regular components by the runtime platform bindings, and activated
+accordingly.
 
 ```cpp
 // @='Component Concepts'
@@ -38,7 +36,17 @@ activated accordingly, and exposed for external control inputs.
 @{throughpoints and plugins}
 
 template<typename T>
-concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
+concept ComponentBasics
+    =  has_name<T>
+    &&  (  has_init_subroutine<T>
+        || has_external_sources_subroutine<T>
+        || has_main_subroutine<T>
+        || has_external_destinations_subroutine<T>
+        || has_inputs<T>
+        || has_outputs<T>
+        || has_parts<T>
+        )
+    ;
 
 template<typename T> struct validate_general_component : std::false_type {};
 
@@ -252,6 +260,8 @@ struct external_destinations_subroutine_reflection<T> : function_reflection<&T::
 // @/
 ```
 
+Concepts for checking the existence of these subroutines can be implemented very similarly.
+
 ```cpp
 // @+'has_main_subroutine'
 template<typename T>
@@ -259,6 +269,15 @@ concept has_main_subroutine // = main_subroutine_reflection<T>::exists::value;
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
+template<typename T>
+concept has_init_subroutine
+    = std::same_as<void, typename function_reflection<&T::init>::return_type>;
+template<typename T>
+concept has_external_sources_subroutine
+    = std::same_as<void, typename function_reflection<&T::external_sources>::return_type>;
+template<typename T>
+concept has_external_destinations_subroutine
+    = std::same_as<void, typename function_reflection<&T::external_destinations>::return_type>;
 // @/
 
 // @+'tests'

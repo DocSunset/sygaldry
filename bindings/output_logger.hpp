@@ -17,7 +17,7 @@ struct OutputLogger : name_<"Output Logger">
 
     output_endpoints_t<Components> last_out_list{};
 
-    void operator()(Components& components)
+    void external_destinations(Components& components)
     {
         tuple_for_each(last_out_list, [&]<typename T>(T& last_out)
         {

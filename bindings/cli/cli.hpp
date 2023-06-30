@@ -14,7 +14,6 @@
 #include "commands/list.hpp"
 #include "commands/describe.hpp"
 #include "commands/set.hpp"
-#include "commands/trigger.hpp"
 
 namespace sygaldry { namespace bindings {
 
@@ -117,7 +116,7 @@ struct CustomCli : name_<"CLI">
         }
     }
 
-    void operator()(Components& components)
+    void external_sources(Components& components)
     {
         while(reader.ready()) process(reader.getchar(), components);
     }
@@ -129,7 +128,6 @@ struct DefaultCommands
     clicommands::List list;
     clicommands::Describe describe;
     clicommands::Set set;
-    clicommands::Trigger trigger;
 };
 
 template<typename Reader, typename Logger, typename Components>

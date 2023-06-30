@@ -15,7 +15,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
     logger.log.put.ss.str("");
     input_callback();
     components.tc();
-    logger(components);
+    logger.external_destinations(components);
     CHECK(logger.log.put.ss.str() == string(expected_output));
 }
 

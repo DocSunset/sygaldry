@@ -326,7 +326,7 @@ void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
     cli.log.put.ss.str("");
     cli.reader.ss.str(input);
-    cli(components);
+    cli.external_sources(components);
     REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 // @/
@@ -467,7 +467,7 @@ void process(const char c, Components& components)
     }
 }
 
-void operator()(Components& components)
+void external_sources(Components& components)
 {
     while(reader.ready()) process(reader.getchar(), components);
 }
@@ -1307,77 +1307,6 @@ struct Set
 
 // @+'default commands'
 clicommands::Set set;
-// @/
-```
-
-## Trigger
-
-TODO write literate annotation for this command
-
-```cpp
-// @+'tests'
-TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
-{
-    auto components = TestComponents{};
-    // TODO: test this properly
-}
-// @/
-```
-
-```cpp
-// @='trigger main'
-return 2;
-// @/
-```
-
-```cpp
-// @='trigger implementation details'
-// @/
-```
-
-### Boilerplate
-
-```cpp
-// @#'commands/trigger.hpp'
-#pragma once
-
-#include "concepts/endpoints.hpp"
-#include "concepts/components.hpp"
-#include "bindings/name_dispatch.hpp"
-namespace sygaldry { namespace bindings { namespace clicommands {
-
-struct Trigger
-{
-    static _consteval auto name() { return "trigger"; }
-    static _consteval auto usage() { return "component-name"; }
-    static _consteval auto description() { return "Activate the given component's main subroutine"; }
-
-    @{trigger implementation details}
-
-    int main(int argc, char** argv, auto& log, auto& components)
-    {
-        if (argc < 2)
-        {
-            log.println("Usage: ", usage());
-            return 2;
-        }
-        return dispatch<CommandMatcher>(argv[1], components, 2, [](auto& component)
-        {
-            activate(component);
-            return 0;
-        });
-    }
-};
-
-} } }
-// @/
-
-// @+'commands headers'
-#include "commands/trigger.hpp"
-// @/
-
-// @+'default commands'
-clicommands::Trigger trigger;
 // @/
 ```
 

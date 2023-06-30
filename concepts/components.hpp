@@ -51,6 +51,15 @@ concept has_main_subroutine // = main_subroutine_reflection<T>::exists::value;
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>
     || std::same_as<void, typename function_reflection<&T::main>::return_type>
     ;
+template<typename T>
+concept has_init_subroutine
+    = std::same_as<void, typename function_reflection<&T::init>::return_type>;
+template<typename T>
+concept has_external_sources_subroutine
+    = std::same_as<void, typename function_reflection<&T::external_sources>::return_type>;
+template<typename T>
+concept has_external_destinations_subroutine
+    = std::same_as<void, typename function_reflection<&T::external_destinations>::return_type>;
 
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME = requires (T t)\
@@ -77,7 +86,17 @@ has_type_or_value(parts);
 
 
 template<typename T>
-concept ComponentBasics = has_main_subroutine<T> && has_name<T>;
+concept ComponentBasics
+    =  has_name<T>
+    &&  (  has_init_subroutine<T>
+        || has_external_sources_subroutine<T>
+        || has_main_subroutine<T>
+        || has_external_destinations_subroutine<T>
+        || has_inputs<T>
+        || has_outputs<T>
+        || has_parts<T>
+        )
+    ;
 
 template<typename T> struct validate_general_component : std::false_type {};
 

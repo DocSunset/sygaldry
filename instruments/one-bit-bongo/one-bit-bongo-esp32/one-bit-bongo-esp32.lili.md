@@ -31,14 +31,10 @@ constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {
-    init(bongo);
+    runtime.init();
     for (;;)
     {
-        clear_output_flags(bongo.api.button);
-        bongo.api.button();
-        bongo.log(bongo.api);
-        bongo.cli(bongo.api);
-        clear_input_flags(bongo.api.button);
+        runtime.tick();
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }

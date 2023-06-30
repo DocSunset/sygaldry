@@ -25,7 +25,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
     logger.log.put.ss.str("");
     input_callback();
     components.tc();
-    logger(components);
+    logger.external_destinations(components);
     CHECK(logger.log.put.ss.str() == string(expected_output));
 }
 
@@ -104,7 +104,7 @@ struct OutputLogger : name_<"Output Logger">
 
     output_endpoints_t<Components> last_out_list{};
 
-    void operator()(Components& components)
+    void external_destinations(Components& components)
     {
         tuple_for_each(last_out_list, [&]<typename T>(T& last_out)
         {

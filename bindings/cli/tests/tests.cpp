@@ -19,7 +19,7 @@ void test_cli(auto& cli, auto& components, string input, string expected_output)
 {
     cli.log.put.ss.str("");
     cli.reader.ss.str(input);
-    cli(components);
+    cli.external_sources(components);
     REQUIRE(cli.log.put.ss.str() == expected_output);
 }
 
@@ -246,9 +246,4 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
-}
-TEST_CASE("Trigger", "[bindings][cli][commands][trigger]")
-{
-    auto components = TestComponents{};
-    // TODO: test this properly
 }
