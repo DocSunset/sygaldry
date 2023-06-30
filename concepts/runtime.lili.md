@@ -98,7 +98,7 @@ TEST_CASE("runtime calls")
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
     CHECK(runtime.container.tc2.parts.part.inputs.in1.value == 0); // part inits are not called
-    runtime.main();
+    runtime.tick();
     CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to main
     CHECK(runtime.container.tc1.outputs.out1.value == 43); // main routines are called
     CHECK(runtime.container.tc2.outputs.out1.value == 44); // throughpoints are propagated
@@ -350,7 +350,7 @@ main, that are then used to instantiate the runtime structure. We thus have a
 general runtime for a single component that passes our tests.
 
 ```cpp
-//@='component_runtime'
+//@='component_runtime 3'
 @{impl_arg_pack}
 
 @{to_arg_pack}
@@ -379,6 +379,91 @@ struct component_runtime
             std::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
             std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+    }
+};
+// @/
+```
+
+### Digression: Other Stages
+
+Thus far we have assumed that all our components would run in the order
+specified in the component tree, first all their initialization routines,
+then all their main subroutines in a loop forever, with input and output
+flags cleared in between loops.
+
+This sequence is adequate when considering only regular components, however,
+it fails to reasonably support binding components. Consider an protocol binding
+that can set the state of input endpoints and send changes in the state of output
+endpoints to external devices via its protocol. There is no way to order such
+a binding component so that external inputs can propagate to the bound components
+*and* resulting state changes can be sent out.
+
+```
+Option 1:
+
+run regular components
+run binding (component outputs are sent out)
+clear flags (external inputs are cleared)
+
+Option 2:
+run bindings (external inputs are set)
+run regular components
+clear flags (component outputs are cleared)
+```
+
+Our chosen solution to this issue is to simply introduce two additional stages
+to our main loop, which we call `external_sources` and `external_destinations`.
+Components (especially binding components) may declare methods with these
+names, and argument packs are added to the component runtime to call them with
+any arguments required that can be extracted from the component tree.
+
+```cpp
+//@='component_runtime'
+@{impl_arg_pack}
+
+@{to_arg_pack}
+
+template<typename Component, typename ComponentContainer>
+struct component_runtime
+{
+    using init_arg_pack = typename to_arg_pack<Component, ComponentContainer, init_subroutine_reflection<Component>>::pack_t;
+    using main_arg_pack = typename to_arg_pack<Component, ComponentContainer, main_subroutine_reflection<Component>>::pack_t;
+    using ext_src_arg_pack = typename to_arg_pack<Component, ComponentContainer, external_sources_subroutine_reflection<Component>>::pack_t;
+    using ext_dst_arg_pack = typename to_arg_pack<Component, ComponentContainer, external_destinations_subroutine_reflection<Component>>::pack_t;
+
+    Component& component;
+    init_arg_pack init_args;
+    main_arg_pack main_args;
+    ext_src_arg_pack ext_src_args;
+    ext_dst_arg_pack ext_dst_args;
+
+    constexpr component_runtime(Component& comp, ComponentContainer& cont)
+    : component{comp}, init_args{cont}, main_args{cont}, ext_src_args{cont}, ext_dst_args{cont} {}
+
+    void init() const
+    {
+        if constexpr (requires {&Component::init;})
+            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+    }
+
+    void external_sources() const
+    {
+        if constexpr (requires {&Component::external_sources;})
+            std::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
+    }
+
+    void main() const
+    {
+        if constexpr (requires {&Component::operator();})
+            std::apply(component, main_args.pack);
+        else if constexpr (requires {&Component::main;})
+            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+    }
+
+    void external_destinations() const
+    {
+        if constexpr (requires {&Component::external_destinations;})
+            std::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
     }
 };
 // @/
@@ -491,19 +576,33 @@ struct Runtime
     /// Initialize all components in the container.
     void init() const { tuple_for_each(component_runtimes, [](auto& r){r.init();}); }
 
-    /// Run the main subroutine of all components in the container
-    void main() const
+    /// Clear input flags, then run the external sources subroutine of all components in the container that have one.
+    void external_sources() const
     {
-        tuple_for_each(component_runtimes, [](auto& r){r.main();});
-        tuple_for_each(component_runtimes, [](auto& r)
-        {
-            clear_input_flags(r.component);
-            clear_output_flags(r.component);
-        });
+        tuple_for_each(component_runtimes, [](auto& r){clear_input_flags(r.component);});
+        tuple_for_each(component_runtimes, [](auto& r){r.external_sources();});
     }
 
-    /// A wrapper for `init` and `main` that loops indefinitely, intended for instruments with simple requirements.
-    void app_main() const { for (init(); true; main()) {} }
+    /// Run the main subroutine of all components in the container
+    void main() const { tuple_for_each(component_runtimes, [](auto& r){r.main();}); }
+
+    /// Run the external destinations subroutine of all components in the container that have one, then clear output flags.
+    void external_destinations() const
+    {
+        tuple_for_each(component_runtimes, [](auto& r){r.external_destinations();});
+        tuple_for_each(component_runtimes, [](auto& r){clear_output_flags(r.component);});
+    }
+
+    /// Run external sources, main, and external destinations, clearing flags appropriately
+    void tick() const
+    {
+        external_sources();
+        main();
+        external_destinations();
+    }
+
+    /// A wrapper for `init` and `tick` that loops indefinitely, intended for instruments with simple requirements.
+    int app_main() const { for (init(); true; tick()) {} return 0; }
 };
 // @/
 ```

@@ -40,17 +40,28 @@ struct component_runtime
 {
     using init_arg_pack = typename to_arg_pack<Component, ComponentContainer, init_subroutine_reflection<Component>>::pack_t;
     using main_arg_pack = typename to_arg_pack<Component, ComponentContainer, main_subroutine_reflection<Component>>::pack_t;
+    using ext_src_arg_pack = typename to_arg_pack<Component, ComponentContainer, external_sources_subroutine_reflection<Component>>::pack_t;
+    using ext_dst_arg_pack = typename to_arg_pack<Component, ComponentContainer, external_destinations_subroutine_reflection<Component>>::pack_t;
 
     Component& component;
     init_arg_pack init_args;
     main_arg_pack main_args;
+    ext_src_arg_pack ext_src_args;
+    ext_dst_arg_pack ext_dst_args;
 
-    constexpr component_runtime(Component& comp, ComponentContainer& cont) : component{comp}, init_args{cont}, main_args{cont} {}
+    constexpr component_runtime(Component& comp, ComponentContainer& cont)
+    : component{comp}, init_args{cont}, main_args{cont}, ext_src_args{cont}, ext_dst_args{cont} {}
 
     void init() const
     {
         if constexpr (requires {&Component::init;})
             std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+    }
+
+    void external_sources() const
+    {
+        if constexpr (requires {&Component::external_sources;})
+            std::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
     }
 
     void main() const
@@ -59,6 +70,12 @@ struct component_runtime
             std::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
             std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+    }
+
+    void external_destinations() const
+    {
+        if constexpr (requires {&Component::external_destinations;})
+            std::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
     }
 };
 
@@ -140,19 +157,33 @@ struct Runtime
     /// Initialize all components in the container.
     void init() const { tuple_for_each(component_runtimes, [](auto& r){r.init();}); }
 
-    /// Run the main subroutine of all components in the container
-    void main() const
+    /// Clear input flags, then run the external sources subroutine of all components in the container that have one.
+    void external_sources() const
     {
-        tuple_for_each(component_runtimes, [](auto& r){r.main();});
-        tuple_for_each(component_runtimes, [](auto& r)
-        {
-            clear_input_flags(r.component);
-            clear_output_flags(r.component);
-        });
+        tuple_for_each(component_runtimes, [](auto& r){clear_input_flags(r.component);});
+        tuple_for_each(component_runtimes, [](auto& r){r.external_sources();});
     }
 
-    /// A wrapper for `init` and `main` that loops indefinitely, intended for instruments with simple requirements.
-    void app_main() const { for (init(); true; main()) {} }
+    /// Run the main subroutine of all components in the container
+    void main() const { tuple_for_each(component_runtimes, [](auto& r){r.main();}); }
+
+    /// Run the external destinations subroutine of all components in the container that have one, then clear output flags.
+    void external_destinations() const
+    {
+        tuple_for_each(component_runtimes, [](auto& r){r.external_destinations();});
+        tuple_for_each(component_runtimes, [](auto& r){clear_output_flags(r.component);});
+    }
+
+    /// Run external sources, main, and external destinations, clearing flags appropriately
+    void tick() const
+    {
+        external_sources();
+        main();
+        external_destinations();
+    }
+
+    /// A wrapper for `init` and `tick` that loops indefinitely, intended for instruments with simple requirements.
+    int app_main() const { for (init(); true; tick()) {} return 0; }
 };
 
 }

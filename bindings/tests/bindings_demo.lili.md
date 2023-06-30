@@ -43,7 +43,7 @@ int main()
     runtime.init();
     for (;;)
     {
-        runtime.main();
+        runtime.tick();
         usleep(30*1000);
     }
 }

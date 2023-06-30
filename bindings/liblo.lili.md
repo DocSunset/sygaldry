@@ -255,7 +255,7 @@ for_each_input(components, [&]<typename T>(T& in)
             fprintf(stdout, "liblo: got message %s", path);
             lo_message_pp(msg);
         #endif
-        T in = *(T*)user_data;
+        T& in = *(T*)user_data;
         LibloOsc::set_input(path, types, argv, argc, msg, in);
         return 0;
     };
@@ -311,42 +311,53 @@ set_input(const char *path, const char *types
 // @/
 ```
 
-# Main
+# Tick
 
-On each call to the main subroutine, we perform three main tasks:
-- We update the server and destination address parameters if they have changed
+On each tick, we perform three main tasks:
+- external sources: We poll the server
+- main: We update the server and destination address parameters if they have changed
     - TODO: this should happen in input callbacks
-- We poll the server
-- And we send output messages
+- external destinations: And we send output messages
 
 ```cpp
-// @='main'
-set_server(components);
-set_dst();
-if (outputs.server_running) lo_server_recv_noblock(server, 0);
-if (outputs.output_running)
+// @='tick'
+void external_sources()
 {
-    for_each_output(components, [&]<typename T>(const T& output)
+    if (outputs.server_running) lo_server_recv_noblock(server, 0);
+}
+
+void main(Components& components)
+{
+    set_server(components);
+    set_dst();
+}
+
+void external_destinations(Components& components)
+{
+    if (outputs.output_running)
     {
-        if constexpr (Bang<T>)
+        for_each_output(components, [&]<typename T>(const T& output)
         {
-            if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
-            return;
-        }
-        else if constexpr (has_value<T>)
-        {
-            if constexpr (OccasionalValue<T>)
+            if constexpr (Bang<T>)
             {
-                if (not bool(output)) return;
+                if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
+                return;
             }
-            // TODO: we should have a more generic way to get a char * from a string_like value
-            if constexpr (string_like<value_t<T>>)
-                lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
-            else
-                lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
-            return;
-        }
-    });
+            else if constexpr (has_value<T>)
+            {
+                if constexpr (OccasionalValue<T>)
+                {
+                    if (not bool(output)) return;
+                }
+                // TODO: we should have a more generic way to get a char * from a string_like value
+                if constexpr (string_like<value_t<T>>)
+                    lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+                else
+                    lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
+                return;
+            }
+        });
+    }
 }
 // @/
 ```
@@ -403,10 +414,7 @@ struct LibloOsc
         @{init}
     }
 
-    void main(Components& components)
-    {
-        @{main}
-    }
+    @{tick}
 };
 
 } }

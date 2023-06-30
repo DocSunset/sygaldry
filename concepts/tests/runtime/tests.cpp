@@ -67,7 +67,7 @@ TEST_CASE("runtime calls")
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
     CHECK(runtime.container.tc2.parts.part.inputs.in1.value == 0); // part inits are not called
-    runtime.main();
+    runtime.tick();
     CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to main
     CHECK(runtime.container.tc1.outputs.out1.value == 43); // main routines are called
     CHECK(runtime.container.tc2.outputs.out1.value == 44); // throughpoints are propagated

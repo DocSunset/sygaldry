@@ -100,8 +100,6 @@ struct LibloOsc
 
         if (server) lo_server_free(server);
 
-        outputs.server_running = 0;
-
         bool no_user_src_port = not port_is_valid(inputs.src_port);
 
         if (no_user_src_port)
@@ -117,6 +115,7 @@ struct LibloOsc
         if (server == NULL)
         {
             fprintf(stderr, "liblo: server setup failed\n");
+            outputs.server_running = 0;
             return;
         }
 
@@ -144,10 +143,10 @@ struct LibloOsc
                                         )
             {
                 #ifndef NDEBUG
-                    fprintf(stdout, "liblo: got message %s %s", path, types);
+                    fprintf(stdout, "liblo: got message %s", path);
                     lo_message_pp(msg);
                 #endif
-                T in = *(T*)user_data;
+                T& in = *(T*)user_data;
                 LibloOsc::set_input(path, types, argv, argc, msg, in);
                 return 0;
             };
@@ -160,6 +159,7 @@ struct LibloOsc
         fprintf(stderr, "liblo: done registering callbacks\n");
 
         outputs.server_running = 1;
+        return;
     }
 
     bool dst_inputs_are_valid()
@@ -171,7 +171,7 @@ struct LibloOsc
     void set_dst()
     {
         bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
-        if (not dst_updated) return;
+        if (outputs.output_running && not dst_updated) return;
         if (dst) lo_address_free(dst);
         dst = lo_address_new(inputs.dst_addr->c_str(), inputs.dst_port->c_str());
         if (dst) outputs.output_running = 1;
@@ -190,11 +190,19 @@ struct LibloOsc
         set_dst();
     }
 
+    void external_sources()
+    {
+        if (outputs.server_running) lo_server_recv_noblock(server, 0);
+    }
+
     void main(Components& components)
     {
         set_server(components);
         set_dst();
-        if (outputs.server_running) lo_server_recv_noblock(server, 0);
+    }
+
+    void external_destinations(Components& components)
+    {
         if (outputs.output_running)
         {
             for_each_output(components, [&]<typename T>(const T& output)

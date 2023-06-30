@@ -34,6 +34,18 @@ template <typename T> struct init_subroutine_reflection {using exists = std::fal
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::init>::return_type>
 struct init_subroutine_reflection<T> : function_reflection<&T::init> {};
+
+template <typename T> struct external_sources_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::external_sources>::return_type>
+struct external_sources_subroutine_reflection<T> : function_reflection<&T::external_sources> {};
+
+template <typename T> struct external_destinations_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::external_destinations>::return_type>
+struct external_destinations_subroutine_reflection<T> : function_reflection<&T::external_destinations> {};
 template<typename T>
 concept has_main_subroutine // = main_subroutine_reflection<T>::exists::value;
     =  std::same_as<void, typename function_reflection<&T::operator()>::return_type>

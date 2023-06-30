@@ -226,8 +226,8 @@ struct main_subroutine_reflection<T> : function_reflection<&T::main> {};
 // @/
 ```
 
-Similarly, we may want to access function reflection for a component's init
-subroutine:
+Similarly, we may want to access function reflection for a component's init and other
+recognized subroutines:
 
 ```cpp
 // TODO: this section needs a prose rewrite
@@ -237,6 +237,18 @@ template <typename T> struct init_subroutine_reflection {using exists = std::fal
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::init>::return_type>
 struct init_subroutine_reflection<T> : function_reflection<&T::init> {};
+
+template <typename T> struct external_sources_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::external_sources>::return_type>
+struct external_sources_subroutine_reflection<T> : function_reflection<&T::external_sources> {};
+
+template <typename T> struct external_destinations_subroutine_reflection {using exists = std::false_type;};
+
+template <typename T>
+    requires std::same_as<void, typename function_reflection<&T::external_destinations>::return_type>
+struct external_destinations_subroutine_reflection<T> : function_reflection<&T::external_destinations> {};
 // @/
 ```
 
