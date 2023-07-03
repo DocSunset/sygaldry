@@ -10,3 +10,6 @@
 [submodule "dependencies/doxygen-awesome-css"]
 	path = dependencies/doxygen-awesome-css
 	url = https://github.com/jothepro/doxygen-awesome-css.git
+[submodule "dependencies/libmapper-arduino"]
+	path = dependencies/libmapper-arduino
+	url = https://github.com/libmapper/libmapper-arduino.git

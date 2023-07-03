@@ -42,8 +42,8 @@ struct LibloOsc
         toggle<"output running"> output_running;
     } outputs;
 
-    lo_server server;
-    lo_address dst;
+    lo_server server{};
+    lo_address dst{};
 
     template<typename T> static void
     set_input(const char *path, const char *types
@@ -84,8 +84,8 @@ struct LibloOsc
     bool port_is_valid(auto& port)
     {
         int port_num = -1;
-        auto [ ptr, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
-        return 1024 <= port_num && port_num <= 49151;
+        auto [ _, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
+        return ec != std::errc{} && (1024 <= port_num && port_num <= 49151);
     }
 
     void set_server(auto& components)

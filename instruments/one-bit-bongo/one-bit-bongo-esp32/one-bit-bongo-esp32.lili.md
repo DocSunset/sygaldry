@@ -9,9 +9,10 @@
 #include <freertos/task.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
+#include <bindings/esp32/wifi.hpp>
+#include <bindings/liblo.hpp>
 #include <bindings/cli/cli.hpp>
 #include <bindings/output_logger.hpp>
-#include <bindings/esp32/wifi.hpp>
 
 using namespace sygaldry;
 
@@ -21,6 +22,7 @@ struct OneBitBongo
     {
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         components::esp32::Button<GPIO_NUM_23> button;
+        bindings::LibloOsc<decltype(button)> osc;
     } api;
 
     bindings::CstdioOutputLogger<decltype(api)> log;

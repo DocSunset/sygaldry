@@ -54,7 +54,7 @@ First, we wish to set up a liblo server.
 
 ```cpp
 // @+'data members'
-lo_server server;
+lo_server server{};
 // @/
 ```
 
@@ -86,8 +86,8 @@ toggle<"server running"> server_running;
 bool port_is_valid(auto& port)
 {
     int port_num = -1;
-    auto [ ptr, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
-    return 1024 <= port_num && port_num <= 49151;
+    auto [ _, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
+    return ec != std::errc{} && (1024 <= port_num && port_num <= 49151);
 }
 
 void set_server(auto& components)
@@ -170,7 +170,7 @@ multiple destinations, but for now this is left as future work.
 
 ```cpp
 // @+'data members'
-lo_address dst;
+lo_address dst{};
 // @/
 ```
 
