@@ -253,6 +253,22 @@ struct occasional
     bool updated;
 
     constexpr occasional() noexcept : state{}, updated{false} {}
+    constexpr occasional(occasional<T>&& other)
+    {
+        if (other.updated)
+        {
+            state = std::move(other.state);
+            updated = true;
+        } else updated = false;
+    }
+    constexpr occasional(const occasional<T>& other)
+    {
+        if (other.updated)
+        {
+            state = other.state;
+            updated = true;
+        } else updated = false;
+    }
     constexpr auto& operator=(const occasional<T>& other)
     {
         if (other.updated)
