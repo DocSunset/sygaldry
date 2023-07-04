@@ -81,30 +81,57 @@ with an output toggle.
 // @+'outputs'
 toggle<"server running"> server_running;
 // @/
+```
 
+To detect when the port is not set, or is invalid, we define a helper method
+that checks whether the port can be parsed as an int in the valid range for UPD
+ports. Ports less than 1024 are generally reserved by operating systems, so are
+not allowed here since they should generally not be used for OSC.
+
+See the helpful
+[list of TCP and UDP ports on Wikipedia](https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers)
+for more information.
+
+```cpp
 // @+'set_server'
 bool port_is_valid(auto& port)
 {
     int port_num = -1;
     auto [ _, ec ] = std::from_chars(port->c_str(), port->c_str() + port->length(), port_num);
-    return ec != std::errc{} && (1024 <= port_num && port_num <= 49151);
+    bool ret = ec == std::errc{} && (1024 <= port_num && port_num <= 65535);
+    if (not ret) fprintf(stderr, "liblo: invalid port %s (parsed as %d)\n", port->c_str(), port_num);
+    return ret;
 }
+// @/
 
+// @+'tests'
+TEST_CASE("liblo osc port is valid")
+{
+    LibloOsc<TestComponent> osc;
+    text_message<"s1"> s1{};
+    text_message<"s2"> s2{string("7777")};
+    text_message<"s3"> s3{string("77777")};
+    CHECK(not osc.port_is_valid(s1));
+    CHECK(osc.port_is_valid(s2));
+    CHECK(not osc.port_is_valid(s3));
+}
+// @/
+```
+
+```cpp
+// @+'set_server'
 void set_server(auto& components)
 {
-    bool port_updated = inputs.src_port.updated && port_is_valid(inputs.src_port);
-    if (outputs.server_running && not port_updated)
-    {
-        return;
-    }
+    bool user_src_port = port_is_valid(inputs.src_port);
+
+    // set the server if the server is not running or the source port has been validly updated
+    if (outputs.server_running && not (inputs.src_port.updated && user_src_port)) return;
 
     fprintf(stdout, "liblo: setting up server\n");
 
     if (server) lo_server_free(server);
 
-    bool no_user_src_port = not port_is_valid(inputs.src_port);
-
-    if (no_user_src_port)
+    if (not user_src_port)
     {
         fprintf(stdout, "liblo: searching for unused port\n");
         server = lo_server_new(NULL, &LibloOsc::server_error_handler);
@@ -123,14 +150,14 @@ void set_server(auto& components)
 
     fprintf(stderr, "liblo: server setup successful\n");
 
-    if (no_user_src_port)
+    if (not user_src_port)
     {
-        fprintf(stderr, "liblo: checking source port ... ");
         char port_str[6] = {0};
         int port_num = lo_server_get_port(server);
         snprintf(port_str, 6, "%d", port_num);
         inputs.src_port.value() = port_str;
-        fprintf(stdout, "connected on port %s\n", inputs.src_port->c_str());
+        clear_flag(inputs.src_port); // clear flag to avoid triggering set_server again on tick
+        fprintf(stdout, "liblo: connected on port %s\n", inputs.src_port->c_str());
     }
     else
         fprintf(stdout, "liblo: connected on port %s\n", inputs.src_port->c_str());
@@ -145,6 +172,8 @@ void set_server(auto& components)
 // @/
 
 // @+'init'
+fprintf(stdout, "liblo: initializing\n");
+outputs.server_running = 0; // so that set_server doesn't short circuit immediately
 set_server(components);
 // @/
 ```
@@ -198,20 +227,34 @@ toggle<"output running"> output_running;
 // @/
 
 // @='set_dst'
-bool dst_inputs_are_valid()
+bool ip_addr_is_valid(auto& ip)
 {
     // TODO: implement a more robust verification of the dst ip address
-    return inputs.dst_addr->length() >= 7 and port_is_valid(inputs.dst_port);
+    bool ret = ip->length() >= 7;
+    if (not ret) fprintf(stderr, "liblo: invalid IP address %s\n", ip->c_str());
+    return ret;
+}
+
+bool dst_inputs_are_valid()
+{
+    return ip_addr_is_valid(inputs.dst_addr) and port_is_valid(inputs.dst_port);
 }
 
 void set_dst()
 {
-    bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated) && dst_inputs_are_valid();
-    if (outputs.output_running && not dst_updated) return;
+    bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated);
+    if (not (dst_updated && dst_inputs_are_valid()) ) return;
+    fprintf(stdout, "liblo: setting destination address to %s:%s\n"
+           , inputs.dst_addr->c_str(), inputs.dst_port->c_str()
+           );
     if (dst) lo_address_free(dst);
     dst = lo_address_new(inputs.dst_addr->c_str(), inputs.dst_port->c_str());
     if (dst) outputs.output_running = 1;
-    else outputs.output_running = 0;
+    else
+    {
+        outputs.output_running = 0;
+        fprintf(stderr, "liblo: unable to set destination address\n");
+    }
 }
 // @/
 
@@ -419,4 +462,36 @@ struct LibloOsc
 
 } }
 // @/
+```
+
+```cpp
+// @#'tests/liblo/tests.cpp'
+#include <string>
+#include <catch2/catch_test_macros.hpp>
+#include "concepts/components.hpp"
+#include "helpers/endpoints.hpp"
+#include "components/tests/testcomponent.hpp"
+#include "bindings/liblo.hpp"
+
+using std::string;
+
+using namespace sygaldry;
+using namespace sygaldry::bindings;
+using namespace sygaldry::components;
+
+@{tests}
+// @/
+```
+
+```cmake
+# @#'tests/liblo/CMakeLists.txt'
+# https://stackoverflow.com/questions/29191855/what-is-the-proper-way-to-use-pkg-config-from-cmake
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBLO REQUIRED liblo)
+add_executable(liblo-tests tests.cpp)
+target_link_libraries(liblo-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(liblo-tests PRIVATE ${LIBLO_LIBRARIES})
+target_include_directories(liblo-tests PRIVATE ${LIBLO_INCLUDE_DIRS})
+catch_discover_tests(liblo-tests)
+# @/
 ```

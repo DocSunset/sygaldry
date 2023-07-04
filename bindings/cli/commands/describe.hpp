@@ -41,13 +41,13 @@ struct Describe
     {
         if constexpr (Bang<T>)
         {
-            if (entity) log.println("(bang!)");
+            if (entity) log.println("(! bang !)");
             else log.println("()");
         }
         else if constexpr (OccasionalValue<T>)
         {
-            if (entity) log.println("(", value_of(entity), ")");
-            else log.println("()");
+            if (entity) log.println("(! ", value_of(entity), " !)");
+            else log.println("(", value_of(entity), ")");
         }
         else if constexpr (PersistentValue<T>)
         {

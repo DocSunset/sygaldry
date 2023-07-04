@@ -1,4 +1,5 @@
 #include "utilities/consteval.hpp"
+#include "concepts/components.hpp"
 #include "concepts/runtime.hpp"
 #include "helpers/metadata.hpp"
 #include "components/sensors/button.hpp"
@@ -13,6 +14,7 @@ using namespace sygaldry;
 using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 
+
 struct AppComponents {
     struct api_t
     {
@@ -24,6 +26,8 @@ struct AppComponents {
     LibloOsc<decltype(api)> osc;
     OutputLogger<CstdioLogger, decltype(api)> out;
 } constinit assemblage{};
+
+static_assert(Component<decltype(assemblage.osc)>);
 
 constexpr auto runtime = Runtime{assemblage};
 

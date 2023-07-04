@@ -334,10 +334,12 @@ void test_cli(auto& cli, auto& components, string input, string expected_output)
 // @='test components'
 struct Component1 {
     static _consteval auto name() { return "Test Component A"; }
+    void main() {}
 };
 
 struct Component2 {
     static _consteval auto name() { return "Test Component B"; }
+    void main() {}
 };
 
 struct TestComponents
@@ -797,8 +799,8 @@ expression and print each one's name using the injected logger.
 #pragma once
 
 #include <type_traits>
-#include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
+#include "concepts/components.hpp"
 #include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
@@ -811,7 +813,7 @@ struct List
 
     int main(int argc, char** argv, auto& log, auto& components)
     {
-        boost::pfr::for_each_field(components, [&](const auto& component)
+        for_each_component(components, [&](const auto& component)
         {
             log.println(lower_kebab_case_v<std::decay_t<decltype(component)>>);
         });
@@ -857,7 +859,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button in"
     type:  occasional int
     range: 0 to 1 (init: 0)
-    value: (1)
+    value: (! 1 !)
   input:   toggle-in
     name: "toggle in"
     type:  persistent int
@@ -871,7 +873,7 @@ R"DESCRIBEDEVICE(component: test-component-1
   input:   bang-in
     name: "bang in"
     type:  bang
-    value: (bang!)
+    value: (! bang !)
   input:   text-in
     name: "text in"
     type:  persistent text
@@ -880,7 +882,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button out"
     type:  occasional int
     range: 0 to 1 (init: 0)
-    value: ()
+    value: (0)
   output:  toggle-out
     name: "toggle out"
     type:  persistent int
@@ -985,13 +987,13 @@ void describe_entity_value(auto& log, T& entity)
 {
     if constexpr (Bang<T>)
     {
-        if (entity) log.println("(bang!)");
+        if (entity) log.println("(! bang !)");
         else log.println("()");
     }
     else if constexpr (OccasionalValue<T>)
     {
-        if (entity) log.println("(", value_of(entity), ")");
-        else log.println("()");
+        if (entity) log.println("(! ", value_of(entity), " !)");
+        else log.println("(", value_of(entity), ")");
     }
     else if constexpr (PersistentValue<T>)
     {

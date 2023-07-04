@@ -52,11 +52,18 @@ The `idf.py init` generated boilerplate `CMakeLists.txt` for an `esp-idf` projec
 cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
+set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/components/esp32)
 project(one-bit-bongo)
 # @/
+```
+
+Note that we add the ESP32 components directory as `EXTRA_COMPONENT_DIRS` so
+that IDF components (such as the `libmapper-arduino` component) will be picked
+up by the build system.
 
 We add `sygaldry` as an include directory.
 
+```cmake
 # @#'main/CMakeLists.txt'
 idf_component_register(SRCS "one-bit-bongo.cpp"
         INCLUDE_DIRS ${SYGALDRY_ROOT}/dependencies/pfr/include

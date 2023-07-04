@@ -84,10 +84,12 @@ struct TestCommands
 
 struct Component1 {
     static _consteval auto name() { return "Test Component A"; }
+    void main() {}
 };
 
 struct Component2 {
     static _consteval auto name() { return "Test Component B"; }
+    void main() {}
 };
 
 struct TestComponents
@@ -150,7 +152,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button in"
     type:  occasional int
     range: 0 to 1 (init: 0)
-    value: (1)
+    value: (! 1 !)
   input:   toggle-in
     name: "toggle in"
     type:  persistent int
@@ -164,7 +166,7 @@ R"DESCRIBEDEVICE(component: test-component-1
   input:   bang-in
     name: "bang in"
     type:  bang
-    value: (bang!)
+    value: (! bang !)
   input:   text-in
     name: "text in"
     type:  persistent text
@@ -173,7 +175,7 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "button out"
     type:  occasional int
     range: 0 to 1 (init: 0)
-    value: ()
+    value: (0)
   output:  toggle-out
     name: "toggle out"
     type:  persistent int
