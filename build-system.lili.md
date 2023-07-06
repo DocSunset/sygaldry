@@ -141,6 +141,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # @='Include libraries'
 include_directories(dependencies/pfr/include)
 include_directories(dependencies/mp11/include)
+include_directories(dependencies/rapidjson/include)
 include_directories(./)
 set(AVENDISH_INCLUDE_SOURCE_ONLY ON)
 include_directories(dependencies/avendish/include/)
