@@ -353,11 +353,6 @@ TEST_CASE("for each X")
         for_each_output(accessor_test_container, add_names);
         REQUIRE(allnames == string("outout"));
 
-        BENCHMARK("for each output bench")
-        {
-            for_each_output(accessor_test_container, add_names);
-            return allnames;
-        };
     }
 
     SECTION("for each output in list (pregen)")
@@ -372,21 +367,7 @@ TEST_CASE("for each X")
         for_each_node_in_list(filtered, add_node);
         REQUIRE(allnodes == string("outout"));
 
-        BENCHMARK("for each output in list (pregen) bench")
-        {
-            string allnodes{};
-            for_each_node_in_list(filtered, add_node);
-            return allnodes;
-        };
 
-        BENCHMARK("for each output in list bench (from component)")
-        {
-            string allnodes{};
-            constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
-                    component_tree_to_node_list(component_to_tree(accessor_test_container)));
-            for_each_node_in_list(filtered, add_node);
-            return allnodes;
-        };
     }
 
     SECTION("for each output in list")
@@ -404,16 +385,6 @@ TEST_CASE("for each X")
         for_each_node(accessor_test_container, add_node);
         REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
 
-        BENCHMARK("for each node bench")
-        {
-            string allnodes{};
-            auto add_node = [&]<typename T>(T& entity, auto tag)
-            {
-                if constexpr (has_name<T>) allnodes += string(entity.name());
-            };
-            for_each_node(accessor_test_container, add_node);
-            return allnodes;
-        };
     }
 
     SECTION("for each node in list (pregen)")
@@ -427,16 +398,6 @@ TEST_CASE("for each X")
         for_each_node_in_list(list, add_node);
         REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
 
-        BENCHMARK("for each node in list (pregen) bench")
-        {
-            string allnodes{};
-            auto add_node = [&]<typename T>(T& entity, auto tag)
-            {
-                if constexpr (has_name<T>) allnodes += string(entity.name());
-            };
-            for_each_node_in_list(list, add_node);
-            return allnodes;
-        };
     }
 
     SECTION("for each node in list (pregen)")
@@ -450,16 +411,57 @@ TEST_CASE("for each X")
         for_each_node_in_list(list, add_node);
         REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
 
-        BENCHMARK("for each node in list (pregen) bench")
-        {
-            constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
-            string allnodes{};
-            auto add_node = [&]<typename T>(T& entity, auto tag)
-            {
-                if constexpr (has_name<T>) allnodes += string(entity.name());
-            };
-            for_each_node_in_list(list, add_node);
-            return allnodes;
-        };
     }
+}
+
+TEST_CASE("for each benchmarks", "[!benchmark]")
+{
+    string allnames{};
+    auto add_names = [&](auto& entity)
+    {
+        allnames += string(entity.name());
+    };
+
+    constexpr auto list = component_tree_to_node_list(component_to_tree(accessor_test_container));
+    string allnodes{};
+    auto add_node = [&]<typename T>(T& entity, auto tag)
+    {
+        if constexpr (has_name<T>) allnodes += string(entity.name());
+    };
+
+    constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+            component_tree_to_node_list(component_to_tree(accessor_test_container)));
+
+    BENCHMARK("for each output bench")
+    {
+        for_each_output(accessor_test_container, add_names);
+        return allnames;
+    };
+
+    BENCHMARK("for each output in list (pregen) bench")
+    {
+        for_each_node_in_list(filtered, add_node);
+        return allnodes;
+    };
+
+    BENCHMARK("for each output in list bench (from component)")
+    {
+        constexpr auto filtered = node_list_filter_by_tag<node::output_endpoint>(
+                component_tree_to_node_list(component_to_tree(accessor_test_container)));
+        for_each_node_in_list(filtered, add_node);
+        return allnodes;
+    };
+
+    BENCHMARK("for each node bench")
+    {
+        string allnodes{};
+        for_each_node(accessor_test_container, add_node);
+        return allnodes;
+    };
+
+    BENCHMARK("for each node in list (pregen) bench")
+    {
+        for_each_node_in_list(list, add_node);
+        return allnodes;
+    };
 }
