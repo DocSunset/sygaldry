@@ -20,6 +20,14 @@ the last recorded state of the session data. This component should be
 initialized before any components with session data, so that the restored state
 can be used by those components during their initialization subroutines.
 
+This component is intended to be used as a part in a platform-specific storage
+component that provides RapidJSON compatible `IStream` and `OStream`
+parameters, and manages their initialization and lifetimes. In particular, the
+`IStream` should be initialized before calling this component's `init`
+subroutine, and can be cleaned up immediately afterwards. The `OStream` may be
+instantiated before each call to main, or kept around persistently, whichever
+is better suited for the platform.
+
 # Implementation
 
 ## Test Component
@@ -41,24 +49,38 @@ struct test_component_t
 // @/
 ```
 
+We define a test output stream:
+
+```cpp
+// @+'tests'
+struct OStream : public rapidjson::Writer<rapidjson::StringBuffer> {
+    inline static rapidjson::StringBuffer obuffer{};
+    OStream() : rapidjson::Writer<rapidjson::StringBuffer>(obuffer) {}
+};
+// @/
+```
+
+This kind of wrapper is required so that side-effects and resources required to
+instantiate an output stream can be only invoked when necessary.
+
 We will use the input and output string streams provided by RapidJSON for
 testing, so we define a type alias to avoid having to repeat this in each
 test case.
 
 ```cpp
 // @+'tests'
-using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, rapidjson::Writer<rapidjson::StringBuffer>, decltype(test_component)>;
+using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, OStream, decltype(test_component)>;
 // @/
 ```
 
 ## Accessing JSON Member Values
 
 When initializing, persistent data endpoints must be set to the state contained
-in the JSON object's member fields. When updating in the main subroutine, the
-value of persistent endpoints must be compared with the value of the JSON
-object's member fields. The following subroutine abstracts access to the JSON
-object's members, accepting a lambda that is used to perform the necessary
-specific functionality.
+in the JSON object's member fields. When updating in the external destinations
+subroutine, the value of persistent endpoints must be compared with the value
+of the JSON object's member fields. The following subroutine abstracts access
+to the JSON object's members, accepting a lambda that is used to perform the
+necessary specific functionality.
 
 ```cpp
 // @='json member value'
@@ -169,15 +191,14 @@ R"JSON(
 // @/
 ```
 
-## Main
+## External Destinations
 
-The structure of the main subroutine actually mirrors that of the
-initialization subroutine, with one branch for the case where the
-JSON document doesn't have any existing data for an endpoint, and
-one where it does.
+The structure of the external destinations subroutine actually mirrors that of
+the initialization subroutine, with one branch for the case where the JSON
+document doesn't have any existing data for an endpoint, and one where it does.
 
 ```cpp
-// @+'main'
+// @+'external_destinations'
 bool updated = false;
 for_each_session_datum(components, [&]<typename T>(T& endpoint)
 {
@@ -185,11 +206,11 @@ for_each_session_datum(components, [&]<typename T>(T& endpoint)
     {
         if (not json.HasMember(osc_path_v<T, Components>))
         {
-            @{main not HasMember branch}
+            @{external_destinations not HasMember branch}
         }
         else
         {
-            @{main HasMember branch}
+            @{external_destinations HasMember branch}
         }
     }
 });
@@ -203,7 +224,7 @@ data on the heap. This branch always results in a change to the JSON document,
 which is signaled via the `updated` boolean flag.
 
 ```cpp
-// @='main not HasMember branch'
+// @='external_destinations not HasMember branch'
 if constexpr (string_like<value_t<T>>)
 {
     rapidjson::Value v{value_of(endpoint).c_str(), json.GetAllocator()};
@@ -216,17 +237,17 @@ else
 updated = true;
 // @/
 
-// @='main not HasMember test'
+// @='external_destinations not HasMember test'
 tc.inputs.some_text = string("foo");
 tc.inputs.my_slider.value = 888;
-storage.main(ostream, tc);
+storage.external_destinations(tc);
 CHECK(storage.json.HasMember("/Test/text"));
 CHECK(storage.json.HasMember("/Test/slider"));
 CHECK(storage.json["/Test/text"].IsString());
 CHECK(storage.json["/Test/slider"].IsDouble());
 CHECK(string("foo") == string(storage.json["/Test/text"].GetString()));
 CHECK(888.0 == storage.json["/Test/slider"].GetDouble());
-CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(obuffer.GetString()));
+CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(OStream::obuffer.GetString()));
 // @/
 ```
 
@@ -236,7 +257,7 @@ interpretation of the endpoint. Otherwise, the current value of the JSON
 document member is compared with the value of the endpoint.
 
 ```cpp
-// @='main HasMember branch'
+// @='external_destinations HasMember branch'
 bool endpoint_updated = false;
 if constexpr (OccasionalValue<T>)
     endpoint_updated = bool(endpoint);
@@ -253,7 +274,7 @@ once again handling strings seperately from other (numerical) data.
 Special handling for array-type data is left as future work.
 
 ```cpp
-// @+'main HasMember branch'
+// @+'external_destinations HasMember branch'
 if (endpoint_updated)
 {
     if constexpr (string_like<value_t<T>>)
@@ -263,14 +284,14 @@ if (endpoint_updated)
 }
 // @/
 
-// @+'main HasMember test'
+// @+'external_destinations HasMember test'
 // following setting the previous values...
 tc.inputs.some_text = string("bar");
 tc.inputs.my_slider.value = 777;
-storage.main(ostream, tc);
+storage.external_destinations(tc);
 CHECK(string("bar") == string(storage.json["/Test/text"].GetString()));
 CHECK(777.0 == storage.json["/Test/slider"].GetDouble());
-CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(obuffer.GetString()));
+CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(OStream::obuffer.GetString()));
 // @/
 ```
 
@@ -279,30 +300,29 @@ endpoint, then the document is sent to the template-parameter output stream for
 long-term storage.
 
 ```cpp
-// @+'main'
+// @+'external_destinations'
 if (updated)
 {
+    OStream ostream{};
     json.Accept(ostream);
 }
 // @/
 
 // @+'tests'
-TEST_CASE("RapidJSON main")
+TEST_CASE("RapidJSON external_destinations")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};
-    rapidjson::StringBuffer obuffer{};
-    rapidjson::Writer<decltype(obuffer)> ostream{obuffer};
+    OStream::obuffer.Clear();
     TestStorage storage{};
     test_component_t tc{};
     storage.init(istream, tc);
 
-    @{main not HasMember test}
+    @{external_destinations not HasMember test}
 
-    obuffer.Clear();
-    ostream.Reset(obuffer);
+    OStream::obuffer.Clear();
 
-    @{main HasMember test}
+    @{external_destinations HasMember test}
 }
 // @/
 ```
@@ -327,7 +347,6 @@ struct RapidJsonSessionStorage
 : name_<"RapidJSON Session Storage">
 // TODO: other metadata
 {
-    @{ostream}
     rapidjson::Document json{};
 
     @{json member value}
@@ -337,9 +356,9 @@ struct RapidJsonSessionStorage
         @{init}
     }
 
-    void main(OStream& ostream, Components& components)
+    void external_destinations(Components& components)
     {
-        @{main}
+        @{external_destinations}
     }
 };
 

@@ -20,7 +20,11 @@ struct test_component_t
 
     void main() {}
 } test_component;
-using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, rapidjson::Writer<rapidjson::StringBuffer>, decltype(test_component)>;
+struct OStream : public rapidjson::Writer<rapidjson::StringBuffer> {
+    inline static rapidjson::StringBuffer obuffer{};
+    OStream() : rapidjson::Writer<rapidjson::StringBuffer>(obuffer) {}
+};
+using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, OStream, decltype(test_component)>;
 TEST_CASE("RapidJSON creates object given empty input stream")
 {
     string ibuffer{""};
@@ -44,35 +48,33 @@ R"JSON(
     CHECK(tc.inputs.some_text.value() == string("hello world"));
     CHECK(tc.inputs.my_slider.value == 42.0f);
 }
-TEST_CASE("RapidJSON main")
+TEST_CASE("RapidJSON external_destinations")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};
-    rapidjson::StringBuffer obuffer{};
-    rapidjson::Writer<decltype(obuffer)> ostream{obuffer};
+    OStream::obuffer.Clear();
     TestStorage storage{};
     test_component_t tc{};
     storage.init(istream, tc);
 
     tc.inputs.some_text = string("foo");
     tc.inputs.my_slider.value = 888;
-    storage.main(ostream, tc);
+    storage.external_destinations(tc);
     CHECK(storage.json.HasMember("/Test/text"));
     CHECK(storage.json.HasMember("/Test/slider"));
     CHECK(storage.json["/Test/text"].IsString());
     CHECK(storage.json["/Test/slider"].IsDouble());
     CHECK(string("foo") == string(storage.json["/Test/text"].GetString()));
     CHECK(888.0 == storage.json["/Test/slider"].GetDouble());
-    CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(obuffer.GetString()));
+    CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(OStream::obuffer.GetString()));
 
-    obuffer.Clear();
-    ostream.Reset(obuffer);
+    OStream::obuffer.Clear();
 
     // following setting the previous values...
     tc.inputs.some_text = string("bar");
     tc.inputs.my_slider.value = 777;
-    storage.main(ostream, tc);
+    storage.external_destinations(tc);
     CHECK(string("bar") == string(storage.json["/Test/text"].GetString()));
     CHECK(777.0 == storage.json["/Test/slider"].GetDouble());
-    CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(obuffer.GetString()));
+    CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(OStream::obuffer.GetString()));
 }

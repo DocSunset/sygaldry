@@ -3,6 +3,7 @@
 #include <freertos/task.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
+#include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
 #include <bindings/cli/cli.hpp>
@@ -12,15 +13,17 @@ using namespace sygaldry;
 
 struct OneBitBongo
 {
-    struct api_t
+    struct Instrument
     {
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         components::esp32::Button<GPIO_NUM_23> button;
         bindings::LibloOsc<decltype(button)> osc;
-    } api;
+    };
 
-    bindings::CstdioOutputLogger<decltype(api)> log;
-    bindings::CstdioCli<decltype(api)> cli;
+    bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
+    Instrument instrument;
+    bindings::CstdioOutputLogger<Instrument> log;
+    bindings::CstdioCli<Instrument> cli;
 } constinit bongo{};
 
 constexpr auto runtime = Runtime{bongo};

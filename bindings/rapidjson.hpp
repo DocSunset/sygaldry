@@ -63,7 +63,7 @@ struct RapidJsonSessionStorage
         });
     }
 
-    void main(OStream& ostream, Components& components)
+    void external_destinations(Components& components)
     {
         bool updated = false;
         for_each_session_datum(components, [&]<typename T>(T& endpoint)
@@ -104,6 +104,7 @@ struct RapidJsonSessionStorage
         });
         if (updated)
         {
+            OStream ostream{};
             json.Accept(ostream);
         }
     }
