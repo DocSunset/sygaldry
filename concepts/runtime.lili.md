@@ -132,8 +132,8 @@ TEST_CASE("example test")
 
 ### Use a fold
 
-My first attempt resembled the following. A template struct whose type parameters give
-the (cvref removed) types of the arguments to a component to activate. In the `activate`
+My first attempt resembled the following. We define template struct whose type parameters give
+the arguments a component needs for its main subroutine to be activated . In the `activate`
 method of this structure, these type parameters are unpacked to into `find` to locate
 the entities with the given types in the component tree. This `runtime_impl` struct is
 then instantiated with the appropriate arguments using our function reflection facilities
@@ -169,16 +169,29 @@ component tree implied by the multiple calls to `find` in this implementation.
 We need some way of declaring this traversal `constexpr`, or perhaps
 `constinit`. This lead to the following implementation. Roughly the same
 metaprogramming pattern is used to enable the arguments of the function to be
-extracted by expanding a parameter pack into `find` calls. However, instead of
-doing so in a function call context, a tuple is `constexpr` initialized which
-holds the arguments until call time. This structure can be declared
-`constinit`, which should guarantee that the construction of the arguments
-tuple, and thus the traversal of the component tree, happens at compile time;
-in case the compile didn't compute this for some reason, there would still be
-no runtime performance impact, as the traversal would take place before the
-main program properly started running. The only drawback in this case, which
-should be impossible anyways, would be a likely increase in compiled executable
-code size.
+extracted by expanding a parameter pack with a fold expression over calls to
+`find`. However, instead of doing so in a function call context, a tuple is
+declared initialized which holds the arguments until call time. So that this
+traversal can happen at compile time, the constructor that initializes the tuple
+is declared `constexpr`.
+
+```cpp
+// @='component_runtime 1 tuple'
+using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+const arg_pack_t arg_pack;
+
+constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+// @/
+```
+
+This `component_runtime_impl` structure can be declared `constinit`, which
+should guarantee that the construction of the arguments tuple, and thus the
+traversal of the component tree, happens at compile time; in case the compiler
+didn't initialize the tuple at compile time for some reason, there would still
+be little runtime performance impact, as the traversal would take place before
+the main program properly started running, although there would still be an
+increase in executable size if this somehow were to happen (e.g. if we forgot
+to declare the impl struct `constinit`).
 
 ```cpp
 // @+'tests'
@@ -195,15 +208,14 @@ TEST_CASE("component runtime main")
 // @/
 ```
 
+Activating the main subroutine then simply requires us to apply the tuple:
+
 ```cpp
 // @='component_runtime 1'
 template<typename Component, typename ComponentContainer, typename ... Args>
 struct component_runtime_impl
 {
-    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
-    const arg_pack_t arg_pack;
-
-    constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+    @{component_runtime 1 tuple}
 
     void main(Component& component) const
     {
@@ -213,7 +225,15 @@ struct component_runtime_impl
             std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
     }
 };
+// @/
+```
 
+All that's left then, essentially, is the metaprogram that determines the
+appropriate type for the tuple, seen below in the sequence of `using`
+declarations.
+
+```cpp
+// @+'component_runtime 1'
 template<typename Component, typename ComponentContainer>
 struct component_runtime
 {
@@ -241,9 +261,10 @@ struct component_runtime
 
 ### Generalize
 
-The above implementation is only able to activate a single component. It is
-reasonably straightforward to generalize this to both initialize and activate
-an arbitrary number of components held in a component container.
+The above implementation is only able to activate a single component's main
+subroutine. It is reasonably straightforward to generalize this to both
+initialize and activate an arbitrary number of components held in a component
+container.
 
 First, we pull out the argument pack used in the inner implementation:
 
@@ -260,11 +281,11 @@ struct impl_arg_pack
 // @/
 ```
 
-Having this metafunction allows us to get rid of the inner `impl` structure and
-makes it easier to generalize the component runtime so that it can initialize
-or activate a component, accepting argument packs for both of these
-subroutines. We can now test the runtime's ability to run the init
-method.
+Having this class allows us to get rid of the inner `impl` structure and makes
+it easier to generalize the component runtime so that it can initialize or
+activate a component, accepting argument packs for both of these subroutines,
+as well as others such as `external_destinations` that were added later. We can
+now test the runtime's ability to run the init method.
 
 ```cpp
 // @+'tests'
@@ -277,7 +298,13 @@ TEST_CASE("component runtime init")
     CHECK(init_runtime_components.tc1.inputs.in1.value == 42);
 }
 // @/
+```
 
+The full implementation now resembles the following, which essentially simply
+gets the types of the `arg_pack` tuples, and applies them to the component's
+subroutines.:
+
+```cpp
 // @='component_runtime 2'
 template<typename Component, typename ComponentContainer>
 struct component_runtime
