@@ -11,8 +11,6 @@ namespace sygaldry { namespace bindings {
 
 template<typename IStream, typename OStream, typename Components>
 struct RapidJsonSessionStorage
-: name_<"RapidJSON Session Storage">
-// TODO: other metadata
 {
     rapidjson::Document json{};
 
@@ -105,7 +103,7 @@ struct RapidJsonSessionStorage
         if (updated)
         {
             OStream ostream{};
-            json.Accept(ostream);
+            json.Accept(ostream.writer);
         }
     }
 };

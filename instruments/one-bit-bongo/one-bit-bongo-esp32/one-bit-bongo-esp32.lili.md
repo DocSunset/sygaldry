@@ -30,7 +30,7 @@ struct OneBitBongo
     Instrument instrument;
     bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
-} constinit bongo{};
+} bongo{};
 
 constexpr auto runtime = Runtime{bongo};
 
@@ -56,15 +56,20 @@ cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/components/esp32)
+set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/bindings/esp32)
 project(one-bit-bongo)
 # @/
 ```
 
-Note that we add the ESP32 components directory as `EXTRA_COMPONENT_DIRS` so
+Note that we add the ESP32 components directories as `EXTRA_COMPONENT_DIRS` so
 that IDF components (such as the `libmapper-arduino` component) will be picked
 up by the build system.
 
-We add `sygaldry` as an include directory.
+We add `sygaldry` as an include directory, as well as its main header-only
+dependencies. This should arguably be handled by making `sygaldry` itself
+into an IDF component; this is left as future work.
+
+Note that, for the following
 
 ```cmake
 # @#'main/CMakeLists.txt'

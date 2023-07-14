@@ -20,9 +20,10 @@ struct test_component_t
 
     void main() {}
 } test_component;
-struct OStream : public rapidjson::Writer<rapidjson::StringBuffer> {
+struct OStream{
     inline static rapidjson::StringBuffer obuffer{};
-    OStream() : rapidjson::Writer<rapidjson::StringBuffer>(obuffer) {}
+    rapidjson::Writer<rapidjson::StringBuffer> writer;
+    OStream() : writer{obuffer} {}
 };
 using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, OStream, decltype(test_component)>;
 TEST_CASE("RapidJSON creates object given empty input stream")

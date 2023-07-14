@@ -24,7 +24,7 @@ struct OneBitBongo
     Instrument instrument;
     bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
-} constinit bongo{};
+} bongo{};
 
 constexpr auto runtime = Runtime{bongo};
 

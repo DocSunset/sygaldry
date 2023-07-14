@@ -5,32 +5,37 @@
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
 #include "esp_spiffs.h"
+#include "concepts/components.hpp"
+#include "components/tests/testcomponent.hpp"
 #include "bindings/rapidjson.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace bindings { namespace esp32 {
+
+struct SpiffsJsonOStream
+{
+    static constexpr const char * file_path = "/spiffs/session_storage.json";
+    static constexpr std::size_t buffer_size = 1024;
+    std::FILE * fp;
+    char buffer[buffer_size];
+    rapidjson::FileWriteStream ostream;
+    rapidjson::Writer<rapidjson::FileWriteStream> writer;
+    SpiffsJsonOStream()
+    : fp{std::fopen(file_path, "w")}, buffer{0}
+    , ostream{fp, buffer, buffer_size}, writer{ostream}
+    {}
+    ~SpiffsJsonOStream() {std::fclose(fp);}
+};
+
+template<typename Components>
+using Storage = RapidJsonSessionStorage<rapidjson::FileReadStream, SpiffsJsonOStream, Components>;
 
 template<typename Components>
 struct SpiffsSessionStorage
-: name_<"SPIFFS Session Storage">
+: Storage<Components>, name_<"SPIFFS Session Storage">
 {
     static constexpr const char * spiffs_base_path = "/spiffs";
-    static constexpr const char * file_path = "/spiffs/session_storage.json";
-    static constexpr std::size_t buffer_size = 1024;
-
-    struct OStream : public rapidjson::Writer<rapidjson::FileWriteStream> {
-        std::FILE * fp;
-        char buffer[buffer_size];
-        rapidjson::FileWriteStream ostream;
-        OStream()
-        : fp{std::fopen(file_path, "w")}, ostream{fp, buffer, buffer_size}
-        , rapidjson::Writer<rapidjson::FileWriteStream>(ostream)
-        {}
-        OStream~() {std::fclose(fp);}
-    };
-
-    struct parts_t {
-        RapidJsonSessionStorage<rapidjson::FileReadStream, OStream, Components> json;
-    } parts;
+    static constexpr const char * file_path = SpiffsJsonOStream::file_path;
+    static constexpr std::size_t buffer_size = SpiffsJsonOStream::buffer_size;
 
     void init(Components& components)
     {
@@ -47,23 +52,23 @@ struct SpiffsSessionStorage
         size_t total = 0, used = 0;
         ret = esp_spiffs_info(conf.partition_label, &total, &used);
         if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s). Formatting...", esp_err_to_name(ret));
+            printf("spiffs: Failed to get SPIFFS partition information (%s). Formatting...", esp_err_to_name(ret));
             esp_spiffs_format(conf.partition_label);
             return;
         }
-        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+        printf("spiffs: Partition size: total: %d, used: %d", total, used);
 
         // Check consistency of reported partiton size info.
         if (used > total) {
-            ESP_LOGW(TAG, "Number of used bytes cannot be larger than total. Performing SPIFFS_check().");
+            printf("spiffs: Number of used bytes cannot be larger than total. Performing SPIFFS_check().");
             ret = esp_spiffs_check(conf.partition_label);
             // Could be also used to mend broken files, to clean unreferenced pages, etc.
             // More info at https://github.com/pellepl/spiffs/wiki/FAQ#powerlosses-contd-when-should-i-run-spiffs_check
             if (ret != ESP_OK) {
-                ESP_LOGE(TAG, "SPIFFS_check() failed (%s)", esp_err_to_name(ret));
+                printf("spiffs: SPIFFS_check() failed (%s)", esp_err_to_name(ret));
                 return;
             } else {
-                ESP_LOGI(TAG, "SPIFFS_check() successful");
+                printf("spiffs: SPIFFS_check() successful");
             }
         }
 
@@ -71,15 +76,18 @@ struct SpiffsSessionStorage
         std::FILE * fp = std::fopen(file_path, "r");
         if (fp == nullptr) fp = std::fopen(file_path, "w+");
         char buffer[buffer_size];
-        rapidjson::FileReadStream istream{fp, buffer, buffer_size);
-        parts.json.init(istream, components);
+        rapidjson::FileReadStream istream{fp, buffer, buffer_size};
+        Storage<Components>::init(istream, components);
         std::fclose(fp);
     }
 
-    void external_destnations(Components& components)
+    void external_destinations(Components& components)
     {
-        parts.json.external_destnations(components);
+        Storage<Components>::external_destinations(components);
     }
 };
 
-} }
+
+static_assert(Component<SpiffsSessionStorage<components::TestComponent>>);
+
+} } }

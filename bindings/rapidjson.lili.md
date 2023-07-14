@@ -53,9 +53,10 @@ We define a test output stream:
 
 ```cpp
 // @+'tests'
-struct OStream : public rapidjson::Writer<rapidjson::StringBuffer> {
+struct OStream{
     inline static rapidjson::StringBuffer obuffer{};
-    OStream() : rapidjson::Writer<rapidjson::StringBuffer>(obuffer) {}
+    rapidjson::Writer<rapidjson::StringBuffer> writer;
+    OStream() : writer{obuffer} {}
 };
 // @/
 ```
@@ -304,7 +305,7 @@ long-term storage.
 if (updated)
 {
     OStream ostream{};
-    json.Accept(ostream);
+    json.Accept(ostream.writer);
 }
 // @/
 
@@ -344,8 +345,6 @@ namespace sygaldry { namespace bindings {
 
 template<typename IStream, typename OStream, typename Components>
 struct RapidJsonSessionStorage
-: name_<"RapidJSON Session Storage">
-// TODO: other metadata
 {
     rapidjson::Document json{};
 
