@@ -16,3 +16,6 @@
 [submodule "dependencies/rapidjson"]
 	path = dependencies/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "dependencies/Trill-Arduino"]
+	path = dependencies/Trill-Arduino
+	url = https://github.com/BelaPlatform/Trill-Arduino.git
