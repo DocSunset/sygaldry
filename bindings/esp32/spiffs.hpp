@@ -22,7 +22,10 @@ struct SpiffsJsonOStream
     SpiffsJsonOStream()
     : fp{std::fopen(file_path, "w")}, buffer{0}
     , ostream{fp, buffer, buffer_size}, writer{ostream}
-    {}
+    {
+        if (fp == nullptr) printf("spiffs: unable to open file for writing!\n");
+        // The program will probably crash if this happens for some reason...
+    }
     ~SpiffsJsonOStream() {std::fclose(fp);}
 };
 
@@ -39,6 +42,7 @@ struct SpiffsSessionStorage
 
     void init(Components& components)
     {
+        // Set up spiffs
         esp_vfs_spiffs_conf_t conf = {
               .base_path = "/spiffs",
               .partition_label = NULL,
@@ -48,7 +52,7 @@ struct SpiffsSessionStorage
         esp_err_t ret = esp_vfs_spiffs_register(&conf);
         ESP_ERROR_CHECK_WITHOUT_ABORT(ret);
         if (ret != ESP_OK) return;
-
+        // Check partition size info
         size_t total = 0, used = 0;
         ret = esp_spiffs_info(conf.partition_label, &total, &used);
         if (ret != ESP_OK) {
@@ -71,10 +75,13 @@ struct SpiffsSessionStorage
                 printf("spiffs: SPIFFS_check() successful");
             }
         }
-
-        // open existing file or create an empty one
+        // Open existing file or create an empty one
         std::FILE * fp = std::fopen(file_path, "r");
         if (fp == nullptr) fp = std::fopen(file_path, "w+");
+        if (fp == nullptr) {
+            printf("spiffs: Unable to open file for initialization!\n");
+            return;
+        }
         char buffer[buffer_size];
         rapidjson::FileReadStream istream{fp, buffer, buffer_size};
         Storage<Components>::init(istream, components);

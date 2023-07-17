@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <Trill.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
 #include <bindings/esp32/spiffs.hpp>
@@ -36,6 +37,7 @@ constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {
+    Trill trill{};
     runtime.init();
     for (;;)
     {
@@ -55,8 +57,7 @@ The `idf.py init` generated boilerplate `CMakeLists.txt` for an `esp-idf` projec
 cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/components/esp32)
-set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/bindings/esp32)
+set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/components/esp32 ${SYGALDRY_ROOT}/bindings/esp32)
 project(one-bit-bongo)
 # @/
 ```
@@ -79,5 +80,29 @@ idf_component_register(SRCS "one-bit-bongo.cpp"
         INCLUDE_DIRS "." ${SYGALDRY_ROOT}
         )
 # @/
+```
+
+## Partition Table
+
+In order to use SPIFFS for session data storage, we are required
+to provide a custom partition table that declares a data partition with
+`spiffs` subtype where the SPIFFS will be located.
+
+```csv
+# @#'partitions.csv'
+# name,   type, subtype,   offset,     size,   flags
+nvs,      data, nvs,       0x9000,   0x4000,
+phy_init, data, phy,       0xf000,   0x1000,
+main,     app,  factory,  0x10000, 0x290000,
+storage,  data, spiffs,  0x300000,       1M,
+# @/
+```
+
+The `sdkconfig` is then directed to use this partition table by setting
+the following two lines:
+
+```
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 ```
 

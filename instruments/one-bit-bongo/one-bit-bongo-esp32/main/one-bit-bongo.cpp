@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <Trill.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
 #include <bindings/esp32/spiffs.hpp>
@@ -30,6 +31,7 @@ constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {
+    Trill trill{};
     runtime.init();
     for (;;)
     {
