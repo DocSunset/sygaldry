@@ -171,6 +171,15 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text in"
     type:  persistent text
     value: ""
+  input:   text-message-in
+    name: "text message in"
+    type:  occasional text
+    value: ()
+  input:   vector-in
+    name: "vector in"
+    type:  vector of float
+    range: 0 to 1 (init: 0)
+    value: [0 0 0]
   output:  button-out
     name: "button out"
     type:  occasional int
@@ -194,6 +203,15 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text out"
     type:  persistent text
     value: ""
+  output:  text-message-out
+    name: "text message out"
+    type:  occasional text
+    value: ()
+  output:  vector-out
+    name: "vector out"
+    type:  vector of float
+    range: 0 to 1 (init: 0)
+    value: [0 0 0]
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
     test_command(Describe{}, TestComponents{}, 0,
@@ -247,5 +265,11 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     {
         test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
+    }
+
+    SECTION("set vector")
+    {
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "vector-in", "1", "2", "3");
+        REQUIRE(components.tc.inputs.vector_in.value == std::array<float, 3>{1,2,3});
     }
 }

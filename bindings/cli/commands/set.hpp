@@ -71,7 +71,7 @@ struct Set
         T val = from_chars<T>(argstart, argend, success);
         if (success)//ec == std::errc{})
         {
-            set_value(endpoint, val);
+            endpoint = val;
             return 0;
         }
         else
@@ -79,6 +79,16 @@ struct Set
             log.println("Unable to parse token '", argstart, "'");
             return 2;
         }
+    }
+    int parse_and_set(auto& log, auto& endpoint, int argc, char ** argv)
+    {
+        for (int i = 0; i < argc; ++i)
+        {
+            using T = decltype(value_of(endpoint)[0]);
+            auto ret = parse_and_set<std::remove_cvref_t<T>>(log, value_of(endpoint)[i], argv[i]);
+            if (ret != 0) return ret;
+        }
+        return 0;
     }
 
     template<typename T>
@@ -90,9 +100,17 @@ struct Set
             set_value(endpoint, true);
             return 0;
         }
+        else if constexpr (array_like<T> && not string_like<T>) // strings are handled by the has_value case
+        {
+            if (argc < size_of(endpoint))
+            {
+                log.println("Not enough arguments to set this endpoint.");
+                return 2;
+            }
+            else return parse_and_set(log, endpoint, argc, argv);
+        }
         else if constexpr (has_value<T>)
         {
-            // TODO: support values with more than one argument
             if (argc < 1)
             {
                 log.println("Not enough arguments to set this endpoint.");

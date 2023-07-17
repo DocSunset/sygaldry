@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <array>
 
 using namespace sygaldry::bindings;
 
@@ -27,6 +28,12 @@ TEST_CASE("BasicLogger print") {
     {
         logger.print("Hello world!");
         REQUIRE(logger.put.ss.str() == "Hello world!");
+    }
+
+    SECTION("Printing arrays")
+    {
+        logger.print(std::array<int, 3>{1,2,3});
+        REQUIRE(logger.put.ss.str() == "[1 2 3]");
     }
 
     SECTION("Variadic print")

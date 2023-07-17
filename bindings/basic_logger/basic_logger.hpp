@@ -49,6 +49,13 @@ struct BasicLogger
         }
         else if constexpr (requires {string_message = x;})
             string_message = x;
+        else if constexpr (requires {x[0]; x.size();})
+        {
+            print("[", x[0]);
+            for (std::size_t i = 1; i < x.size(); ++i) print(" ", x[i]);
+            print("]");
+            return;
+        }
         else string_message = "unknown type for basic logger";
 
         for (char c : string_message)

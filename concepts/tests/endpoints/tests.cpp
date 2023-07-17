@@ -217,3 +217,10 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         }
     }
 }
+static_assert(string_like<text<"a text">>);
+static_assert(string_like<text_message<"a text message">>);
+static_assert(array_like<vector<"a vector", 3>>);
+static_assert(std::is_same_v<element_t<vector<"a vector", 3>>, float>);
+static_assert(std::is_same_v<element_t<slider<"a slider">>, value_t<slider<"a slider">>>);
+static_assert(not array_like<slider<"a slider">>);
+static_assert(not array_like<text<"a text">>);

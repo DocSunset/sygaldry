@@ -135,6 +135,7 @@ std::stringstream TestPutter::ss;
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <array>
 
 using namespace sygaldry::bindings;
 
@@ -158,6 +159,12 @@ TEST_CASE("BasicLogger print") {
     {
         logger.print("Hello world!");
         REQUIRE(logger.put.ss.str() == "Hello world!");
+    }
+
+    SECTION("Printing arrays")
+    {
+        logger.print(std::array<int, 3>{1,2,3});
+        REQUIRE(logger.put.ss.str() == "[1 2 3]");
     }
 
     SECTION("Variadic print")
@@ -202,6 +209,13 @@ else if constexpr (std::is_arithmetic_v<T>)
 }
 else if constexpr (requires {string_message = x;})
     string_message = x;
+else if constexpr (requires {x[0]; x.size();})
+{
+    print("[", x[0]);
+    for (std::size_t i = 1; i < x.size(); ++i) print(" ", x[i]);
+    print("]");
+    return;
+}
 else string_message = "unknown type for basic logger";
 // @/
 ```

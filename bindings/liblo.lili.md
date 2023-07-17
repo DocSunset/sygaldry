@@ -379,7 +379,7 @@ void external_destinations(Components& components)
 {
     if (outputs.output_running)
     {
-        for_each_output(components, [&]<typename T>(const T& output)
+        for_each_output(components, [&]<typename T>(T& output)
         {
             if constexpr (Bang<T>)
             {

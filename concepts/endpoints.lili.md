@@ -507,9 +507,8 @@ the above concepts. The only thing that might be surprising is that the `const`
 version of the function is implemented in terms of the non-`const` version.
 This is considered a reasonable and idiomatic way of avoiding repeating
 ourselves, but we should remain suspicious of this function in case our
-assumptions about const-correctness ever seen to be violated. This is unlikely
+assumptions about const-correctness ever seem to be violated. This is unlikely
 to ever be an issue though.
-
 
 ```cpp
 // @+'concepts'
@@ -551,8 +550,11 @@ auto& set_value(T& v, const auto& arg)
 
 # Value Reflection
 
-As well as numerical values, we also have helpers for string values. We provide
-a basic concept to help identify them.
+As well as numerical values, we also have helpers for string values and
+single-dimensional arrays of values. We provide a basic concept to help
+identify them. We consider an endpoint to be `string_like` if we can assign to
+it from a string literal. We consider an endpoint to be `array_like` if the
+endpoint's value is subscriptable and has a method `length`.
 
 ```cpp
 // @+'concepts'
@@ -563,6 +565,36 @@ template<typename T> concept string_like = requires (T t, const char * s)
 {
     t = s;
 };
+
+template<typename T> concept array_like = requires (T t)
+{
+    t[0];
+    t.size();
+};
+
+template<array_like T>
+_consteval auto size_of(T& endpoint)
+{
+    return endpoint.size();
+}
+
+template<typename T> struct _element_type;
+template<typename T> requires (array_like<T> && has_value<T>)  struct _element_type<T>
+{
+    using type = std::remove_cvref_t<decltype(std::declval<T>()[0])>;
+};
+template<has_value T> struct _element_type<T> { using type = value_t<T>; };
+template<typename T> requires (array_like<T> || has_value<T>) using element_t = typename _element_type<T>::type;
+// @/
+
+// @+'tests'
+static_assert(string_like<text<"a text">>);
+static_assert(string_like<text_message<"a text message">>);
+static_assert(array_like<vector<"a vector", 3>>);
+static_assert(std::is_same_v<element_t<vector<"a vector", 3>>, float>);
+static_assert(std::is_same_v<element_t<slider<"a slider">>, value_t<slider<"a slider">>>);
+static_assert(not array_like<slider<"a slider">>);
+static_assert(not array_like<text<"a text">>);
 // @/
 ```
 

@@ -878,6 +878,15 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text in"
     type:  persistent text
     value: ""
+  input:   text-message-in
+    name: "text message in"
+    type:  occasional text
+    value: ()
+  input:   vector-in
+    name: "vector in"
+    type:  vector of float
+    range: 0 to 1 (init: 0)
+    value: [0 0 0]
   output:  button-out
     name: "button out"
     type:  occasional int
@@ -901,6 +910,15 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text out"
     type:  persistent text
     value: ""
+  output:  text-message-out
+    name: "text message out"
+    type:  occasional text
+    value: ()
+  output:  vector-out
+    name: "vector out"
+    type:  vector of float
+    range: 0 to 1 (init: 0)
+    value: [0 0 0]
 )DESCRIBEDEVICE", "describe", "test-component-1");
 
     test_command(Describe{}, TestComponents{}, 0,
@@ -968,15 +986,24 @@ void describe_entity_type(auto& log, T& entity)
     else if constexpr (has_value<T>)
     {
         if constexpr (OccasionalValue<T>)
-            log.print("occasional ");
+        {
+            if constexpr (array_like<T>)
+                log.print("array of ");
+            else log.print("occasional ");
+        }
         else if constexpr (PersistentValue<T>)
-            log.print("persistent ");
-        if constexpr (std::integral<value_t<T>>)
+        {
+            if constexpr (array_like<T>)
+                log.print("vector of ");
+            else log.print("persistent ");
+        }
+        if constexpr (std::integral<element_t<T>>)
             log.println("int");
-        else if constexpr (std::floating_point<value_t<T>>)
+        else if constexpr (std::floating_point<element_t<T>>)
             log.println("float");
-        else if constexpr (string_like<value_t<T>>)
+        else if constexpr (string_like<element_t<T>>)
             log.println("text");
+        else log.println("unknown value type");
     }
     else if constexpr (Component<T>) log.println("component");
     else log.println("unknown");
@@ -1121,6 +1148,12 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
+
+    SECTION("set vector")
+    {
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "vector-in", "1", "2", "3");
+        REQUIRE(components.tc.inputs.vector_in.value == std::array<float, 3>{1,2,3});
+    }
 }
 // @/
 ```
@@ -1164,9 +1197,17 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
         set_value(endpoint, true);
         return 0;
     }
+    else if constexpr (array_like<T> && not string_like<T>) // strings are handled by the has_value case
+    {
+        if (argc < size_of(endpoint))
+        {
+            log.println("Not enough arguments to set this endpoint.");
+            return 2;
+        }
+        else return parse_and_set(log, endpoint, argc, argv);
+    }
     else if constexpr (has_value<T>)
     {
-        // TODO: support values with more than one argument
         if (argc < 1)
         {
             log.println("Not enough arguments to set this endpoint.");
@@ -1180,8 +1221,10 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
 ```
 
 `parse_and_set` is called in case a value needs to be parsed from the input
-tokens. Most of the method consists of checking for errors and returning a
+tokens. Most of these methods consists of checking for errors and returning a
 failure code in case we can't parse the input token.
+
+The case for a single-valued endpoint simply parses the given input string:
 
 ```cpp
 // @='parse and set'
@@ -1203,7 +1246,7 @@ int parse_and_set(auto& log, auto& endpoint, const char * argstart)
     T val = from_chars<T>(argstart, argend, success);
     if (success)//ec == std::errc{})
     {
-        set_value(endpoint, val);
+        endpoint = val;
         return 0;
     }
     else
@@ -1215,7 +1258,24 @@ int parse_and_set(auto& log, auto& endpoint, const char * argstart)
 // @/
 ```
 
-For converting from the token string to a number, we would like to
+The case for an array-like endpoint needs to iterate over the input strings:
+
+```cpp
+// @+'parse and set'
+int parse_and_set(auto& log, auto& endpoint, int argc, char ** argv)
+{
+    for (int i = 0; i < argc; ++i)
+    {
+        using T = decltype(value_of(endpoint)[0]);
+        auto ret = parse_and_set<std::remove_cvref_t<T>>(log, value_of(endpoint)[i], argv[i]);
+        if (ret != 0) return ret;
+    }
+    return 0;
+}
+// @/
+```
+
+For converting from a token string to a number, we would like to
 simply use the standard library `from_chars`, but the ESP-IDF doesn't
 appear to have implemented the floating point overloads for this
 function at the time of writing. We define our own `from_chars`
@@ -1275,6 +1335,7 @@ T from_chars(const char * start, const char *, bool& success)
 }
 // @/
 ```
+
 
 ### Boilerplate
 

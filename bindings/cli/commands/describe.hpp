@@ -22,15 +22,24 @@ struct Describe
         else if constexpr (has_value<T>)
         {
             if constexpr (OccasionalValue<T>)
-                log.print("occasional ");
+            {
+                if constexpr (array_like<T>)
+                    log.print("array of ");
+                else log.print("occasional ");
+            }
             else if constexpr (PersistentValue<T>)
-                log.print("persistent ");
-            if constexpr (std::integral<value_t<T>>)
+            {
+                if constexpr (array_like<T>)
+                    log.print("vector of ");
+                else log.print("persistent ");
+            }
+            if constexpr (std::integral<element_t<T>>)
                 log.println("int");
-            else if constexpr (std::floating_point<value_t<T>>)
+            else if constexpr (std::floating_point<element_t<T>>)
                 log.println("float");
-            else if constexpr (string_like<value_t<T>>)
+            else if constexpr (string_like<element_t<T>>)
                 log.println("text");
+            else log.println("unknown value type");
         }
         else if constexpr (Component<T>) log.println("component");
         else log.println("unknown");

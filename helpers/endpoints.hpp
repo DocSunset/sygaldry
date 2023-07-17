@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string_view>
-#include <optional>
 #include <string>
+#include <array>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
 
@@ -157,13 +157,40 @@ template< string_literal name_str
         , typename ... Tags
         >
 struct slider
-: persistent<float>
+: persistent<T>
 , name_<name_str>
 , description_<desc>
 , range_<min, max, init>
 , tagged_<Tags...>
 {
-    using persistent<float>::operator=;
+    using persistent<T>::operator=;
+};
+
+template< string_literal name_str
+        , std::size_t N
+        , string_literal desc = ""
+        , arithmetic T = float
+        , num_literal<T> min = 0.0f
+        , num_literal<T> max = 1.0f
+        , num_literal<T> init = min
+        , typename ... Tags
+        >
+struct vector
+: persistent<std::array<T, N>>
+, name_<name_str>
+, description_<desc>
+, range_<min, max, init>
+, tagged_<Tags...>
+{
+    using persistent<std::array<T, N>>::operator=;
+    constexpr auto& operator[](std::size_t i) noexcept
+    {
+        return persistent<std::array<T,N>>::value[i];
+    }
+    constexpr auto size() noexcept
+    {
+        return persistent<std::array<T,N>>::value.size();
+    }
 };
 template<string_literal name_str, string_literal desc = "", typename ... Tags>
 struct bng
