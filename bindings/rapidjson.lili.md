@@ -42,6 +42,7 @@ struct test_component_t
     struct inputs_t {
         text_message<"text", "description goes here", tag_session_data> some_text;
         slider<"slider", "description goes here", float, 0.0f, 1.0f, 0.0f, tag_session_data> my_slider;
+        array<"array", 3, "description goes here", float, 0.0f, 1.0f, 0.0f, tag_session_data> my_array;
     } inputs;
 
     void main() {}
@@ -81,7 +82,8 @@ in the JSON object's member fields. When updating in the external destinations
 subroutine, the value of persistent endpoints must be compared with the value
 of the JSON object's member fields. The following subroutine abstracts access
 to the JSON object's members, accepting a lambda that is used to perform the
-necessary specific functionality.
+necessary specific functionality, so that the type safety checks needn't be
+repeated every time the JSON member data is accessed.
 
 ```cpp
 // @='json member value'
@@ -110,6 +112,24 @@ static void apply_with_json_member_value(auto& json, auto&& f)
         } else if constexpr (string_like<value_t<T>>)
         {
             if (m.IsString()) f(m.GetString());
+        } else if constexpr (array_like<value_t<T>>)
+        {
+            if (!m.IsArray() || m.Empty() || m.Size() != size<value_t<T>>()) return;
+            if constexpr (std::integral<element_t<T>>)
+            {
+                if (m[0].IsInt())
+                    f(m, [](auto& arr, auto idx) { return arr[idx].GetInt(); });
+                else if (m[0].IsInt64())
+                    f(m, [](auto& arr, auto idx) { return arr[idx].GetInt64(); });
+            } else if constexpr (std::floating_point<element_t<T>>)
+            {
+                if (m[0].IsDouble())
+                    f(m, [](auto& arr, auto idx) { return arr[idx].GetDouble(); });
+            } else if constexpr (string_like<element_t<T>>)
+            {
+                if (m[0].IsString())
+                    f(m, [](auto& arr, auto idx) { return arr[idx].GetString(); });
+            }
         }
     }
 }
@@ -166,7 +186,13 @@ correct type in the latter case.
 // @+'init'
 for_each_session_datum(components, [&]<typename T>(T& endpoint)
 {
-    apply_with_json_member_value<T>(json, [&](auto value)
+    if constexpr (array_like<value_t<T>>)
+        apply_with_json_member_value<T>(json, [&](auto& arr, auto&& get)
+    {
+        for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+            value_of(endpoint)[i] = get(arr, i);
+    });
+    else apply_with_json_member_value<T>(json, [&](auto value)
     {
         set_value(endpoint, value);
     });
@@ -181,6 +207,7 @@ TEST_CASE("RapidJSON sets endpoints based on input stream")
 R"JSON(
 { "/Test/text" : "hello world"
 , "/Test/slider" : 42.0
+, "/Test/array" : [1.0,2.0,3.0]
 })JSON"};
     rapidjson::StringStream istream{ibuffer.c_str()};
     TestStorage storage{};
@@ -188,6 +215,7 @@ R"JSON(
     storage.init(istream, tc);
     CHECK(tc.inputs.some_text.value() == string("hello world"));
     CHECK(tc.inputs.my_slider.value == 42.0f);
+    CHECK(tc.inputs.my_array.value == std::array{1.0f,2.0f,3.0f});
 }
 // @/
 ```
@@ -231,6 +259,13 @@ if constexpr (string_like<value_t<T>>)
     rapidjson::Value v{value_of(endpoint).c_str(), json.GetAllocator()};
     json.AddMember(rapidjson::GenericStringRef{osc_path_v<T, Components>}, v, json.GetAllocator());
 }
+else if constexpr (array_like<value_t<T>>)
+{
+    rapidjson::Value v{rapidjson::kArrayType};
+    v.Reserve(3, json.GetAllocator());
+    for (auto& element : value_of(endpoint)) v.PushBack(rapidjson::Value{element}, json.GetAllocator());
+    json.AddMember(rapidjson::GenericStringRef{osc_path_v<T, Components>}, v, json.GetAllocator());
+}
 else
 {
     json.AddMember(rapidjson::GenericStringRef{osc_path_v<T, Components>}, value_of(endpoint), json.GetAllocator());
@@ -241,14 +276,24 @@ updated = true;
 // @='external_destinations not HasMember test'
 tc.inputs.some_text = string("foo");
 tc.inputs.my_slider.value = 888;
+tc.inputs.my_array.value = std::array{1.0f,2.0f,3.0f};
 storage.external_destinations(tc);
+
 CHECK(storage.json.HasMember("/Test/text"));
-CHECK(storage.json.HasMember("/Test/slider"));
 CHECK(storage.json["/Test/text"].IsString());
-CHECK(storage.json["/Test/slider"].IsDouble());
 CHECK(string("foo") == string(storage.json["/Test/text"].GetString()));
+
+CHECK(storage.json.HasMember("/Test/slider"));
+CHECK(storage.json["/Test/slider"].IsDouble());
 CHECK(888.0 == storage.json["/Test/slider"].GetDouble());
-CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(OStream::obuffer.GetString()));
+
+CHECK(storage.json["/Test/array"].IsArray());
+CHECK(storage.json["/Test/array"].Size() == 3);
+CHECK(storage.json["/Test/array"][0].GetDouble() == 1.0f);
+CHECK(storage.json["/Test/array"][1].GetDouble() == 2.0f);
+CHECK(storage.json["/Test/array"][2].GetDouble() == 3.0f);
+
+CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0,"/Test/array":[1.0,2.0,3.0]})JSON") == string(OStream::obuffer.GetString()));
 // @/
 ```
 
@@ -262,6 +307,12 @@ document member is compared with the value of the endpoint.
 bool endpoint_updated = false;
 if constexpr (OccasionalValue<T>)
     endpoint_updated = bool(endpoint);
+else if constexpr (array_like<value_t<T>>)
+    apply_with_json_member_value<T>(json, [&](auto& arr, auto&& get)
+{
+    for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+        endpoint_updated = endpoint_updated || (value_of(endpoint)[i] != get(arr, i));
+});
 else apply_with_json_member_value<T>(json, [&](auto value)
 {
     endpoint_updated = value != value_of(endpoint);
@@ -280,6 +331,14 @@ if (endpoint_updated)
 {
     if constexpr (string_like<value_t<T>>)
         json[osc_path_v<T, Components>].SetString(value_of(endpoint).c_str(), json.GetAllocator());
+    else if constexpr (array_like<value_t<T>>)
+    {
+        auto& arr = json[osc_path_v<T, Components>];
+        for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+        {
+            arr[i] = value_of(endpoint)[i];
+        }
+    }
     else json[osc_path_v<T, Components>] = value_of(endpoint);
     updated = true;
 }
@@ -289,10 +348,11 @@ if (endpoint_updated)
 // following setting the previous values...
 tc.inputs.some_text = string("bar");
 tc.inputs.my_slider.value = 777;
+tc.inputs.my_array.value = std::array{11.0f,22.0f,33.0f};
 storage.external_destinations(tc);
 CHECK(string("bar") == string(storage.json["/Test/text"].GetString()));
 CHECK(777.0 == storage.json["/Test/slider"].GetDouble());
-CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(OStream::obuffer.GetString()));
+CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0,"/Test/array":[11.0,22.0,33.0]})JSON") == string(OStream::obuffer.GetString()));
 // @/
 ```
 

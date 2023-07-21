@@ -16,6 +16,7 @@ struct test_component_t
     struct inputs_t {
         text_message<"text", "description goes here", tag_session_data> some_text;
         slider<"slider", "description goes here", float, 0.0f, 1.0f, 0.0f, tag_session_data> my_slider;
+        array<"array", 3, "description goes here", float, 0.0f, 1.0f, 0.0f, tag_session_data> my_array;
     } inputs;
 
     void main() {}
@@ -41,6 +42,7 @@ TEST_CASE("RapidJSON sets endpoints based on input stream")
 R"JSON(
 { "/Test/text" : "hello world"
 , "/Test/slider" : 42.0
+, "/Test/array" : [1.0,2.0,3.0]
 })JSON"};
     rapidjson::StringStream istream{ibuffer.c_str()};
     TestStorage storage{};
@@ -48,6 +50,7 @@ R"JSON(
     storage.init(istream, tc);
     CHECK(tc.inputs.some_text.value() == string("hello world"));
     CHECK(tc.inputs.my_slider.value == 42.0f);
+    CHECK(tc.inputs.my_array.value == std::array{1.0f,2.0f,3.0f});
 }
 TEST_CASE("RapidJSON external_destinations")
 {
@@ -60,22 +63,33 @@ TEST_CASE("RapidJSON external_destinations")
 
     tc.inputs.some_text = string("foo");
     tc.inputs.my_slider.value = 888;
+    tc.inputs.my_array.value = std::array{1.0f,2.0f,3.0f};
     storage.external_destinations(tc);
+
     CHECK(storage.json.HasMember("/Test/text"));
-    CHECK(storage.json.HasMember("/Test/slider"));
     CHECK(storage.json["/Test/text"].IsString());
-    CHECK(storage.json["/Test/slider"].IsDouble());
     CHECK(string("foo") == string(storage.json["/Test/text"].GetString()));
+
+    CHECK(storage.json.HasMember("/Test/slider"));
+    CHECK(storage.json["/Test/slider"].IsDouble());
     CHECK(888.0 == storage.json["/Test/slider"].GetDouble());
-    CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0})JSON") == string(OStream::obuffer.GetString()));
+
+    CHECK(storage.json["/Test/array"].IsArray());
+    CHECK(storage.json["/Test/array"].Size() == 3);
+    CHECK(storage.json["/Test/array"][0].GetDouble() == 1.0f);
+    CHECK(storage.json["/Test/array"][1].GetDouble() == 2.0f);
+    CHECK(storage.json["/Test/array"][2].GetDouble() == 3.0f);
+
+    CHECK(string(R"JSON({"/Test/text":"foo","/Test/slider":888.0,"/Test/array":[1.0,2.0,3.0]})JSON") == string(OStream::obuffer.GetString()));
 
     OStream::obuffer.Clear();
 
     // following setting the previous values...
     tc.inputs.some_text = string("bar");
     tc.inputs.my_slider.value = 777;
+    tc.inputs.my_array.value = std::array{11.0f,22.0f,33.0f};
     storage.external_destinations(tc);
     CHECK(string("bar") == string(storage.json["/Test/text"].GetString()));
     CHECK(777.0 == storage.json["/Test/slider"].GetDouble());
-    CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0})JSON") == string(OStream::obuffer.GetString()));
+    CHECK(string(R"JSON({"/Test/text":"bar","/Test/slider":777.0,"/Test/array":[11.0,22.0,33.0]})JSON") == string(OStream::obuffer.GetString()));
 }
