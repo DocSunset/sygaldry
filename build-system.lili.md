@@ -87,7 +87,7 @@ cmake --build "$dir" &&
 
 ## Building with Clang
 
-Assuming you are building on a machine where GCC is the default compiler, you
+Assuming you are building on a machine where `gcc` is the default compiler, you
 may wish to compile using `clang` e.g. in order to check for compiler-specific
 incompatibilities. You may be able to accomplish this using environment
 variables when generating the build directory:
@@ -95,6 +95,9 @@ variables when generating the build directory:
 ```sh
 CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -D_CMAKE_TOOLCHAIN_PREFIX=llvm -B _build_clang -S .
 ```
+
+Presumably a similar tactic could be used to compile using `gcc` on a machine where
+`clang` is the default, but this hasn't been tested.
 
 # Testing Framework
 
@@ -137,6 +140,12 @@ set(CMAKE_CXX_EXTENSIONS Off)
 
 # Libraries
 
+Boost PFR and Boost MP11 are required by the concepts library, and consequently
+by any bindings or components that make use of it. RapidJSON is used by the
+component of the same name. Several other components make use of specific
+libraries, such as liblo and `Trill-Arduino`; these are also included as
+submodules, and some may be required to build the default test suite.
+
 ```cmake
 # @='Include libraries'
 include_directories(dependencies/pfr/include)
@@ -152,66 +161,33 @@ include_directories(dependencies/avendish/include/)
 
 ## ESP32
 
-ESP32 projects are added as external CMake projects, passing in the root
-directory for `sygaldry` so that the IDF build system can be directed toward
-the library and its ESP-IDF components.
-
-It appears that adding the ESP32 projects as external projects is the simplest
-approach. I conducted some cursory experiments trying to use the ESP-IDF cmake
-library functions, e.g. `idf_build_process`, but it appears as though it is not
-their intended usage for a firmware project to be included as a subproject. The
-toolchain configured by the parent cmake appears to be incompatible with the
-IDF project, and the IDF cmake library functions don't appear to make any
-attempt to override the selected toolchain in a way that makes things work out.
-
-```cpp
-# @='add_esp32_project function'
-    function(add_esp32_project)
-    if (${ARGC} LESS 1)
-        message(FATAL_ERROR "add_esp32_project requires a project directory")
-    endif()
-
-    set(esp32_project_name ${ARGV0})
-
-    if (NOT IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name})
-        message(FATAL_ERROR "add_esp32_project: argument ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name} is not a valid directory")
-    endif()
-
-    if (ESP_PLATFORM)
-        return() # avoid recursively building ESP-IDF projects as external projects of themselves
-    endif()
-
-    message(STATUS ${esp32_project_name} "ESP32 project added")
-
-    include(ExternalProject)
-
-    ExternalProject_Add(${esp32_project_name}
-            PREFIX ${esp32_project_name}
-            BUILD_ALWAYS ON
-            INSTALL_COMMAND ${SYGALDRY_ROOT}/sh/esp32-install.sh ${esp32_project_name} make flash # TODO: determine generator
-            SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/${esp32_project_name}
-            CMAKE_CACHE_ARGS -DSYGALDRY_ROOT:STRING=${SYGALDRY_ROOT})
-endfunction()
-# @/
-```
-
-The default install phase for such projects will fail for these projects, or
-worse, if granted super user priviledges, will install a bunch or random
-nonsense to the user's system.
-
-A simple script is provided as an alternative installer. It looks for `ESPPORT`
-defined in the environment and tries to flash the firmware using the given
-serial device port.
+Building an ESP32 instrument is currently achieved using the normal ESP-IDF
+build tools, with the caveat that the argument `-D SYGALDRY_ROOT="..."` must
+be passed to `idf.py`, giving the directory in which the root of the Sygaldry
+repository is located. For example, the following POSIX shell script, when run from the
+root of the repository, would run `idf.py` for the ESP32 instrument located in the
+directory passed as the first argument to the script using the command passed
+as second argument to the script:
 
 ```sh
-# @#'sh/esp32-install.sh'
-echo $0
-[ "$1" = "$ESPPROJ" ] || { echo "Skipping this build ($1) which doesn't match ESPPROJ ($ESPPROJ)" ; exit ; }
-shift 1
-[ -c "$ESPPORT" -a -w "$ESPPORT" ] && $@@ || echo "No valid ESPPORT ($ESPPORT), skipping install"
-echo "flashed successfully"
+# @#'sh/idf.sh'
+#!/bin/sh -e
+sygaldry_root="$(pwd)"
+cd "$1"
+idf.py "$2" -D SYGALDRY_ROOT="$sygaldry_root"
 # @/
 ```
+
+Previously, the CMake `ExternalProject_Add` command was used to incorporate
+the ESP32 instruments into the usual build process. However, this resulted
+in long compilation times during development, even when the ESP32 targets
+were not being tested. The current approach requires more manual intervention
+from the developer, but is hoped to save time overall.
+
+At the time of writing, Sygaldry also requires a fairly recent version of the
+ESP-IDF; an appropriate version of the framework is included as a submodule,
+and should be used when installing and exporting the IDF, before running the
+above script or its equivalent on your machine.
 
 # Summary
 
@@ -222,8 +198,6 @@ project(Sygaldry)
 set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 @{Set language standard}
-
-@{add_esp32_project function}
 
 @{Fetch Catch2}
 
