@@ -83,6 +83,9 @@ to a static buffer. The implementation is fairly similar to that of
 with the appropriate size and copy the snake case names of each node to the
 buffer.
 
+It remains as future work to 32-bit align the end of the path buffer by padding
+with zeros, as required in the OSC spec.
+
 ```cpp
 // @+'string length functions'
 template<typename> struct osc_path_length : std::integral_constant<std::size_t, 0> {};
@@ -104,7 +107,7 @@ struct osc_path<L<Path...>>
         std::size_t write_pos = 0;
         auto copy_one = [&]<typename T>(T)
         {
-            ret[write_pos++] = '/';
+           ret[write_pos++] = '/';
             for (std::size_t i = 0; i < name_length<T>(); ++i)
             {
                 ret[write_pos++] = snake_case_v<T>[i];
@@ -149,30 +152,64 @@ TEST_CASE("osc type tag string")
     CHECK(string_view(osc_type_string_v<text_message<"test text message">>) == string_view(",s"));
     CHECK(string_view(osc_type_string_v<slider<"test slider">>)             == string_view(",f"));
     CHECK(string_view(osc_type_string_v<bng<"test bang">>)                  == string_view(","));
+    CHECK(string_view(osc_type_string_v<array<"test array", 3>>)            == string_view(",fff"));
 }
 // @/
 ```
 
-Following the same strategy as above, we statically allocate a `std::array` of appropriate
-size and `constexpr` initialize it with an appropriate string. As all of our supported
-endpoints at the time of writing have only one argument, the size is constant (four), and
-the type of the endpoint is easily determined using
-[the endpoint concepts](concepts/endpoints.lili.md).
+Following the same strategy as above, we statically allocate a `std::array` of
+appropriate size and `constexpr` initialize it with an appropriate string. The
+size and type of the endpoint is easily determined using
+[the endpoint concepts](concepts/endpoints.lili.md). In the case of array-like
+values, the length of the type tag string is the length of the array plus one,
+padded to be 32-bit aligned. Otherwise, for single-valued endpoints the type
+tag string is always 4 bytes; one type tag, a comma, and two padding zeros.
 
 ```cpp
-// @='osc types'
+// @+'string length functions'
+template<typename T>
+constexpr std::size_t osc_type_string_length()
+{
+    if constexpr (array_like<value_t<T>>)
+    {
+        constexpr auto length = size<value_t<T>>() + 1;
+        constexpr auto remainder = length % 4;
+        constexpr auto padding = 4 - remainder;
+        return length + padding;
+    }
+    else return 4;
+}
+// @/
+```
+
+In the case of a `Bang` endpoint, the type tag string is empty. Otherwise,
+we access the type of the endpoint value to determine the tag character,
+and then set the type tag string depending on whether the endpoint is
+an array or not.
+
+```cpp
+// @+'osc types'
 template<typename T>
 struct osc_type_string
 {
-    static constexpr size_t N = 4;
-    static constexpr std::array<char, 4> value = []()
+    static constexpr size_t N = osc_type_string_length<T>();
+    static constexpr std::array<char, N> value = []()
     {
         std::array<char, N> ret{0};
         ret[0] = ',';
+
         if constexpr (Bang<T>) return ret;
-        else if constexpr (std::integral<value_t<T>>) ret[1] = 'i';
-        else if constexpr (std::floating_point<value_t<T>>) ret[1] = 'f';
-        else if constexpr (string_like<value_t<T>>) ret[1] = 's';
+
+        char tag;
+        if constexpr (std::integral<element_t<T>>) tag = 'i';
+        else if constexpr (std::floating_point<element_t<T>>) tag = 'f';
+        else if constexpr (string_like<element_t<T>>) tag = 's';
+        else return ret; // this should never happen
+
+        if constexpr (array_like<value_t<T>>)
+            for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+                ret[1 + i] = tag;
+        else ret[1] = tag;
         return ret;
     }();
 };

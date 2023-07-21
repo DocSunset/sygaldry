@@ -24,4 +24,5 @@ TEST_CASE("osc type tag string")
     CHECK(string_view(osc_type_string_v<text_message<"test text message">>) == string_view(",s"));
     CHECK(string_view(osc_type_string_v<slider<"test slider">>)             == string_view(",f"));
     CHECK(string_view(osc_type_string_v<bng<"test bang">>)                  == string_view(","));
+    CHECK(string_view(osc_type_string_v<array<"test array", 3>>)            == string_view(",fff"));
 }
