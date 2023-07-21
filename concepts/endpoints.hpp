@@ -119,24 +119,26 @@ template<typename T> concept string_like = requires (T t, const char * s)
     t = s;
 };
 
-template<typename T> concept array_like = requires (T t)
+template<typename T> concept array_like = not string_like<T> && requires (T t)
 {
     t[0];
     t.size();
-};
+} && std::same_as<std::remove_cvref_t<decltype(std::tuple_size_v<T>)>, std::size_t>;
 
 template<array_like T>
-_consteval auto size_of(T& endpoint)
+_consteval auto size()
 {
-    return endpoint.size();
+    return std::tuple_size_v<T>;
 }
 
-template<typename T> struct _element_type;
-template<typename T> requires (array_like<T> && has_value<T>)  struct _element_type<T>
+template<typename T> struct _element_type {};
+template<typename T> requires (array_like<T> && has_value<T>)
+struct _element_type<T>
 {
     using type = std::remove_cvref_t<decltype(std::declval<T>()[0])>;
 };
-template<has_value T> struct _element_type<T> { using type = value_t<T>; };
+template<typename T> requires (has_value<T>)
+struct _element_type<T> { using type = value_t<T>; };
 template<typename T> requires (array_like<T> || has_value<T>) using element_t = typename _element_type<T>::type;
 #define tagged(TAG) template<typename T> concept tagged_##TAG\
     =  std::is_enum_v<decltype(T::TAG)>\

@@ -23,14 +23,14 @@ struct Describe
         {
             if constexpr (OccasionalValue<T>)
             {
-                if constexpr (array_like<T>)
+                if constexpr (array_like<value_t<T>>)
                     log.print("array of ");
                 else log.print("occasional ");
             }
             else if constexpr (PersistentValue<T>)
             {
-                if constexpr (array_like<T>)
-                    log.print("vector of ");
+                if constexpr (array_like<value_t<T>>)
+                    log.print("array of ");
                 else log.print("persistent ");
             }
             if constexpr (std::integral<element_t<T>>)

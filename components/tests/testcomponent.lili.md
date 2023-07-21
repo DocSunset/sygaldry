@@ -22,7 +22,7 @@ struct TestComponent : name_<"Test Component 1">
         bng<"bang in"> bang_in;
         text<"text in"> text_in;
         text_message<"text message in"> text_msg_in;
-        vector<"vector in", 3> vector_in;
+        array<"array in", 3> array_in;
     } inputs;
 
     struct outputs_t {
@@ -32,7 +32,7 @@ struct TestComponent : name_<"Test Component 1">
         bng<"bang out"> bang_out;
         text<"text out"> text_out;
         text_message<"text message out"> text_msg_out;
-        vector<"vector out", 3> vector_out;
+        array<"array out", 3> array_out;
     } outputs;
 
     constexpr void operator()()
@@ -43,7 +43,7 @@ struct TestComponent : name_<"Test Component 1">
         outputs.bang_out = inputs.bang_in;
         outputs.text_out = inputs.text_in;
         outputs.text_msg_out = inputs.text_msg_in;
-        outputs.vector_out = inputs.vector_in;
+        outputs.array_out = inputs.array_in;
     }
 };
 

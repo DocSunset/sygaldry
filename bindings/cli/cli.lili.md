@@ -882,9 +882,9 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text message in"
     type:  occasional text
     value: ()
-  input:   vector-in
-    name: "vector in"
-    type:  vector of float
+  input:   array-in
+    name: "array in"
+    type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
   output:  button-out
@@ -914,9 +914,9 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text message out"
     type:  occasional text
     value: ()
-  output:  vector-out
-    name: "vector out"
-    type:  vector of float
+  output:  array-out
+    name: "array out"
+    type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
 )DESCRIBEDEVICE", "describe", "test-component-1");
@@ -987,14 +987,14 @@ void describe_entity_type(auto& log, T& entity)
     {
         if constexpr (OccasionalValue<T>)
         {
-            if constexpr (array_like<T>)
+            if constexpr (array_like<value_t<T>>)
                 log.print("array of ");
             else log.print("occasional ");
         }
         else if constexpr (PersistentValue<T>)
         {
-            if constexpr (array_like<T>)
-                log.print("vector of ");
+            if constexpr (array_like<value_t<T>>)
+                log.print("array of ");
             else log.print("persistent ");
         }
         if constexpr (std::integral<element_t<T>>)
@@ -1149,10 +1149,10 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 
-    SECTION("set vector")
+    SECTION("set array")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "vector-in", "1", "2", "3");
-        REQUIRE(components.tc.inputs.vector_in.value == std::array<float, 3>{1,2,3});
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "array-in", "1", "2", "3");
+        REQUIRE(components.tc.inputs.array_in.value == std::array<float, 3>{1,2,3});
     }
 }
 // @/
@@ -1197,9 +1197,9 @@ int set_endpoint_value(auto& log, T& endpoint, int argc, char ** argv)
         set_value(endpoint, true);
         return 0;
     }
-    else if constexpr (array_like<T> && not string_like<T>) // strings are handled by the has_value case
+    else if constexpr (array_like<value_t<T>>)
     {
-        if (argc < size_of(endpoint))
+        if (argc < size<value_t<T>>())
         {
             log.println("Not enough arguments to set this endpoint.");
             return 2;

@@ -175,9 +175,9 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text message in"
     type:  occasional text
     value: ()
-  input:   vector-in
-    name: "vector in"
-    type:  vector of float
+  input:   array-in
+    name: "array in"
+    type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
   output:  button-out
@@ -207,9 +207,9 @@ R"DESCRIBEDEVICE(component: test-component-1
     name: "text message out"
     type:  occasional text
     value: ()
-  output:  vector-out
-    name: "vector out"
-    type:  vector of float
+  output:  array-out
+    name: "array out"
+    type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
 )DESCRIBEDEVICE", "describe", "test-component-1");
@@ -267,9 +267,9 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 
-    SECTION("set vector")
+    SECTION("set array")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "vector-in", "1", "2", "3");
-        REQUIRE(components.tc.inputs.vector_in.value == std::array<float, 3>{1,2,3});
+        test_command(Set{}, components, 0, "", "set", "test-component-1", "array-in", "1", "2", "3");
+        REQUIRE(components.tc.inputs.array_in.value == std::array<float, 3>{1,2,3});
     }
 }

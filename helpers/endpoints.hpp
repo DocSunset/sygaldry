@@ -175,7 +175,7 @@ template< string_literal name_str
         , num_literal<T> init = min
         , typename ... Tags
         >
-struct vector
+struct array
 : persistent<std::array<T, N>>
 , name_<name_str>
 , description_<desc>
@@ -187,9 +187,9 @@ struct vector
     {
         return persistent<std::array<T,N>>::value[i];
     }
-    constexpr auto size() noexcept
+    static _consteval auto size() noexcept
     {
-        return persistent<std::array<T,N>>::value.size();
+        return N;
     }
 };
 template<string_literal name_str, string_literal desc = "", typename ... Tags>

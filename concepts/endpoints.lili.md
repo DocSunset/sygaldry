@@ -552,9 +552,11 @@ auto& set_value(T& v, const auto& arg)
 
 As well as numerical values, we also have helpers for string values and
 single-dimensional arrays of values. We provide a basic concept to help
-identify them. We consider an endpoint to be `string_like` if we can assign to
-it from a string literal. We consider an endpoint to be `array_like` if the
-endpoint's value is subscriptable and has a method `length`.
+identify them. We consider a value to be `string_like` if we can assign to it
+from a string literal. We consider a value to be `array_like` if the endpoint's
+value is subscriptable, it has a (presumed `_consteval`) static method `size()`
+that returns a `std::size_t`. Dynamically sized arrays are not currently
+supported.
 
 ```cpp
 // @+'concepts'
@@ -566,35 +568,37 @@ template<typename T> concept string_like = requires (T t, const char * s)
     t = s;
 };
 
-template<typename T> concept array_like = requires (T t)
+template<typename T> concept array_like = not string_like<T> && requires (T t)
 {
     t[0];
     t.size();
-};
+} && std::same_as<std::remove_cvref_t<decltype(std::tuple_size_v<T>)>, std::size_t>;
 
 template<array_like T>
-_consteval auto size_of(T& endpoint)
+_consteval auto size()
 {
-    return endpoint.size();
+    return std::tuple_size_v<T>;
 }
 
-template<typename T> struct _element_type;
-template<typename T> requires (array_like<T> && has_value<T>)  struct _element_type<T>
+template<typename T> struct _element_type {};
+template<typename T> requires (array_like<T> && has_value<T>)
+struct _element_type<T>
 {
     using type = std::remove_cvref_t<decltype(std::declval<T>()[0])>;
 };
-template<has_value T> struct _element_type<T> { using type = value_t<T>; };
+template<typename T> requires (has_value<T>)
+struct _element_type<T> { using type = value_t<T>; };
 template<typename T> requires (array_like<T> || has_value<T>) using element_t = typename _element_type<T>::type;
 // @/
 
 // @+'tests'
-static_assert(string_like<text<"a text">>);
-static_assert(string_like<text_message<"a text message">>);
-static_assert(array_like<vector<"a vector", 3>>);
-static_assert(std::is_same_v<element_t<vector<"a vector", 3>>, float>);
+static_assert(string_like<value_t<text<"a text">>>);
+static_assert(string_like<value_t<text_message<"a text message">>>);
+static_assert(array_like<value_t<array<"an array", 3>>>);
+static_assert(std::is_same_v<element_t<array<"an array", 3>>, float>);
 static_assert(std::is_same_v<element_t<slider<"a slider">>, value_t<slider<"a slider">>>);
-static_assert(not array_like<slider<"a slider">>);
-static_assert(not array_like<text<"a text">>);
+static_assert(not array_like<value_t<slider<"a slider">>>);
+static_assert(not array_like<value_t<text<"a text">>>);
 // @/
 ```
 

@@ -100,9 +100,9 @@ struct Set
             set_value(endpoint, true);
             return 0;
         }
-        else if constexpr (array_like<T> && not string_like<T>) // strings are handled by the has_value case
+        else if constexpr (array_like<value_t<T>>)
         {
-            if (argc < size_of(endpoint))
+            if (argc < size<value_t<T>>())
             {
                 log.println("Not enough arguments to set this endpoint.");
                 return 2;
