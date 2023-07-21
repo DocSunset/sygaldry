@@ -1,5 +1,12 @@
 # Name Dispatch
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 Many bindings, including initially the CLI, and eventually perhaps also Pd, OSC,
 MIDI 2.0, and others, need to match a name provided at run-time to a list of
 named entities such as components and endpoints.
@@ -18,6 +25,15 @@ generalised to work with subassemblies and pure assembly components.
 
 ```cpp
 // @#'tests/name_dispatch/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <string_view>
 #include <tuple>
 #include <catch2/catch_test_macros.hpp>
@@ -227,6 +243,15 @@ auto dispatch(stringish name, Entities& entities, Default&& d, Callback&& f)
 ```cpp
 // @#'name_dispatch.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <tuple>
 #include <string_view>
 #include <boost/pfr.hpp>

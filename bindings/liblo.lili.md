@@ -1,26 +1,15 @@
 # Liblo OSC Binding
 
-This document describes the implementation of the liblo OSC binding component.
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
-```
-@='license notice'
-Copyright 2023 Travis J. West
-
-This program (liblo.lili and liblo.hpp) is free software: you can redistribute
-it and/or modify it under the terms of the GNU Lesser General Public License as
-published by the Free Software Foundation, either version 2.1 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <https://www.gnu.org/licenses/>.
-@/
-```
+SPDX-License-Identifier: LGPL-2.1-or-later
 
 [TOC]
+
+This document describes the implementation of the liblo OSC binding component.
 
 # Overview
 
@@ -455,10 +444,16 @@ void external_destinations(Components& components)
 
 ```cpp
 // @#'liblo.hpp'
-/*
-@{copyright statement}
-*/
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
+
 #include <stdio.h>
 #include <charconv>
 #include <lo/lo.h>
@@ -512,6 +507,15 @@ struct LibloOsc
 
 ```cpp
 // @#'tests/liblo/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
+
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "concepts/components.hpp"
@@ -531,6 +535,13 @@ using namespace sygaldry::components;
 
 ```cmake
 # @#'tests/liblo/CMakeLists.txt'
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
 # https://stackoverflow.com/questions/29191855/what-is-the-proper-way-to-use-pkg-config-from-cmake
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBLO REQUIRED liblo)

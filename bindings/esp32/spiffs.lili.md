@@ -1,12 +1,17 @@
 # ESP32 SPIFFS Session Storage Component
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 This document describes the implementation of the SPIFFS session data storage
 component for ESP32, compatible with the
 [RapidJSON session manager](bindings/rapidjson.lili.md).
 
 [TOC]
-
-TODO: license text
 
 # Overview
 
@@ -146,6 +151,15 @@ struct SpiffsJsonOStream
 ```cpp
 // @#'spiffs.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 
 #include <cstdio>
 #include <rapidjson/filereadstream.h>

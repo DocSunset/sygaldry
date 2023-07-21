@@ -1,3 +1,12 @@
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+*/
+
 #include "utilities/consteval.hpp"
 #include "concepts/components.hpp"
 #include "components/metadata.hpp"
@@ -9,12 +18,12 @@ using namespace sygaldry;
 using namespace sygaldry::components;
 using namespace sygaldry::bindings;
 
-struct TStick : name_("T-Stick")
-              , designer_<"Joseph Malloch">
-              , author_<"Travis J. West">
-              , copyright_<"Travis J. West (C) 2023">
-              , license_<"SPDX-License-Identifier: GPL-3.0-or-later">
-              , version_<"0.0.0">
+struct TStick : _name("T-Stick")
+              , _designer<"Joseph Malloch">
+              , _author<"Travis J. West">
+              , _copyright<"Copyright 2023 Sygaldry Contributors">
+              , _license<"SPDX-License-Identifier: AGPL-3.0-or-later">
+              , _version<"0.0.0">
 {
     using I2C = esp32::I2cDriver<idf_config::i2c_sda, idf_config::i2c_scl>;
     using Time = esp32::TimeProvider;

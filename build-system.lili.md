@@ -1,5 +1,12 @@
 # The Build System
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 [TOC]
 
 # CMake
@@ -27,7 +34,16 @@ Run this script from the root of the repository.
 
 ```sh
 # @#'sh/lili.sh'
+#!/bin/sh -e
 # generate machine sources from literate source code
+
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+
 find -iname '*.lili.md' | parallel '
     cd {//}
     generated="$(grep -m 1 -h -r -I "@@#" {/} | head -n 1 | sed 's/^.*@#.//' | sed 's/.$//')"
@@ -67,6 +83,17 @@ accounted for and included in `.gitignore`.
 
 ```sh
 # @#'sh/run.sh'
+#!/bin/sh -e
+
+# create the build directory if necessary, then build and test the project
+
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+
 ./sh/lili.sh || exit 1
 [ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
 [ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen && cd _build_doxygen/latex && make pdf'
@@ -172,6 +199,14 @@ as second argument to the script:
 ```sh
 # @#'sh/idf.sh'
 #!/bin/sh -e
+
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+
 sygaldry_root="$(pwd)"
 cd "$1"
 idf.py "$2" -D SYGALDRY_ROOT="$sygaldry_root"
@@ -193,6 +228,13 @@ above script or its equivalent on your machine.
 
 ```cmake
 # @#'CMakeLists.txt'
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required(VERSION 3.26)
 project(Sygaldry)
 set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})

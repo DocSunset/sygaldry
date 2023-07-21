@@ -1,34 +1,14 @@
 /*
-Originally adapted from Puara Module Manager, itself adapted from the esp-idf
-wifi station and access point examples
+Copyright 2022 Edu Meneses https://www.edumeneses.com, Metalab - Société des
+Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
+(IDMIL), McGill University
 
-Metalab - Société des Arts Technologiques (SAT)
-Input Devices and Music Interaction Laboratory (IDMIL), McGill University
-Edu Meneses (2022) - https://www.edumeneses.com
-Travis J. West (2023)
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
-MIT License
-
-Copyright (c) 2022 Puara, 2023 Travis J. West
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software (i.e. wifi.hpp) and associated documentation files (i.e.
-wifi.lili) (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to permit
-persons to whom the Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+SPDX-License-Identifier: MIT
 */
 
 #pragma once

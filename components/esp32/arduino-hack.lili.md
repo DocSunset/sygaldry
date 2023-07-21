@@ -1,5 +1,12 @@
 # ESP32 Arduino Hack
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+
 This document describes the ESP32 implementation of the Arduino APIs supported
 by Sygaldry's Arduino hack subsystem. Although an Arduino library implementation
 exists for ESP32, it tends to lag behind the main ESP-IDF version. At the time
@@ -25,6 +32,15 @@ idf_component_register( SRC_DIRS ${SYGALDRY_ROOT}/components/esp32/arduino-hack
 
 ```cpp
 // @#'arduino-hack/Arduino.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
+
 #include "Arduino.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -44,6 +60,15 @@ is hoped that the reader will find it reasonably straightforward.
 
 ```cpp
 // @#'arduino-hack/Wire.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
+
 #include "Wire.h"
 #include "driver/i2c.h"
 #include <cstdio>

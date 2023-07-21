@@ -1,5 +1,12 @@
 # ESP32 Component Tests
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 Tests for ESP32 are compiled as ESP32 components using the native toolchain.
 This document sets up the boilerplate necessary to compile and detect these
 tests.
@@ -36,6 +43,15 @@ idf_component_register(SRCS "test_runner.cpp"
 
 ```c
 // @#'main/test_runner.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

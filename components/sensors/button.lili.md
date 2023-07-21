@@ -1,5 +1,12 @@
 # Button Gesture Model
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 Although a button is a simple digital sensor with only two states. However,
 when the temporal evolution of those states is considered, a variety of
 meaningfully distinct gestures can be performed even with a single button.
@@ -32,6 +39,14 @@ component will implement a name.
 ```cpp
 // @#'button.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include "utilities/consteval.hpp"
 #include "helpers/endpoints.hpp"

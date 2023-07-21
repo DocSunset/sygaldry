@@ -1,5 +1,12 @@
 # Metadata Helpers
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 [TOC]
 
 All components and endpoints are required to have a name. To facilitate setting
@@ -17,6 +24,14 @@ such classes, allowing us to easily add other textual metadata in this way.
 ```cpp
 // @#'metadata.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <cstddef>
 #include "utilities/consteval.hpp"
@@ -77,6 +92,15 @@ with our overall strategy.
 
 ```cpp
 // @#'tests/metadata/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>

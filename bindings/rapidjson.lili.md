@@ -1,13 +1,18 @@
 # RapidJSON Binding
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 This binding stores the value of session data endpoints in JSON format using
 the RapidJSON library. A platform-specific plugin parameter is used to store
 and retrieve this data across sessions, allowing session data to be restored
 when loading a new session, such as after rebooting an embedded device.
 
 [TOC]
-
-TODO: license text here
 
 # Overview
 
@@ -393,6 +398,15 @@ TEST_CASE("RapidJSON external_destinations")
 ```cpp
 // @#'rapidjson.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 
 #include <rapidjson/document.h>
 #include "concepts/endpoints.hpp"
@@ -425,6 +439,15 @@ struct RapidJsonSessionStorage
 // @/
 
 // @#'tests/rapidjson/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include <rapidjson/stream.h>

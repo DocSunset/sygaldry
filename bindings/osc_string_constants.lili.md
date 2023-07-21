@@ -1,5 +1,12 @@
 # OSC String Constants
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 An OSC message consists of its address pattern (called its path in some
 implementations), a type tag string, and zero or more arguments. This document
 concerns the compile-time generation of OSC paths and type tag strings by
@@ -223,6 +230,15 @@ template<typename T> constexpr const char * osc_type_string_v = osc_type_string<
 ```cpp
 // @#'osc_string_constants.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <array>
 #include <tuple>
 #include <concepts>
@@ -242,6 +258,15 @@ namespace sygaldry { namespace bindings {
 // @/
 
 // @#'tests/osc_string_constants/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <string_view>
 #include <array>
 #include <catch2/catch_test_macros.hpp>

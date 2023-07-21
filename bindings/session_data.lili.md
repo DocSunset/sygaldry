@@ -1,13 +1,18 @@
 # Session Data
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 It's common that some configurable parameters of a DMI system should be
 persistent in the long term, e.g. across boot cycles of the processor. We term
 these parameters *session data*. A component that manages storing and reloading
 session data is termed a *session manager*. Currently, a
 [JSON session manager](bindings/rapidjson.lili.md) is provided. Other formats
 and storage mechanisms are easy to imagine, and may be provided in future work.
-
-TODO: license text
 
 [TOC]
 
@@ -36,6 +41,15 @@ This is accomplished using the `for_each_endpoint` function provided by
 ```cpp
 // @#'session_data.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include "concepts/components.hpp"
 #include "concepts/endpoints.hpp"
 

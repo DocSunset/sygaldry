@@ -7,6 +7,45 @@ programming.
 
 [TOC]
 
+Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
+# Licenses
+
+Sygaldry incorporates numerous software (and eventually also hardware)
+components developed by many individual authors and organizations. Each file in
+this repository should be marked with a copyright statement and SPDX license
+identifier that establish the legal status of that file, and that file only.
+This is necessary since some components may be required to use a certain
+license due to third party software incorporated in those components, e.g. [the
+liblo OSC bindings](bindings/liblo.lili.md) are arguably required to use the
+LGPL due to their incorporation of `libmapper-arduino`. Any file lacking a
+copyright notice and license identifier should be assumed to be copyright the
+author, all rights reserved.
+
+Contributors must mark all non-trivial new documents added to the project with
+an appropriate copyright notice, which should include the word "Copyright", the
+current year, the name of the author, and the affiliations of the author who
+may have a stake in the copyright of their contribution, as well as an SPDX
+license identifier. Contributors are free to select a license according to
+their preferences, legal obligations, and the requirements of the components
+they contribute. The MIT license is recommended for new components without
+copyleft dependencies, except for hardware components for which one of the CERN
+open hardware licenses is advised. As well as marking the main literate source
+file, every individual file tangled from it should also be marked with a
+copyright and license notice. Exceptions may be made for trivial documents
+to which copyright arguably does not apply, e.g. a single `add_subdirectory`
+call in a `CMakeLists.txt` file.
+
+If contributions are made to an existing file, the contributor should update
+the list of authors and years accordingly, e.g. adding their name as an author
+and adding the current year if no modifications have previously been made to
+the file in the current year.
+
 # Quick Start
 
 The Doxygen-generated documentation is not yet available online. In the

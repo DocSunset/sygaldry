@@ -1,5 +1,12 @@
 # Arduino Hack
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+
 This document describes a collection of crude but effective hacks used to trick
 certain third party libraries into compiling despite the absence of a full
 blown Arduino environment on which they were originally intended to depend.
@@ -32,6 +39,15 @@ the latter being a legacy include path.
 ```cpp
 // @#'arduino-hack/Arduino.h'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
+
 #include <cstdint>
 
 typedef bool boolean;
@@ -51,6 +67,14 @@ The `TwoWire` API provides access to the I2C bus.
 ```cpp
 // @#'arduino-hack/Wire.h'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+*/
 
 #include <cstdint>
 
