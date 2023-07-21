@@ -79,6 +79,37 @@ struct LibloOsc
             }
             value_of(in) = &argv[0]->s;
         }
+        else if constexpr (array_like<value_t<T>>) for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+        {
+            auto& element = value_of(in)[i];
+            if constexpr (std::integral<element_t<T>>)
+            {
+                if (types[i] != 'i')
+                {
+                    fprintf(stderr, "liblo: wrong type; expected 'i', got '%c'\n", types[i]);
+                    return;
+                }
+                element = argv[i]->i;
+            }
+            else if constexpr (std::floating_point<element_t<T>>)
+            {
+                if (types[i] != 'f')
+                {
+                    fprintf(stderr, "liblo: wrong type; expected 'f', got '%c'\n", types[i]);
+                    return;
+                }
+                element = argv[i]->f;
+            }
+            else if constexpr (string_like<element_t<T>>)
+            {
+                if (types[i] != 's')
+                {
+                    fprintf(stderr, "liblo: wrong type; expected 's', got '%c'\n", types[i]);
+                    return;
+                }
+                element = &argv[i]->s;
+            }
+        }
     };
 
     bool port_is_valid(auto& port)
@@ -235,6 +266,20 @@ struct LibloOsc
                     // TODO: we should have a more generic way to get a char * from a string_like value
                     if constexpr (string_like<value_t<T>>)
                         lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+                    else if constexpr (array_like<value_t<T>>)
+                    {
+                        lo_message msg = lo_message_new();
+
+                        // TODO: this type tag string logic should be moved to osc_string_constants.lili.md
+                        constexpr auto type = std::integral<element_t<T>> ? "i"
+                                            : std::floating_point<element_t<T>> ? "f"
+                                            : string_like<element_t<T>> ? "s" : "" ;
+
+                        for (auto& element : value_of(output)) lo_message_add(msg, type, element);
+                        lo_send_message(dst, osc_path_v<T, Components>, msg);
+
+                        lo_message_free(msg);
+                    }
                     else
                         lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
                     return;
