@@ -13,8 +13,19 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace components { namespace esp32 {
 
+template<int sda_pin, int scl_pin, uint32_t frequency = 400000>
 struct I2C
+: name_<"I2C">
+, description_<"the ESP32 I2C bus driver">
+, author_<"Travis J. West">
+, copyright_<"Copyright 2023 Travis J. West">
+, license_<"SPDX-License-Identifier: MIT">
+, version_<"0.0.0">
 {
+    void init()
+    {
+        Wire.begin(sda_pin, scl_pin, frequency);
+    }
 };
 
 } } }

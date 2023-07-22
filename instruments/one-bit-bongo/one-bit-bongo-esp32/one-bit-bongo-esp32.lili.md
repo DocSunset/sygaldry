@@ -1,16 +1,16 @@
 # ESP32 One Bit Bongo
 
-Originally intended as a minimum viable DMI, this instrument
-is currently used to test all of the ESP32-compatible components.
-
-[TOC]
-
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
 (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
 Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
+
+Originally intended as a minimum viable DMI, this instrument
+is currently used to test all of the ESP32-compatible components.
+
+[TOC]
 
 ## Implementation
 
@@ -32,6 +32,8 @@ SPDX-License-Identifier: MIT
 #include <Trill.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
+#include <components/esp32/i2c.hpp>
+#include <components/trill_craft.hpp>
 #include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
@@ -45,8 +47,12 @@ struct OneBitBongo
     struct Instrument
     {
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
-        components::esp32::Button<GPIO_NUM_23> button;
-        bindings::LibloOsc<decltype(button)> osc;
+        components::esp32::I2C<21,22,1000000> i2c;
+        struct Sensors {
+            components::esp32::Button<GPIO_NUM_23> button;
+            components::TrillCraft trill;
+        } sensors;
+        bindings::LibloOsc<Sensors> osc;
     };
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
@@ -59,7 +65,6 @@ constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {
-    Trill trill{};
     runtime.init();
     for (;;)
     {

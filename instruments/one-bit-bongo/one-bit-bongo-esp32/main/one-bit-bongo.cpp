@@ -14,6 +14,8 @@ SPDX-License-Identifier: MIT
 #include <Trill.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
+#include <components/esp32/i2c.hpp>
+#include <components/trill_craft.hpp>
 #include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
@@ -27,8 +29,12 @@ struct OneBitBongo
     struct Instrument
     {
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
-        components::esp32::Button<GPIO_NUM_23> button;
-        bindings::LibloOsc<decltype(button)> osc;
+        components::esp32::I2C<21,22,1000000> i2c;
+        struct Sensors {
+            components::esp32::Button<GPIO_NUM_23> button;
+            components::TrillCraft trill;
+        } sensors;
+        bindings::LibloOsc<Sensors> osc;
     };
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
@@ -41,7 +47,6 @@ constexpr auto runtime = Runtime{bongo};
 
 extern "C" void app_main(void)
 {
-    Trill trill{};
     runtime.init();
     for (;;)
     {
