@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 #include "concepts/components.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/spelling.hpp"
+#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings {
 
@@ -90,5 +91,11 @@ struct osc_type_string
 };
 
 template<typename T> constexpr const char * osc_type_string_v = osc_type_string<T>::value.data();
+
+template<typename T, typename Components>
+constexpr bool osc_match_pattern(const char * p)
+{
+    return osc_match_pattern(p, osc_path_v<T, Components>);
+}
 
 } }

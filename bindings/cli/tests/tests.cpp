@@ -136,7 +136,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
 TEST_CASE("List command outputs", "[cli][commands][list]")
 {
     test_command(List{}, TestComponents{},
-                 0, "test-component-a\ntest-component-b\ntest-component-1\n",
+                 0, "/Test_Component_A\n/Test_Component_B\n/Test_Component_1\n",
                  "list");
 }
 TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
@@ -145,74 +145,74 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
     test_command(Describe{}, components, 0,
-R"DESCRIBEDEVICE(component: test-component-1
+R"DESCRIBEDEVICE(component: /Test_Component_1
   name: "Test Component 1"
   type:  component
-  input:   button-in
+  input:   /Test_Component_1/button_in
     name: "button in"
     type:  occasional int
     range: 0 to 1 (init: 0)
     value: (! 1 !)
-  input:   toggle-in
+  input:   /Test_Component_1/toggle_in
     name: "toggle in"
     type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
-  input:   slider-in
+  input:   /Test_Component_1/slider_in
     name: "slider in"
     type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
-  input:   bang-in
+  input:   /Test_Component_1/bang_in
     name: "bang in"
     type:  bang
     value: (! bang !)
-  input:   text-in
+  input:   /Test_Component_1/text_in
     name: "text in"
     type:  persistent text
     value: ""
-  input:   text-message-in
+  input:   /Test_Component_1/text_message_in
     name: "text message in"
     type:  occasional text
     value: ()
-  input:   array-in
+  input:   /Test_Component_1/array_in
     name: "array in"
     type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
-  output:  button-out
+  output:  /Test_Component_1/button_out
     name: "button out"
     type:  occasional int
     range: 0 to 1 (init: 0)
     value: (0)
-  output:  toggle-out
+  output:  /Test_Component_1/toggle_out
     name: "toggle out"
     type:  persistent int
     range: 0 to 1 (init: 0)
     value: 0
-  output:  slider-out
+  output:  /Test_Component_1/slider_out
     name: "slider out"
     type:  persistent float
     range: 0 to 1 (init: 0)
     value: 0
-  output:  bang-out
+  output:  /Test_Component_1/bang_out
     name: "bang out"
     type:  bang
     value: ()
-  output:  text-out
+  output:  /Test_Component_1/text_out
     name: "text out"
     type:  persistent text
     value: ""
-  output:  text-message-out
+  output:  /Test_Component_1/text_message_out
     name: "text message out"
     type:  occasional text
     value: ()
-  output:  array-out
+  output:  /Test_Component_1/array_out
     name: "array out"
     type:  array of float
     range: 0 to 1 (init: 0)
     value: [0 0 0]
-)DESCRIBEDEVICE", "describe", "test-component-1");
+)DESCRIBEDEVICE", "describe", "/Test_Component_1");
 
     test_command(Describe{}, TestComponents{}, 0,
 R"DESCRIBEENDPOINT(endpoint: slider-out
@@ -220,7 +220,7 @@ R"DESCRIBEENDPOINT(endpoint: slider-out
   type:  persistent float
   range: 0 to 1 (init: 0)
   value: 0
-)DESCRIBEENDPOINT", "describe", "test-component-1", "slider-out");
+)DESCRIBEENDPOINT", "describe", "/Test_Component_1/slider_out");
     components.tc.inputs.text_in = "hello";
 
     CHECK(components.tc.inputs.text_in.value == string("hello"));
@@ -229,47 +229,47 @@ R"DESCRIBEENDPOINT(endpoint: text-in
   name: "text in"
   type:  persistent text
   value: "hello"
-)DESCRIBEENDPOINT", "describe", "test-component-1", "text-in");
+)DESCRIBEENDPOINT", "describe", "/Test_Component_1/Text_in");
 }
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "slider-in", "0.31459");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/slider_in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "toggle-in", "1");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/toggle_in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "button-in", "1");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/button_in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "bang-in");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/bang_in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 
     SECTION("set string")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "text-in", "helloworld");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/text_in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 
     SECTION("set array")
     {
-        test_command(Set{}, components, 0, "", "set", "test-component-1", "array-in", "1", "2", "3");
+        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/array_in", "1", "2", "3");
         REQUIRE(components.tc.inputs.array_in.value == std::array<float, 3>{1,2,3});
     }
 }
