@@ -1,5 +1,12 @@
 # Command Line Interface Binding
 
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
 [TOC]
 
 # Motivation
@@ -289,7 +296,7 @@ conceptual design of the logger feature injection scheme from Avendish:
 // @+'test commands'
 struct Echo
 {
-    static _consteval auto name() { return "echo"; }
+    static _consteval auto name() { return "/echo"; }
     static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
     int main(int argc, char ** argv, auto& log, auto&)
@@ -315,10 +322,9 @@ is found.
 
 ## Tests
 
-We'll define a function to facilitate testing, inspired by chatGPT's failed
-attempt to generate tests for me, that accepts a string as input to the CLI and
-returns a string representing whatever the CLI prints in response. We also
-define some test components;
+We'll define a function to facilitate testing that accepts a string as input to
+the CLI and returns a string representing whatever the CLI prints in response.
+We also define some test components;
 
 ```cpp
 // @='cli test wrapper'
@@ -358,7 +364,7 @@ defined above, and the following:
 // @+'test commands'
 struct HelloWorld
 {
-    static _consteval auto name() { return "hello"; }
+    static _consteval auto name() { return "/hello"; }
     static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
     int main(int argc, char ** argv, auto& log, auto&)
@@ -384,12 +390,12 @@ TEST_CASE("CLI", "[bindings][cli]")
 
     SECTION("Hello world")
     {
-        test_cli(cli, components, "hello\n", "Hello world!\n> ");
+        test_cli(cli, components, "/hello\n", "Hello world!\n> ");
     }
 
     SECTION("Echo")
     {
-        test_cli(cli, components, "echo foo bar baz\n", "foo bar baz\n> ");
+        test_cli(cli, components, "/echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
 // @/
@@ -424,16 +430,18 @@ With these resources, we can outline the process function. The plan is to
 keep track of the onset of arguments in `argv`, and to convert whitespace
 to null characters so that the arguments are automatically null terminated.
 
-At the end of each line, we pass the first token and our list of commands to
-the `dispatch` subroutine defined in `bindings/name_dispatch.hpp`. If it
-returns a non-zero error code, we print a message. Then, regardless of the
-command's exit status, we reset the buffers, print a new prompt, and return to
-the normal process loop. The same reset routine is called if our input buffer
-overflows.
+At the end of each line, we try to match the first command line argument to one
+of the commands known to the CLI. Then, regardless of the command's exit
+status, we reset the buffers, print a new prompt, and return to the normal
+process loop. The same reset routine is called if our input buffer overflows.
 
 Notice that we accept the list of components which the CLI interacts with as an
 argument. We assume that this is in the form of a reflectable simple-aggregate
 struct, which we will discuss further below.
+
+On ESP-IDF, we need to echo user input back to the log output so that the user
+has feedback as they write. Ideally we would implement a full readline REPL,
+but this remains as future work for now.
 
 ```cpp
 // @='cli process'
@@ -457,8 +465,7 @@ void process(const char c, Components& components)
 
     if (c == '\n')
     {
-        auto retcode = _try_to_match_and_execute(components);
-        if (retcode != 0) _complain_about_command_failure(retcode);
+        _try_to_match_and_execute(components);
         _reset();
     }
 
@@ -476,43 +483,29 @@ void external_sources(Components& components)
 // @/
 ```
 
-We invoke the matcher subroutine as follows, accounting for `help`
-as a special case in our callback lambda, and using a kebab-case
-respeller in our matcher. The same matcher is used by all of
-the CLI commands, so it is defined in its own header.
+An earlier version of the CLI used a purpose-specific name-matching dispatcher
+that has since been removed in favor of using the
+[`osc_match_pattern`](bindings/osc_match_pattern.lili.md) subroutine defined in
+the document with the same name. Command names are treated as OSC strings, and
+any command that matches the first CLI argument is invoked, passing the CLI
+arguments, log, and components. The help command is a special case; it requires
+the list of commands be passed rather than the list of components.
 
 ```cpp
-// @#'matcher.hpp'
-#pragma once
-
-#include <string_view>
-#include "bindings/spelling.hpp"
-
-namespace sygaldry { namespace bindings {
-
-struct CommandMatcher
-{
-    template<typename stringish, typename Command>
-    bool operator()(stringish arg0, const Command& command)
-    {
-        return std::string_view(arg0) == std::string_view(lower_kebab_case(command));
-    }
-};
-
-} }
-// @/
-
 // @+'cli implementation details'
-int _try_to_match_and_execute(Components& components)
+void _try_to_match_and_execute(Components& components)
 {
-    return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
+    boost::pfr::for_each_field(commands, [&](auto& command)
+    {
+        if (not osc_match_pattern(argv[0], command.name())) return;
+        int retcode;
+        if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
         {
-            if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
-            {
-                return command.main(log, commands);
-            }
-            else return command.main(argc, argv, log, components);
-        });
+            retcode = command.main(log, commands);
+        }
+        else retcode = command.main(argc, argv, log, components);
+        if (retcode != 0) _complain_about_command_failure(retcode);
+    });
 }
 // @/
 ```
@@ -590,16 +583,24 @@ void _complain_about_command_failure(int retcode)
 ```cpp
 // @#'cli.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <memory>
 #include <string_view>
 #include <concepts>
 #include <cstdlib>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_match_pattern.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
-#include "matcher.hpp"
 
 @{commands headers}
 
@@ -610,7 +611,8 @@ struct CustomCli : name_<"CLI">
                  , author_<"Travis J. West">
                  , description_<"Generate a simple command line interface for inspecting and sending data to the bound components.">
                  , version_<"0.0.0">
-                 , copyright_<"Travis J. West <C) 2023">
+                 , copyright_<"Copyright 2023 Sygaldry contributors">
+                 , license_<"SPDX-License-Identifier: MIT">
 {
     [[no_unique_address]] Logger log;
     [[no_unique_address]] Reader reader;
@@ -684,13 +686,13 @@ provide their usage text if the command takes arguments.
 ```cpp
 // @+'test commands'
 struct Command1 {
-    static _consteval auto name() { return "test-command-1"; }
+    static _consteval auto name() { return "/test-command-1"; }
     static _consteval auto usage() { return "foo bar"; }
     static _consteval auto description() { return "Description 1"; }
 };
 
 struct Command2 {
-    static _consteval auto name() { return "test-command-2"; }
+    static _consteval auto name() { return "/test-command-2"; }
     // no arguments, no usage text
     static _consteval auto description() { return "Description 2"; }
 };
@@ -712,26 +714,31 @@ TEST_CASE("Help command", "[cli][commands][help]")
     auto commands = TestCommands{};
     auto retcode = command.main(logger, commands);
 
-    REQUIRE(logger.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
+    REQUIRE(logger.put.ss.str() == string("/test-command-1 foo bar\n    Description 1\n/test-command-2\n    Description 2\n/help\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
 // @/
 ```
 
-Since the help command is a special case, which operates over commands instead
-of components, we allow it to buck the pattern established with the list command
-and have a `main` method that takes a parameter pack of commands to describe.
-
 ```cpp
 // @#'commands/help.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 struct Help
 {
-    static _consteval auto name() { return "help"; }
+    static _consteval auto name() { return "/help"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "Describe the available commands and their usage"; }
 
@@ -783,31 +790,41 @@ TEST_CASE("List command outputs", "[cli][commands][list]")
 // @/
 ```
 
-Notice that we expect the component names to be converted to lower-kebab-case,
-since this is arguably the most idiomatic spelling for a CLI context, and
-easier to parse than a natural spelling with spaces.
+Notice that we expect the component names to be converted to OSC addresses. An
+earlier version of the CLI used lower kebab case, which is arguably more
+idiomatic to a CLI, but OSC addresses are preferred to enable reuse of the
+`osc_match_pattern` subroutine for dispatching commands.
 
-Since component names are `_consteval`, we can generate the whole expected output
-at compile time. However, doing so is noticeably more complicated than merely
-printing the correct output at runtime, and also imposes an increased program
-size to statically store the generated strings, which needlessly duplicates the
-names of components. Instead, we'll iterate over the component types using a fold
-expression and print each one's name using the injected logger.
+Since component names are `_consteval`, we can generate the whole expected
+output at compile time. However, doing so is noticeably more complicated than
+merely printing the correct output at runtime, and also imposes an increased
+program size to statically store the generated strings, which needlessly
+duplicates the names of components. Instead, we'll iterate over the component
+types using a fold expression and print each one's name using the injected
+logger.
 
 ```cpp
 // @#'commands/list.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <type_traits>
 #include "utilities/consteval.hpp"
 #include "concepts/components.hpp"
-#include "bindings/spelling.hpp"
+#include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct List
 {
-    static _consteval auto name() { return "list"; }
+    static _consteval auto name() { return "/list"; }
     static _consteval auto usage() { return ""; }
     static _consteval auto description() { return "List the components available to interact with through the CLI"; }
 
@@ -815,7 +832,9 @@ struct List
     {
         for_each_component(components, [&](const auto& component)
         {
-            log.println(lower_kebab_case_v<std::decay_t<decltype(component)>>);
+            log.println(osc_path_v< std::remove_cvref_t<decltype(component)>
+                                  , std::remove_cvref_t<decltype(components)>
+                                  >);
         });
         return 0;
     }
@@ -836,7 +855,7 @@ clicommands::List list;
 # Component Commands
 
 Commands in this section reflect over components to access their metadata,
-set their values, and simulate a working platform. 
+set their values, and simulate an operational runtime.
 
 ## Describe
 
@@ -852,7 +871,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
     test_command(Describe{}, components, 0,
-R"DESCRIBEDEVICE(component: /Test_Component_1
+R"DESCRIBEDEVICE(entity: /Test_Component_1
   name: "Test Component 1"
   type:  component
   input:   /Test_Component_1/button_in
@@ -922,7 +941,7 @@ R"DESCRIBEDEVICE(component: /Test_Component_1
 )DESCRIBEDEVICE", "describe", "/Test_Component_1");
 
     test_command(Describe{}, TestComponents{}, 0,
-R"DESCRIBEENDPOINT(endpoint: slider-out
+R"DESCRIBEENDPOINT(entity: /Test_Component_1/slider_out
   name: "slider out"
   type:  persistent float
   range: 0 to 1 (init: 0)
@@ -932,11 +951,11 @@ R"DESCRIBEENDPOINT(endpoint: slider-out
 
     CHECK(components.tc.inputs.text_in.value == string("hello"));
     test_command(Describe{}, components, 0,
-R"DESCRIBEENDPOINT(endpoint: text-in
+R"DESCRIBEENDPOINT(entity: /Test_Component_1/text_in
   name: "text in"
   type:  persistent text
   value: "hello"
-)DESCRIBEENDPOINT", "describe", "/Test_Component_1/Text_in");
+)DESCRIBEENDPOINT", "describe", "/Test_Component_1/text_in");
 }
 // @/
 ```
@@ -947,25 +966,19 @@ or we describe a single endpoint.
 
 ```cpp
 // @='describe main'
-int main(int argc, char** argv, auto& log, auto& components)
+template<typename Components>
+int main(int argc, char** argv, auto& log, Components& components)
 {
     if (argc < 2) return 2;
     bool describe_component = argc == 2;
     bool describe_endpoint = argc > 2;
-    return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
+    for_each_node(components, [&]<typename T>(T& node, auto)
     {
-        if (describe_component)
-        {
-            describe_entity(log, "component: ", component);
-            return 0;
-        }
-        else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
-        {
-            describe_entity(log, "endpoint: ", endpoint);
-            return 0;
-        });
-        else return 0;
+        if constexpr (has_name<T>)
+            if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
+                describe_entity<T, Components>(log, "entity: ", node);
     });
+    return 0;
 };
 // @/
 ```
@@ -1031,11 +1044,11 @@ void describe_entity_value(auto& log, T& entity)
     }
 }
 
-template<typename T>
+template<typename T, typename Components>
 void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 {
     static_assert(has_name<T>);
-    log.println(indents..., preface, (const char *)lower_kebab_case(entity));
+    log.println(indents..., preface, (const char *)osc_path_v<T, Components>);
     log.println(indents..., "  name: \"", entity.name(), "\"");
     log.print(indents...,   "  type:  ");
     describe_entity_type(log, entity);
@@ -1054,9 +1067,9 @@ void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
     {
         auto describe_group = [&](auto& group, auto groupname)
         {
-            boost::pfr::for_each_field(group, [&](auto& entity)
+            boost::pfr::for_each_field(group, [&]<typename Y>(Y& endpoint)
             {
-                describe_entity(log, groupname, entity, "  ", indents...);
+                describe_entity<Y, Components>(log, groupname, endpoint, "  ", indents...);
             });
         };
         if constexpr (has_inputs<T>) describe_group(inputs_of(entity),  "input:   ");
@@ -1070,21 +1083,30 @@ void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
 ```cpp
 // @#'commands/describe.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "bindings/spelling.hpp"
+#include "concepts/components.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_string_constants.hpp"
+#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Describe
 {
-    static _consteval auto name() { return "describe"; }
-    static _consteval auto usage() { return "component-name [endpoint-name]"; }
-    static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
+    static _consteval auto name() { return "/describe"; }
+    static _consteval auto usage() { return "osc-address-pattern"; }
+    static _consteval auto description() { return "Convey metadata about entities that match the given address pattern"; }
 
     @{describe implementation details}
 
@@ -1118,40 +1140,40 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/slider_in", "0.31459");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/slider_in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/toggle_in", "1");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/toggle_in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/button_in", "1");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/button_in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/bang_in");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/bang_in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 
     SECTION("set string")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/text_in", "helloworld");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/text_in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 
     SECTION("set array")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/array_in", "1", "2", "3");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/array_in", "1", "2", "3");
         REQUIRE(components.tc.inputs.array_in.value == std::array<float, 3>{1,2,3});
     }
 }
@@ -1163,20 +1185,21 @@ right endpoint, deferring the main logic of the command to another subroutine.
 
 ```cpp
 // @='set main'
-int main(int argc, char** argv, auto& log, auto& components)
+template<typename Components>
+int main(int argc, char** argv, auto& log, Components& components)
 {
-    if (argc < 3)
+    if (argc < 2)
     {
         log.println("usage: ", usage());
         return 2;
     }
     auto component_name = argv[1];
     auto endpoint_name = argv[2];
-    return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
-        return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
-            return set_endpoint_value(log, endpoint, argc-3, argv+3);
-        });
+    for_each_endpoint(components, [&]<typename T>(T& endpoint) {
+        if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
+            set_endpoint_value(log, endpoint, argc-2, argv+2);
     });
+    return 0;
 }
 // @/
 ```
@@ -1342,16 +1365,25 @@ T from_chars(const char * start, const char *, bool& success)
 ```cpp
 // @#'commands/set.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <charconv>
 #include "concepts/endpoints.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_string_constants.hpp"
+#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Set
 {
-    static _consteval auto name() { return "set"; }
+    static _consteval auto name() { return "/set"; }
     static _consteval auto usage() { return "component-name endpoint-name [value] [value] [...]"; }
     static _consteval auto description() { return "Change the current value of the given endoint"; }
 
@@ -1379,6 +1411,15 @@ clicommands::Set set;
 
 ```cpp
 // @#'tests/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <string>
 #include <memory>
 #include <catch2/catch_test_macros.hpp>

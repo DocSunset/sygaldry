@@ -1,19 +1,28 @@
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <boost/pfr.hpp>
 #include "utilities/consteval.hpp"
-#include "bindings/spelling.hpp"
+#include "concepts/components.hpp"
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_string_constants.hpp"
+#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Describe
 {
-    static _consteval auto name() { return "describe"; }
-    static _consteval auto usage() { return "component-name [endpoint-name]"; }
-    static _consteval auto description() { return "Convey metadata about a component or its endpoint. Pass * to describe all"; }
+    static _consteval auto name() { return "/describe"; }
+    static _consteval auto usage() { return "osc-address-pattern"; }
+    static _consteval auto description() { return "Convey metadata about entities that match the given address pattern"; }
 
     template<typename T>
     void describe_entity_type(auto& log, T& entity)
@@ -67,11 +76,11 @@ struct Describe
         }
     }
 
-    template<typename T>
+    template<typename T, typename Components>
     void describe_entity(auto& log, auto preface, T& entity, auto ... indents)
     {
         static_assert(has_name<T>);
-        log.println(indents..., preface, (const char *)lower_kebab_case(entity));
+        log.println(indents..., preface, (const char *)osc_path_v<T, Components>);
         log.println(indents..., "  name: \"", entity.name(), "\"");
         log.print(indents...,   "  type:  ");
         describe_entity_type(log, entity);
@@ -90,9 +99,9 @@ struct Describe
         {
             auto describe_group = [&](auto& group, auto groupname)
             {
-                boost::pfr::for_each_field(group, [&](auto& entity)
+                boost::pfr::for_each_field(group, [&]<typename Y>(Y& endpoint)
                 {
-                    describe_entity(log, groupname, entity, "  ", indents...);
+                    describe_entity<Y, Components>(log, groupname, endpoint, "  ", indents...);
                 });
             };
             if constexpr (has_inputs<T>) describe_group(inputs_of(entity),  "input:   ");
@@ -100,25 +109,19 @@ struct Describe
         }
     }
 
-    int main(int argc, char** argv, auto& log, auto& components)
+    template<typename Components>
+    int main(int argc, char** argv, auto& log, Components& components)
     {
         if (argc < 2) return 2;
         bool describe_component = argc == 2;
         bool describe_endpoint = argc > 2;
-        return dispatch<CommandMatcher>(argv[1], components, 2, [&](auto& component)
+        for_each_node(components, [&]<typename T>(T& node, auto)
         {
-            if (describe_component)
-            {
-                describe_entity(log, "component: ", component);
-                return 0;
-            }
-            else if (describe_endpoint) return dispatch<CommandMatcher>(argv[2], component, 2, [&](auto& endpoint)
-            {
-                describe_entity(log, "endpoint: ", endpoint);
-                return 0;
-            });
-            else return 0;
+            if constexpr (has_name<T>)
+                if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
+                    describe_entity<T, Components>(log, "entity: ", node);
         });
+        return 0;
     };
 
 };

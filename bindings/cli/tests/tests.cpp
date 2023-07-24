@@ -1,3 +1,12 @@
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <string>
 #include <memory>
 #include <catch2/catch_test_macros.hpp>
@@ -39,7 +48,7 @@ void test_command(auto&& command, auto&& components, int expected_retcode, strin
 
 struct Echo
 {
-    static _consteval auto name() { return "echo"; }
+    static _consteval auto name() { return "/echo"; }
     static _consteval auto description() { return "Repeats its arguments, separated by spaces, to the output"; }
 
     int main(int argc, char ** argv, auto& log, auto&)
@@ -55,7 +64,7 @@ struct Echo
 };
 struct HelloWorld
 {
-    static _consteval auto name() { return "hello"; }
+    static _consteval auto name() { return "/hello"; }
     static _consteval auto description() { return "Say's 'Hello world!' Useful for testing the CLI"; }
 
     int main(int argc, char ** argv, auto& log, auto&)
@@ -65,13 +74,13 @@ struct HelloWorld
     };
 };
 struct Command1 {
-    static _consteval auto name() { return "test-command-1"; }
+    static _consteval auto name() { return "/test-command-1"; }
     static _consteval auto usage() { return "foo bar"; }
     static _consteval auto description() { return "Description 1"; }
 };
 
 struct Command2 {
-    static _consteval auto name() { return "test-command-2"; }
+    static _consteval auto name() { return "/test-command-2"; }
     // no arguments, no usage text
     static _consteval auto description() { return "Description 2"; }
 };
@@ -113,12 +122,12 @@ TEST_CASE("CLI", "[bindings][cli]")
 
     SECTION("Hello world")
     {
-        test_cli(cli, components, "hello\n", "Hello world!\n> ");
+        test_cli(cli, components, "/hello\n", "Hello world!\n> ");
     }
 
     SECTION("Echo")
     {
-        test_cli(cli, components, "echo foo bar baz\n", "foo bar baz\n> ");
+        test_cli(cli, components, "/echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
 TEST_CASE("Help command", "[cli][commands][help]")
@@ -130,7 +139,7 @@ TEST_CASE("Help command", "[cli][commands][help]")
     auto commands = TestCommands{};
     auto retcode = command.main(logger, commands);
 
-    REQUIRE(logger.put.ss.str() == string("test-command-1 foo bar\n    Description 1\ntest-command-2\n    Description 2\nhelp\n    Describe the available commands and their usage\n"));
+    REQUIRE(logger.put.ss.str() == string("/test-command-1 foo bar\n    Description 1\n/test-command-2\n    Description 2\n/help\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
 TEST_CASE("List command outputs", "[cli][commands][list]")
@@ -145,7 +154,7 @@ TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
     components.tc.inputs.button_in = 1;
     components.tc.inputs.bang_in();
     test_command(Describe{}, components, 0,
-R"DESCRIBEDEVICE(component: /Test_Component_1
+R"DESCRIBEDEVICE(entity: /Test_Component_1
   name: "Test Component 1"
   type:  component
   input:   /Test_Component_1/button_in
@@ -215,7 +224,7 @@ R"DESCRIBEDEVICE(component: /Test_Component_1
 )DESCRIBEDEVICE", "describe", "/Test_Component_1");
 
     test_command(Describe{}, TestComponents{}, 0,
-R"DESCRIBEENDPOINT(endpoint: slider-out
+R"DESCRIBEENDPOINT(entity: /Test_Component_1/slider_out
   name: "slider out"
   type:  persistent float
   range: 0 to 1 (init: 0)
@@ -225,51 +234,51 @@ R"DESCRIBEENDPOINT(endpoint: slider-out
 
     CHECK(components.tc.inputs.text_in.value == string("hello"));
     test_command(Describe{}, components, 0,
-R"DESCRIBEENDPOINT(endpoint: text-in
+R"DESCRIBEENDPOINT(entity: /Test_Component_1/text_in
   name: "text in"
   type:  persistent text
   value: "hello"
-)DESCRIBEENDPOINT", "describe", "/Test_Component_1/Text_in");
+)DESCRIBEENDPOINT", "describe", "/Test_Component_1/text_in");
 }
 TEST_CASE("Set", "[bindings][cli][commands][set]")
 {
     auto components = TestComponents{};
     SECTION("set slider")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/slider_in", "0.31459");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/slider_in", "0.31459");
         REQUIRE(components.tc.inputs.slider_in.value == 0.31459f);
     }
 
     SECTION("set toggle")
     {
         REQUIRE(components.tc.inputs.toggle_in.value == 0);
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/toggle_in", "1");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/toggle_in", "1");
         REQUIRE(components.tc.inputs.toggle_in.value == 1);
     }
 
     SECTION("set button")
     {
         REQUIRE(not components.tc.inputs.button_in);
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/button_in", "1");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/button_in", "1");
         REQUIRE(components.tc.inputs.button_in);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 
     SECTION("set bang")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/bang_in");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/bang_in");
         REQUIRE(components.tc.inputs.bang_in.value == true);
     }
 
     SECTION("set string")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/text_in", "helloworld");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/text_in", "helloworld");
         REQUIRE(components.tc.inputs.text_in.value == string("helloworld"));
     }
 
     SECTION("set array")
     {
-        test_command(Set{}, components, 0, "", "set", "/Test_Component_1/array_in", "1", "2", "3");
+        test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/array_in", "1", "2", "3");
         REQUIRE(components.tc.inputs.array_in.value == std::array<float, 3>{1,2,3});
     }
 }

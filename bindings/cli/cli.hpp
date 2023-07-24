@@ -1,14 +1,22 @@
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
 #include <memory>
 #include <string_view>
 #include <concepts>
 #include <cstdlib>
 #include "utilities/consteval.hpp"
 #include "helpers/metadata.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_match_pattern.hpp"
 #include "bindings/basic_logger/cstdio_logger.hpp"
 #include "bindings/basic_reader/cstdio_reader.hpp"
-#include "matcher.hpp"
 
 #include "commands/help.hpp"
 #include "commands/list.hpp"
@@ -22,7 +30,8 @@ struct CustomCli : name_<"CLI">
                  , author_<"Travis J. West">
                  , description_<"Generate a simple command line interface for inspecting and sending data to the bound components.">
                  , version_<"0.0.0">
-                 , copyright_<"Travis J. West <C) 2023">
+                 , copyright_<"Copyright 2023 Sygaldry contributors">
+                 , license_<"SPDX-License-Identifier: MIT">
 {
     [[no_unique_address]] Logger log;
     [[no_unique_address]] Reader reader;
@@ -42,16 +51,19 @@ struct CustomCli : name_<"CLI">
     unsigned char write_pos = 0;
     char buffer[BUFFER_SIZE];
 
-    int _try_to_match_and_execute(Components& components)
+    void _try_to_match_and_execute(Components& components)
     {
-        return dispatch<CommandMatcher>(argv[0], commands, 127, [&](auto& command)
+        boost::pfr::for_each_field(commands, [&](auto& command)
+        {
+            if (not osc_match_pattern(argv[0], command.name())) return;
+            int retcode;
+            if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
             {
-                if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
-                {
-                    return command.main(log, commands);
-                }
-                else return command.main(argc, argv, log, components);
-            });
+                retcode = command.main(log, commands);
+            }
+            else retcode = command.main(argc, argv, log, components);
+            if (retcode != 0) _complain_about_command_failure(retcode);
+        });
     }
     bool _is_whitespace(char c)
     {
@@ -104,8 +116,7 @@ struct CustomCli : name_<"CLI">
 
         if (c == '\n')
         {
-            auto retcode = _try_to_match_and_execute(components);
-            if (retcode != 0) _complain_about_command_failure(retcode);
+            _try_to_match_and_execute(components);
             _reset();
         }
 

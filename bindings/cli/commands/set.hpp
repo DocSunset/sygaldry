@@ -1,14 +1,23 @@
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <charconv>
 #include "concepts/endpoints.hpp"
-#include "bindings/name_dispatch.hpp"
+#include "bindings/osc_string_constants.hpp"
+#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 
 struct Set
 {
-    static _consteval auto name() { return "set"; }
+    static _consteval auto name() { return "/set"; }
     static _consteval auto usage() { return "component-name endpoint-name [value] [value] [...]"; }
     static _consteval auto description() { return "Change the current value of the given endoint"; }
 
@@ -121,20 +130,21 @@ struct Set
         else return 2;
     }
 
-    int main(int argc, char** argv, auto& log, auto& components)
+    template<typename Components>
+    int main(int argc, char** argv, auto& log, Components& components)
     {
-        if (argc < 3)
+        if (argc < 2)
         {
             log.println("usage: ", usage());
             return 2;
         }
         auto component_name = argv[1];
         auto endpoint_name = argv[2];
-        return dispatch<CommandMatcher>(component_name, components, 2, [&](auto& component) {
-            return dispatch<CommandMatcher>(endpoint_name, component, 2, [&](auto& endpoint) {
-                return set_endpoint_value(log, endpoint, argc-3, argv+3);
-            });
+        for_each_endpoint(components, [&]<typename T>(T& endpoint) {
+            if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
+                set_endpoint_value(log, endpoint, argc-2, argv+2);
         });
+        return 0;
     }
 
 };
