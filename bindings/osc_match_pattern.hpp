@@ -72,6 +72,23 @@ bool osc_match_pattern(const char * pattern, const char * address)
     case '\0':
         if (*address == '\0') return true;
         break;
+    case '/':
+        if (*(pattern+1) != '/') /*fallthrough*/;
+        else
+        {
+            ++pattern;
+            while (not osc_match_pattern(pattern, address))
+            {
+                while (*address)
+                {
+                    ++address;
+                    if (*address == '/') break;
+                }
+                if (*address == '\0') return false;
+            }
+            return true;
+        }
+        [[fallthrough]];
     default:
         if (*pattern == '?' || *pattern == *address) return osc_match_pattern(++pattern, ++address);
         else return false;

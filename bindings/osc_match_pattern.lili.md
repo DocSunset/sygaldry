@@ -31,6 +31,7 @@ bool osc_match_pattern(const char * pattern, const char * address)
     case '\0':
         if (*address == '\0') return true;
         break;
+    @{descendant-or-self case}
     @{default case}
     }
     return false;
@@ -397,6 +398,80 @@ TEST_CASE("OSC match regular")
 }
 // @/
 ```
+
+## Descendant-or-Self Wildcard
+
+[The OSC 1.1 paper by Adrian Freed and Andy Schmeder](https://zenodo.org/record/1177517)
+\cite freed2009nime_osc1.1 suggests the addition of a multi-level wildcard `//`
+that matches "across disparate branches of the address tree and at any depth."
+The operator is borrowed from [XPath](https://www.w3.org/TR/xpath-31/#abbrev),
+where it is described in section 3.3.5. The behavior of the operator is most
+readily explained by demonstration.
+
+```cpp
+// @+'tests'
+TEST_CASE("OSC match descendant-or-self wildcard")
+{
+    CHECK(osc_match_pattern("//foo", "/foo"));
+    CHECK(osc_match_pattern("//foo", "/123/foo"));
+    CHECK(osc_match_pattern("//foo", "/123/456/foo"));
+    CHECK(osc_match_pattern("//foo", "/bar/baz/foo"));
+    CHECK(not osc_match_pattern("//foo", "/bar"));
+    CHECK(not osc_match_pattern("//foo", "/foo/bar"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/cream/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/coconut/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/coconut/cream/pie"));
+    CHECK(not osc_match_pattern("/banana//pie", "/apple/pie"));
+
+    // terminating // not allowed
+    CHECK(not osc_match_pattern("//", "/anything"));
+    CHECK(not osc_match_pattern("/anything//", "/anything"));
+
+    // three /// or more in a row is an error with undefined behavior
+    // our implementation treats this as equivalent to //
+    CHECK(osc_match_pattern("///foo", "/foo"));
+    CHECK(osc_match_pattern("///foo", "/anything/foo"));
+}
+// @/
+```
+
+The implementation first begins by checking that we have a `//` and not
+merely a `/`. In the latter case, we deliberately fall through to the
+default case.
+
+```cpp
+// @='descendant-or-self case'
+case '/':
+    if (*(pattern+1) != '/') /*fallthrough*/;
+// @/
+```
+
+Otherwise, we try to match the remainder of the pattern against the
+rest of the address. If this is unsuccessful, we fast forward the
+address to the leading `/` of the next part of the address and try
+to match again. This proceeds until a match is found, prompting the
+matching routine to return true, or until the end of the address
+is reached, meaning the pattern did not match.
+
+```cpp
+// @+'descendant-or-self case'
+    else
+    {
+        ++pattern;
+        while (not osc_match_pattern(pattern, address))
+        {
+            while (*address)
+            {
+                ++address;
+                if (*address == '/') break;
+            }
+            if (*address == '\0') return false;
+        }
+        return true;
+    }
+    [[fallthrough]];
+// @/
 
 # Summary
 

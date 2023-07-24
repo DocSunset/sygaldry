@@ -92,3 +92,26 @@ TEST_CASE("OSC match regular")
     CHECK(osc_match_pattern("/sugar/pie", "/sugar/pie"));
     CHECK(not osc_match_pattern("/sugar/pie", "/apple/pie"));
 }
+TEST_CASE("OSC match descendant-or-self wildcard")
+{
+    CHECK(osc_match_pattern("//foo", "/foo"));
+    CHECK(osc_match_pattern("//foo", "/123/foo"));
+    CHECK(osc_match_pattern("//foo", "/123/456/foo"));
+    CHECK(osc_match_pattern("//foo", "/bar/baz/foo"));
+    CHECK(not osc_match_pattern("//foo", "/bar"));
+    CHECK(not osc_match_pattern("//foo", "/foo/bar"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/cream/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/coconut/pie"));
+    CHECK(osc_match_pattern("/banana//pie", "/banana/coconut/cream/pie"));
+    CHECK(not osc_match_pattern("/banana//pie", "/apple/pie"));
+
+    // terminating // not allowed
+    CHECK(not osc_match_pattern("//", "/anything"));
+    CHECK(not osc_match_pattern("/anything//", "/anything"));
+
+    // three /// or more in a row is an error with undefined behavior
+    // our implementation treats this as equivalent to //
+    CHECK(osc_match_pattern("///foo", "/foo"));
+    CHECK(osc_match_pattern("///foo", "/anything/foo"));
+}
