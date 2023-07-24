@@ -138,8 +138,6 @@ struct Set
             log.println("usage: ", usage());
             return 2;
         }
-        auto component_name = argv[1];
-        auto endpoint_name = argv[2];
         for_each_endpoint(components, [&]<typename T>(T& endpoint) {
             if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
                 set_endpoint_value(log, endpoint, argc-2, argv+2);

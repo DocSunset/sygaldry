@@ -39,26 +39,26 @@ struct TrillCraft
 
         array<"raw", channels
              , "unprocessed difference in capacitance with respect to baseline"
-             , int, std::numeric_limits<int>::min, std::numeric_limits<int>::max, 0
+             , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
              // TOOD: what are the actual minimum and maximum values that can be found?
              > raw;
         toggle<"any", "indicates presence of any touch"> any;
         slider<"instant max", "the maximum reading currently"
-              , int, std::numeric_limits<int>::min, (float)std::numeric_limits<int>max, 0
+              , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
               > instant_max;
         slider<"max seen", "the maximum reading seen since boot"
-              , int, std::numeric_limits<int>::min, (float)std::numeric_limits<int>max, 0
+              , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
               // arguably this should be session data
               > max_seen;
         array<"mask", channels, "indicates which electrodes are touched"
-             , bool, false, true, false
+             , char, 0, 1, 0
              > mask;
         array<"normalized", channels
              , "normalized capacitance reading"
              > normalized;
     } outputs;
 
-    Trill trill;
+    Trill* trill = nullptr;
 
     /*! \brief Try to connect to the Trill sensor at the default address.
 
@@ -73,7 +73,8 @@ struct TrillCraft
     */
     void init()
     {
-        int setup_return_code = trill.setup(Trill::TRILL_CRAFT);
+        trill = new Trill();
+        int setup_return_code = trill->setup(Trill::TRILL_CRAFT);
         if (0 != setup_return_code)
         {
             outputs.running = false;
@@ -104,10 +105,10 @@ struct TrillCraft
     {
         if (not outputs.running) return; // TODO: try to reconnect every so often
 
-        trill.requestRawData();
+        trill->requestRawData();
         for (int i=0; i<30; i++) {
-            if (trill.rawDataAvailable() > 0) {
-                outputs.raw[i] = trill.rawDataRead();
+            if (trill->rawDataAvailable() > 0) {
+                outputs.raw[i] = trill->rawDataRead();
             }
         }
 
@@ -116,12 +117,12 @@ struct TrillCraft
                                                );
 
         if (outputs.instant_max == 0) {
-            outputs.any_touch = 0;
+            outputs.any = 0;
         } else {
-            outputs.any_touch = 1;
+            outputs.any = 1;
         }
 
-        outputs.max_seen = std::max(outputs.max_seen, outputs.instant_max);
+        outputs.max_seen = std::max(outputs.max_seen.value, outputs.instant_max.value);
 
         for (int i = 0; i < channels; i++) {
             if (outputs.raw[i] != 0) {

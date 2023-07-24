@@ -970,8 +970,6 @@ template<typename Components>
 int main(int argc, char** argv, auto& log, Components& components)
 {
     if (argc < 2) return 2;
-    bool describe_component = argc == 2;
-    bool describe_endpoint = argc > 2;
     for_each_node(components, [&]<typename T>(T& node, auto)
     {
         if constexpr (has_name<T>)
@@ -1193,8 +1191,6 @@ int main(int argc, char** argv, auto& log, Components& components)
         log.println("usage: ", usage());
         return 2;
     }
-    auto component_name = argv[1];
-    auto endpoint_name = argv[2];
     for_each_endpoint(components, [&]<typename T>(T& endpoint) {
         if (osc_match_pattern(argv[1], osc_path_v<T, Components>))
             set_endpoint_value(log, endpoint, argc-2, argv+2);
@@ -1298,12 +1294,12 @@ int parse_and_set(auto& log, auto& endpoint, int argc, char ** argv)
 // @/
 ```
 
-For converting from a token string to a number, we would like to
-simply use the standard library `from_chars`, but the ESP-IDF doesn't
-appear to have implemented the floating point overloads for this
-function at the time of writing. We define our own `from_chars`
-function that wraps the standard library when available, and falls
-back to `strtoX` otherwise.
+For converting from a token string to a number, we would like to simply use the
+standard library `from_chars`, but the ESP-IDF doesn't appear to have
+implemented the floating point or bool overloads for this function at the time
+of writing. We define our own `from_chars` function that wraps the standard
+library when available, and falls back to other methods such as `strtoX`
+otherwise.
 
 ```cpp
 // @='from_chars'

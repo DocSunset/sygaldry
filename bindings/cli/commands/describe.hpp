@@ -113,8 +113,6 @@ struct Describe
     int main(int argc, char** argv, auto& log, Components& components)
     {
         if (argc < 2) return 2;
-        bool describe_component = argc == 2;
-        bool describe_endpoint = argc > 2;
         for_each_node(components, [&]<typename T>(T& node, auto)
         {
             if constexpr (has_name<T>)

@@ -140,14 +140,14 @@ _consteval auto size()
 }
 
 template<typename T> struct _element_type {};
-template<typename T> requires (array_like<T> && has_value<T>)
+template<typename T> requires (array_like<value_t<T>>)
 struct _element_type<T>
 {
     using type = std::remove_cvref_t<decltype(std::declval<T>()[0])>;
 };
-template<typename T> requires (has_value<T>)
+template<typename T> requires (has_value<T> && not array_like<value_t<T>>)
 struct _element_type<T> { using type = value_t<T>; };
-template<typename T> requires (array_like<T> || has_value<T>) using element_t = typename _element_type<T>::type;
+template<has_value T> using element_t = typename _element_type<T>::type;
 #define tagged(TAG) template<typename T> concept tagged_##TAG\
     =  std::is_enum_v<decltype(T::TAG)>\
     || std::is_enum_v<typename T::TAG>
