@@ -91,7 +91,9 @@ with the appropriate size and copy the snake case names of each node to the
 buffer.
 
 It remains as future work to 32-bit align the end of the path buffer by padding
-with zeros, as required in the OSC spec.
+with zeros, as required in the OSC spec. There is also currently no
+verification that the final path string is free from errors, e.g. that it
+contains no special characters.
 
 ```cpp
 // @+'string length functions'
@@ -259,7 +261,6 @@ SPDX-License-Identifier: MIT
 #include "concepts/components.hpp"
 #include "concepts/endpoints.hpp"
 #include "bindings/spelling.hpp"
-#include "bindings/osc_match_pattern.hpp"
 
 namespace sygaldry { namespace bindings {
 
@@ -269,7 +270,7 @@ namespace sygaldry { namespace bindings {
 
 @{osc types}
 
-@{osc address pattern matching}
+//@{osc address pattern matching}
 
 } }
 // @/
