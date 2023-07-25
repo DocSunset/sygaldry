@@ -28,12 +28,12 @@ struct OneBitBongo
 {
     struct Instrument
     {
-        bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
-        components::esp32::I2C<21,22,1000000> i2c;
+        //components::esp32::I2C<21,22/*,1000000*/> i2c;
         struct Sensors {
-            components::esp32::Button<GPIO_NUM_23> button;
-            components::TrillCraft trill;
+            components::esp32::Button<GPIO_NUM_15> button;
+            //components::TrillCraft trill;
         } sensors;
+        bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         bindings::LibloOsc<Sensors> osc;
     };
 
@@ -48,7 +48,7 @@ constexpr auto runtime = Runtime{bongo};
 extern "C" void app_main(void)
 {
     runtime.init();
-    for (;;)
+    while (true)
     {
         runtime.tick();
         vTaskDelay(20 / portTICK_PERIOD_MS);

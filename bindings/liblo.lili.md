@@ -377,11 +377,7 @@ set_input(const char *path, const char *types
 
 # Tick
 
-On each tick, we perform three main tasks:
-- external sources: We poll the server
-- main: We update the server and destination address parameters if they have changed
-    - TODO: this should happen in input callbacks
-- external destinations: And we send output messages
+On each tick, we perform three main tasks. External sources: We poll the server.
 
 ```cpp
 // @='tick'
@@ -389,54 +385,98 @@ void external_sources()
 {
     if (outputs.server_running) lo_server_recv_noblock(server, 0);
 }
+// @/
+```
 
+Main: We update the server and destination address parameters if they have
+changed. TODO: this should happen in input callbacks
+
+```cpp
+// @+'tick'
 void main(Components& components)
 {
     set_server(components);
     set_dst();
 }
+// @/
+```
 
+External destinations: we send output messages. This step is a bit more involved.
+First, we only send messages if the output is running, i.e. we have a destination
+IP address and port number.
+
+```cpp
+// @+'tick'
 void external_destinations(Components& components)
 {
     if (outputs.output_running)
     {
         for_each_output(components, [&]<typename T>(T& output)
         {
-            if constexpr (Bang<T>)
-            {
-                if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
-                return;
-            }
-            else if constexpr (has_value<T>)
-            {
-                if constexpr (OccasionalValue<T>)
-                {
-                    if (not bool(output)) return;
-                }
-                // TODO: we should have a more generic way to get a char * from a string_like value
-                if constexpr (string_like<value_t<T>>)
-                    lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
-                else if constexpr (array_like<value_t<T>>)
-                {
-                    lo_message msg = lo_message_new();
-
-                    // TODO: this type tag string logic should be moved to osc_string_constants.lili.md
-                    constexpr auto type = std::integral<element_t<T>> ? "i"
-                                        : std::floating_point<element_t<T>> ? "f"
-                                        : string_like<element_t<T>> ? "s" : "" ;
-
-                    for (auto& element : value_of(output)) lo_message_add(msg, type, element);
-                    lo_send_message(dst, osc_path_v<T, Components>, msg);
-
-                    lo_message_free(msg);
-                }
-                else
-                    lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
-                return;
-            }
+            @{send output messages}
         });
     }
 }
+// @/
+```
+
+The way in which an output endpoint should be converted to OSC depends on its
+type. Bangs are sent with no argument; the event of sending message itself is
+the important thing.
+
+```cpp
+// @='send output messages'
+if constexpr (Bang<T>)
+{
+    if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
+    return;
+}
+// @/
+```
+
+Single valued endpoints are sent relatively simply; we just stuff the value
+of the endpoint into `lo_send`. `OccasionalValue` endpoints are only sent
+when updated; everything else gets sent every time.
+
+```cpp
+// @+'send output messages'
+else if constexpr (has_value<T>)
+{
+    if constexpr (OccasionalValue<T>)
+    {
+        if (not bool(output)) return;
+    }
+    // TODO: we should have a more generic way to get a char * from a string_like value
+    if constexpr (string_like<value_t<T>>)
+        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+    else if constexpr (array_like<value_t<T>>)
+    {
+        @{send array}
+    }
+    else
+        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
+    return;
+}
+// @/
+```
+
+To send an array, we have to iterate over the data adding one message at a time
+to the `lo_message` we are building. We currently get the type tag string for
+one element in this process.
+
+```cpp
+// @+'send array'
+lo_message msg = lo_message_new();
+
+// TODO: this type tag string logic should be moved to osc_string_constants.lili.md
+constexpr auto type = std::integral<element_t<T>> ? "i"
+                    : std::floating_point<element_t<T>> ? "f"
+                    : string_like<element_t<T>> ? "s" : "" ;
+
+for (auto& element : value_of(output)) lo_message_add(msg, type, element);
+lo_send_message(dst, osc_path_v<T, Components>, msg);
+
+lo_message_free(msg);
 // @/
 ```
 

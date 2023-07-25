@@ -125,9 +125,12 @@ struct TrillCraft
             case -1:
                 outputs.error_status = "invalid device mode";
                 break;
+            default:
+                outputs.error_status = "unknown error";
             }
             return;
         }
+        else outputs.running = true;
     }
 
     /// Attempt to read raw data, producing updated instant maximum, normlized, and discretized values

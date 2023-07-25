@@ -246,13 +246,11 @@ struct LibloOsc
     {
         if (outputs.server_running) lo_server_recv_noblock(server, 0);
     }
-
     void main(Components& components)
     {
         set_server(components);
         set_dst();
     }
-
     void external_destinations(Components& components)
     {
         if (outputs.output_running)
