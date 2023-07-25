@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
+/// A wrapper around a string lteral that enables using strings as template parameters.
 template<std::size_t N>
 struct string_literal
 {
