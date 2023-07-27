@@ -57,7 +57,7 @@ struct OneBitBongo
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
-    bindings::CstdioOutputLogger<Instrument> log;
+    //bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
 } bongo{};
 
@@ -66,10 +66,12 @@ constexpr auto runtime = Runtime{bongo};
 extern "C" void app_main(void)
 {
     runtime.init();
+    // give IDF processes time to finish up init business
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     while (true)
     {
         runtime.tick();
-        vTaskDelay(20 / portTICK_PERIOD_MS);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 }
 // @/

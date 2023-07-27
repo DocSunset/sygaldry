@@ -11,6 +11,8 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 
 This document describes the implementation of the liblo OSC binding component.
 
+TODO: this binding needs tests!
+
 # Overview
 
 The liblo binding has the following responsibilities:
@@ -401,9 +403,19 @@ void main(Components& components)
 // @/
 ```
 
-External destinations: we send output messages. This step is a bit more involved.
-First, we only send messages if the output is running, i.e. we have a destination
-IP address and port number.
+External destinations: we send output messages. This step is a bit more
+involved. An earlier implementation of this subroutine simply called `lo_send`
+and its relatives to send each output endpoint's current value as an OSC
+message. This results in a large number of calls to the underlying sockets API
+`sendto` function, which was enough to overwhelm the ESP32 socket driver
+buffers. To avoid this, and likely improve performance on all platforms, we
+place our messages into a bundle so that only one socket `sendto` is issued for
+each tick.
+
+First, we only send messages if the output is running, i.e. we have a
+destination IP address and port number. If so, we populate the message with
+data from the endpoint. Once this is done, whatever messages were added
+are sent over the network.
 
 ```cpp
 // @+'tick'
@@ -411,72 +423,86 @@ void external_destinations(Components& components)
 {
     if (outputs.output_running)
     {
+        lo_bundle bundle = lo_bundle_new(LO_TT_IMMEDIATE);
         for_each_output(components, [&]<typename T>(T& output)
         {
-            @{send output messages}
+            @{populate output messages}
         });
+        int ret = lo_send_bundle(dst, bundle);
+        if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
+                            , lo_address_errno(dst)
+                            , lo_address_errstr(dst)
+                            );
+        lo_bundle_free_recursive(bundle);
     }
 }
 // @/
 ```
 
 The way in which an output endpoint should be converted to OSC depends on its
-type. Bangs are sent with no argument; the event of sending message itself is
-the important thing.
+type. Bangs and occasional values only need to be sent when they have been
+updated. We check these types of endpoints for readiness before allocating a
+message. Notice that the return statements here function as a way to break out
+of the loop over output endpoints; they don't short circuit the overall
+`external_destinations` subroutine.
 
 ```cpp
-// @='send output messages'
-if constexpr (Bang<T>)
+// @+'populate output messages'
+if constexpr (OccasionalValue<T> || Bang<T>)
 {
-    if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
+    if (not bool(output))
+        return;
+}
+
+lo_message message = lo_message_new();
+if (!message)
+{
+    perror("liblo: unable to malloc new message. perror reports: \n");
     return;
 }
 // @/
 ```
 
-Single valued endpoints are sent relatively simply; we just stuff the value
-of the endpoint into `lo_send`. `OccasionalValue` endpoints are only sent
-when updated; everything else gets sent every time.
+For endpoints with values, the message needs to be populated by calling
+`lo_message_add`. We currently get the type tag string for one element in this
+process. Future work should move this to `osc_string_constants.hpp`. Single
+valued endpoints are sent relatively simply; we just stuff the value of the
+endpoint into `lo_message_add`. Array's are similar, requiring us to iterate
+over the array.
 
 ```cpp
-// @+'send output messages'
-else if constexpr (has_value<T>)
+// @+'populate output messages'
+if constexpr (has_value<T> && not Bang<T>)
 {
-    if constexpr (OccasionalValue<T>)
-    {
-        if (not bool(output)) return;
-    }
+    int ret = 0;
+    // TODO: this type tag string logic should be moved to osc_string_constants.lili.md
+    constexpr auto type = std::integral<element_t<T>> ? "i"
+                        : std::floating_point<element_t<T>> ? "f"
+                        : string_like<element_t<T>> ? "s" : "" ;
     // TODO: we should have a more generic way to get a char * from a string_like value
     if constexpr (string_like<value_t<T>>)
-        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+        ret = lo_message_add_string(message, value_of(output).c_str());
     else if constexpr (array_like<value_t<T>>)
     {
-        @{send array}
+        for (auto& element : value_of(output))
+        {
+            ret = lo_message_add(message, type, element);
+            if (ret < 0) break;
+        }
     }
-    else
-        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
-    return;
+    else ret = lo_message_add(message, type, value_of(output));
+
+    if (ret < 0)
+    {
+        lo_message_free(message);
+        return;
+    }
 }
-// @/
-```
 
-To send an array, we have to iterate over the data adding one message at a time
-to the `lo_message` we are building. We currently get the type tag string for
-one element in this process.
-
-```cpp
-// @+'send array'
-lo_message msg = lo_message_new();
-
-// TODO: this type tag string logic should be moved to osc_string_constants.lili.md
-constexpr auto type = std::integral<element_t<T>> ? "i"
-                    : std::floating_point<element_t<T>> ? "f"
-                    : string_like<element_t<T>> ? "s" : "" ;
-
-for (auto& element : value_of(output)) lo_message_add(msg, type, element);
-lo_send_message(dst, osc_path_v<T, Components>, msg);
-
-lo_message_free(msg);
+int ret = lo_bundle_add_message(bundle, osc_path_v<T, Components>, message);
+if (ret < 0) fprintf(stderr, "liblo: unable to add message to bundle.\n");
+//lo_message_free(message); // bundle makes its own ref to message on success, so we need to free ours regardless
+return;
 // @/
 ```
 

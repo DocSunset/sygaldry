@@ -255,41 +255,59 @@ struct LibloOsc
     {
         if (outputs.output_running)
         {
+            lo_bundle bundle = lo_bundle_new(LO_TT_IMMEDIATE);
             for_each_output(components, [&]<typename T>(T& output)
             {
-                if constexpr (Bang<T>)
+                if constexpr (OccasionalValue<T> || Bang<T>)
                 {
-                    if (value_of(output)) lo_send(dst, osc_path_v<T, Components>, NULL);
+                    if (not bool(output))
+                        return;
+                }
+
+                lo_message message = lo_message_new();
+                if (!message)
+                {
+                    perror("liblo: unable to malloc new message. perror reports: \n");
                     return;
                 }
-                else if constexpr (has_value<T>)
+                if constexpr (has_value<T> && not Bang<T>)
                 {
-                    if constexpr (OccasionalValue<T>)
-                    {
-                        if (not bool(output)) return;
-                    }
+                    int ret = 0;
+                    // TODO: this type tag string logic should be moved to osc_string_constants.lili.md
+                    constexpr auto type = std::integral<element_t<T>> ? "i"
+                                        : std::floating_point<element_t<T>> ? "f"
+                                        : string_like<element_t<T>> ? "s" : "" ;
                     // TODO: we should have a more generic way to get a char * from a string_like value
                     if constexpr (string_like<value_t<T>>)
-                        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output).c_str());
+                        ret = lo_message_add_string(message, value_of(output).c_str());
                     else if constexpr (array_like<value_t<T>>)
                     {
-                        lo_message msg = lo_message_new();
-
-                        // TODO: this type tag string logic should be moved to osc_string_constants.lili.md
-                        constexpr auto type = std::integral<element_t<T>> ? "i"
-                                            : std::floating_point<element_t<T>> ? "f"
-                                            : string_like<element_t<T>> ? "s" : "" ;
-
-                        for (auto& element : value_of(output)) lo_message_add(msg, type, element);
-                        lo_send_message(dst, osc_path_v<T, Components>, msg);
-
-                        lo_message_free(msg);
+                        for (auto& element : value_of(output))
+                        {
+                            ret = lo_message_add(message, type, element);
+                            if (ret < 0) break;
+                        }
                     }
-                    else
-                        lo_send(dst, osc_path_v<T, Components>, osc_type_string_v<T>+1, value_of(output));
-                    return;
+                    else ret = lo_message_add(message, type, value_of(output));
+
+                    if (ret < 0)
+                    {
+                        lo_message_free(message);
+                        return;
+                    }
                 }
+
+                int ret = lo_bundle_add_message(bundle, osc_path_v<T, Components>, message);
+                if (ret < 0) fprintf(stderr, "liblo: unable to add message to bundle.\n");
+                //lo_message_free(message); // bundle makes its own ref to message on success, so we need to free ours regardless
+                return;
             });
+            int ret = lo_send_bundle(dst, bundle);
+            if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
+                                , lo_address_errno(dst)
+                                , lo_address_errstr(dst)
+                                );
+            lo_bundle_free_recursive(bundle);
         }
     }
 };
