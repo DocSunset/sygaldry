@@ -253,18 +253,18 @@ struct WiFi
              outputs.ap_running = 1;
              outputs.wifi_connected = 0;
          }
-         ESP_ERROR_CHECK(esp_event_handler_instance_unregister( IP_EVENT
-                                                              , IP_EVENT_STA_GOT_IP
-                                                              , instance_got_ip
-                                                              )
-                        );
-         ESP_ERROR_CHECK(esp_event_handler_instance_unregister( WIFI_EVENT
-                                                              , ESP_EVENT_ANY_ID
-                                                              , instance_any_id
-                                                              )
-                        );
-         vEventGroupDelete(handler_state.event_group);
-         log.println("Cleaned up event handler.");
+         //ESP_ERROR_CHECK(esp_event_handler_instance_unregister( IP_EVENT
+         //                                                     , IP_EVENT_STA_GOT_IP
+         //                                                     , instance_got_ip
+         //                                                     )
+         //               );
+         //ESP_ERROR_CHECK(esp_event_handler_instance_unregister( WIFI_EVENT
+         //                                                     , ESP_EVENT_ANY_ID
+         //                                                     , instance_any_id
+         //                                                     )
+         //               );
+         //vEventGroupDelete(handler_state.event_group);
+         //log.println("Cleaned up event handler.");
          // TODO: clean up or hide this ugly mess that converts mac and ip addresses to nicely formatted strings
          char mac_string[18] = {0};
          unsigned char mac[6] = {0};
@@ -296,7 +296,7 @@ struct WiFi
 
          char ip_string[16];
          esp_netif_ip_info_t ip_info;
-         esp_netif_get_ip_info(ap_netif, &ip_info);
+         esp_netif_get_ip_info(sta_netif, &ip_info);
          ptr = ip_string;
          auto [a,b] = std::to_chars(ptr, ptr+3, esp_ip4_addr1_16(&ip_info.ip), 10);
          ptr = a;
