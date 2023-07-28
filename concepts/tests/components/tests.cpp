@@ -104,9 +104,9 @@ static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(re
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
 
-static_assert(std::same_as<regular_component_t::inputs_t, type_of_inputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::outputs_t, type_of_outputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::parts_t, type_of_parts_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::inputs_t, inputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::outputs_t, outputs_t<regular_component_t>>);
+static_assert(std::same_as<regular_component_t::parts_t, parts_t<regular_component_t>>);
 struct almost_container
 {
     float nope;

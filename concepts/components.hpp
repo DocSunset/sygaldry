@@ -81,7 +81,7 @@ template<has_##NAME T> struct type_of_##NAME\
     using type = decltype(std::declval<T>().NAME);\
 };\
 \
-template<typename T> using type_of_##NAME##_t = typename type_of_##NAME<T>::type;\
+template<typename T> using NAME##_t = typename type_of_##NAME<T>::type;\
 \
 template<typename T> requires has_##NAME<T> constexpr auto& NAME##_of(T& t) { return t.NAME; }\
 template<typename T> requires has_##NAME<T> constexpr const auto& NAME##_of(const T& t) { return t.NAME; }\
@@ -114,7 +114,7 @@ struct validate_general_component<T> : std::true_type {};
 
 template<typename T>
     requires ComponentBasics<T> && (has_parts<T>)
-struct validate_general_component<T> : validate_general_component<type_of_parts_t<T>> {};
+struct validate_general_component<T> : validate_general_component<parts_t<T>> {};
 
 template<typename T>
     requires std::is_scalar_v<T>
@@ -243,7 +243,7 @@ constexpr auto component_to_tree(T& component)
             {
                 auto& container = parts_of(component);
                 auto subcomponents = boost::pfr::structure_tie(container);
-                auto head = std::make_tuple(tagged<node::parts_container, type_of_parts_t<T>>{container});
+                auto head = std::make_tuple(tagged<node::parts_container, parts_t<T>>{container});
                 auto tail = tuple_transform([](auto& subcomponent)
                 {
                     auto subtree = component_to_tree(subcomponent);

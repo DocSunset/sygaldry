@@ -453,14 +453,46 @@ struct array
     using persistent<std::array<T, N>>::operator=;
     constexpr auto& operator[](std::size_t i) noexcept
     {
-        return persistent<std::array<T,N>>::value[i];
+        return persistent<std::array<T, N>>::value[i];
     }
     static _consteval auto size() noexcept
     {
         return N;
     }
 };
+
+template< string_literal name_str
+        , std::size_t N
+        , string_literal desc = ""
+        , arithmetic T = float
+        , num_literal<T> min = 0.0f
+        , num_literal<T> max = 1.0f
+        , num_literal<T> init = min
+        , typename ... Tags
+        >
+struct array_message
+: occasional<std::array<T, N>>
+, name_<name_str>
+, description_<desc>
+, range_<min, max, init>
+, tagged_<Tags...>
+{
+    using occasional<std::array<T, N>>::operator=;
+    constexpr auto& operator[](std::size_t i) noexcept
+    {
+        return occasional<std::array<T,N>>::state[i];
+    }
+    static _consteval auto size() noexcept
+    {
+        return N;
+    }
+    void set_updated() noexcept
+    {
+        occasional<std::array<T,N>>::updated = true;
+    }
+};
 // @/
+```
 
 As all of the functionality of these endpoints has been tested above where the
 base classes were defined, we take the opportunity to make sure that our helper
@@ -468,6 +500,7 @@ endpoints adhere to the expected concepts defined elsewhere rather than
 redundantly testing their functionality. We also check that our helper
 endpoints have the expected sizes, equivalent to their value types.
 
+```cpp
 // @+'tests'
 TEST_CASE("Basic Endpoints", "[endpoints][basic]")
 {
@@ -573,6 +606,14 @@ TEST_CASE("Bang", "[endpoints][bang]")
 ```cpp
 // @#'endpoints.hpp'
 #pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <string_view>
 #include <string>
@@ -590,6 +631,14 @@ namespace sygaldry {
 // @/
 
 // @#'tests/endpoints/tests.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>

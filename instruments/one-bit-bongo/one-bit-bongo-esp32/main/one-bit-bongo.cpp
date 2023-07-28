@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <Trill.h>
+#include <ICM_20948.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
 #include <components/esp32/i2c.hpp>

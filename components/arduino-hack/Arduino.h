@@ -10,6 +10,20 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 
 #include <cstdint>
 
+static constexpr uint8_t HIGH = 1;
+static constexpr uint8_t LOW  = 0;
+static constexpr uint8_t INPUT = 0x0;
+static constexpr uint8_t OUTPUT = 0x1;
+static constexpr uint8_t INPUT_PULLUP = 0x2;
+
 typedef bool boolean;
 
+void pinMode(uint8_t pin, uint8_t mode);
+void digitalWrite(uint8_t pin, uint8_t val);
+//int digitalRead(uint8_t pin);
+//int analogRead(uint8_t pin);
+
+//unsigned long millis(void);
+//unsigned long micros(void);
 void delay(unsigned long ms);
+//void delayMicroseconds(unsigned int us);

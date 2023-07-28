@@ -1,4 +1,5 @@
 add_subdirectory("tests/functions")
 add_subdirectory("tests/endpoints")
 add_subdirectory("tests/components")
+add_subdirectory("tests/mimu")
 add_subdirectory("tests/runtime")
