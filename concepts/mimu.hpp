@@ -13,8 +13,13 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-#define try_spelling(SPELLING) if constexpr (requires {mimu_data.SPELLING;}) return mimu_data.SPELLING
+#define try_spelling(SPELLING)\
+if constexpr (requires {mimu_data.SPELLING;}) return mimu_data.SPELLING; /* member acces */ \
+else if constexpr (requires {mimu_data.SPELLING();}) return mimu_data.SPELLING(); /* member function */ \
+else if constexpr (requires {mimu_data->SPELLING;}) return mimu_data->SPELLING; /* member through pointer */ \
+else if constexpr (requires {mimu_data->SPELLING();}) return mimu_data->SPELLING() /* member function through pointer */
 
+/// Access the accelerometer data of a presumed MIMU data structure
 auto& accl_of(auto& mimu_data)
 {
     try_spelling(accelerometer);
@@ -23,18 +28,20 @@ auto& accl_of(auto& mimu_data)
     else try_spelling(accl);
     else try_spelling(acc);
     else try_spelling(a);
-    else return;
+    else return; // mimu_data is not MIMU data!
 }
 
+/// Access the gyroscope data of a presumed MIMU data structure
 auto& gyro_of(auto& mimu_data)
 {
     try_spelling(gyroscope);
     else try_spelling(angular_rate);
     else try_spelling(gyro);
     else try_spelling(g);
-    else return;
+    else return; // mimu_data is not MIMU data!
 }
 
+/// Access the magnetometer data of a presumed MIMU data structure
 auto& magn_of(auto& mimu_data)
 {
     try_spelling(magnetometer);
@@ -42,29 +49,102 @@ auto& magn_of(auto& mimu_data)
     else try_spelling(magn);
     else try_spelling(mag);
     else try_spelling(m);
-    else return;
+    else return; // mimu_data is not MIMU data!
+}
+
+/// Access the first vector component of a presumed MIMU data vector
+auto& vecx_of(auto& mimu_data)
+{
+    try_spelling(x);
+    else if constexpr (requires {mimu_data[0];}) return mimu_data[0];
+    else return; // mimu_data is not MIMU data!
+}
+
+/// Access the second vector component of a presumed MIMU data vector
+auto& vecy_of(auto& mimu_data)
+{
+    try_spelling(y);
+    else if constexpr (requires {mimu_data[1];}) return mimu_data[1];
+    else return; // mimu_data is not MIMU data!
+}
+
+/// Access the third vector component of a presumed MIMU data vector
+auto& vecz_of(auto& mimu_data)
+{
+    try_spelling(z);
+    else if constexpr (requires {mimu_data[2];}) return mimu_data[2];
+    else return; // mimu_data is not MIMU data!
 }
 
 #undef try_spelling
-
-template<typename T> using accl_t = std::remove_cvref_t<decltype(accl_of(std::declval<std::remove_cvref_t<T>&>()))>;
-template<typename T> using gyro_t = std::remove_cvref_t<decltype(gyro_of(std::declval<std::remove_cvref_t<T>&>()))>;
-template<typename T> using magn_t = std::remove_cvref_t<decltype(magn_of(std::declval<std::remove_cvref_t<T>&>()))>;
-
+template<typename T> using accl_t
+    = std::remove_cvref_t<decltype(accl_of(std::declval<std::remove_cvref_t<T>&>()))>;
+template<typename T> using gyro_t
+    = std::remove_cvref_t<decltype(gyro_of(std::declval<std::remove_cvref_t<T>&>()))>;
+template<typename T> using magn_t
+    = std::remove_cvref_t<decltype(magn_of(std::declval<std::remove_cvref_t<T>&>()))>;
+template<typename T> using vecx_t
+    = std::remove_cvref_t<decltype(vecx_of(std::declval<std::remove_cvref_t<T>&>()))>;
+template<typename T> using vecy_t
+    = std::remove_cvref_t<decltype(vecy_of(std::declval<std::remove_cvref_t<T>&>()))>;
+template<typename T> using vecz_t
+    = std::remove_cvref_t<decltype(vecz_of(std::declval<std::remove_cvref_t<T>&>()))>;
 template<typename T> concept not_void = not std::same_as<void, T>;
+template<typename T> concept vec3_like
+    =  not_void<vecx_t<T>>
+    && not_void<vecy_t<T>>
+    && not_void<vecz_t<T>>
+    && std::same_as<vecx_t<T>, vecy_t<T>>
+    && std::same_as<vecy_t<T>, vecz_t<T>>
+    ;
+/// Check that the type T has accelerometer vector data at one of the expected interfaces
+template<typename T> concept has_accl = not_void<accl_t<T>> && vec3_like<accl_t<T>>;
 
-template<typename T> concept has_accl = not_void<accl_t<T>>;
-template<typename T> concept has_gyro = not_void<gyro_t<T>>;
-template<typename T> concept has_magn = not_void<magn_t<T>>;
+/// Check that the type T has gyroscope vector data at one of the expected interfaces
+template<typename T> concept has_gyro = not_void<gyro_t<T>> && vec3_like<gyro_t<T>>;
 
+/// Check that the type T has magnetometer vector data at one of the expected interfaces
+template<typename T> concept has_magn = not_void<magn_t<T>> && vec3_like<magn_t<T>>;
+
+/// Check that the type T has accelerometer, gyroscope, and magnetometer data at one of the expected interfaces
 template<typename T>
-concept Mimu = has_accl<T> && has_gyro<T> && has_magn<T>;
+concept MimuDataStruct = has_accl<T> && has_gyro<T> && has_magn<T>;
+
+/// Check that the type T has an `outputs` struct that is a MIMU data structure
 template<typename T>
 concept MimuComponent
-    =  Mimu<outputs_t<T>>
+    =  MimuDataStruct<outputs_t<T>>
     && ClearableFlag<accl_t<outputs_t<T>>>
     && ClearableFlag<gyro_t<outputs_t<T>>>
     && ClearableFlag<magn_t<outputs_t<T>>>
     ;
+
+/// Access the accelerometer data of a MIMU component
+auto& accl_of(MimuComponent auto& mimu) { return accl_of(mimu.outputs); }
+/// Access the gyroscope data of a MIMU component
+auto& gyro_of(MimuComponent auto& mimu) { return gyro_of(mimu.outputs); }
+/// Access the magnetometer data of a MIMU component
+auto& magn_of(MimuComponent auto& mimu) { return magn_of(mimu.outputs); }
+
+/// Access the first vector component of the accelerometer data of a MIMU data structure or MIMU component
+auto accl_x(auto& mimu) { return vecx_of(accl_of(mimu)); }
+/// Access the second vector component of the accelerometer data of a MIMU data structure or MIMU component
+auto accl_y(auto& mimu) { return vecy_of(accl_of(mimu)); }
+/// Access the third vector component of the accelerometer data of a MIMU data structure or MIMU component
+auto accl_z(auto& mimu) { return vecz_of(accl_of(mimu)); }
+
+/// Access the first vector component of the gyroscope data of a MIMU data structure or MIMU component
+auto gyro_x(auto& mimu) { return vecx_of(gyro_of(mimu)); }
+/// Access the second vector component of the gyroscope data of a MIMU data structure or MIMU component
+auto gyro_y(auto& mimu) { return vecy_of(gyro_of(mimu)); }
+/// Access the third vector component of the gyroscope data of a MIMU data structure or MIMU component
+auto gyro_z(auto& mimu) { return vecz_of(gyro_of(mimu)); }
+
+/// Access the first vector component of the magnetometer data of a MIMU data structure or MIMU component
+auto magn_x(auto& mimu) { return vecx_of(magn_of(mimu)); }
+/// Access the second vector component of the magnetometer data of a MIMU data structure or MIMU component
+auto magn_y(auto& mimu) { return vecy_of(magn_of(mimu)); }
+/// Access the third vector component of the magnetometer data of a MIMU data structure or MIMU component
+auto magn_z(auto& mimu) { return vecz_of(magn_of(mimu)); }
 
 }
