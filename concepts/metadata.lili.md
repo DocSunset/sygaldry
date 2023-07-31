@@ -1,4 +1,4 @@
-# Metadata Concepts
+\page concepts_metadata Metadata Concepts
 
 [TOC]
 

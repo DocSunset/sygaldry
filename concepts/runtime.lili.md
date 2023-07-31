@@ -1,4 +1,13 @@
-# Runtime
+\page concepts_runtime Runtime
+
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
+[TOC]
 
 The runtime describes the expected behavior of the host platform of an
 assemblage of components. The runtime must first call every component's `init`
@@ -9,15 +18,6 @@ the clearable flag endpoints should be cleared appropriately: input flags
 should be cleared before beginning the tick, and output flags should be cleared
 after it has resolved. Plugins and throughpoints should be automatically
 propagated to components that need them by extracting them from the assemblage.
-
-[TOC]
-
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
-
-SPDX-License-Identifier: MIT
 
 # Design Rationale
 

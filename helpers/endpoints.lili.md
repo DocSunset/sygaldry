@@ -1,4 +1,4 @@
-# Endpoint Helpers
+\page helpers_endpoints Endpoint Helpers
 
 This document is concerned with providing a convenient means for definine
 endpoints that adhere to certain concepts. The concepts themselves, along with

@@ -1,4 +1,4 @@
-# OSC String Constants
+\page bind_osc_string_constants OSC String Constants
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

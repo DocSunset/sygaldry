@@ -77,19 +77,28 @@ auto& vecz_of(auto& mimu_data)
 }
 
 #undef try_spelling
+/// Access the type of the accelerometer data of a presumed MIMU data structure
 template<typename T> using accl_t
     = std::remove_cvref_t<decltype(accl_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Access the type of the gyroscope data of a presumed MIMU data structure
 template<typename T> using gyro_t
     = std::remove_cvref_t<decltype(gyro_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Access the type of the magnetometer data of a presumed MIMU data structure
 template<typename T> using magn_t
     = std::remove_cvref_t<decltype(magn_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Access the type of the x component of a presumed MIMU data vector
 template<typename T> using vecx_t
     = std::remove_cvref_t<decltype(vecx_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Access the type of the y component of a presumed MIMU data vector
 template<typename T> using vecy_t
     = std::remove_cvref_t<decltype(vecy_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Access the type of the z component of a presumed MIMU data vector
 template<typename T> using vecz_t
     = std::remove_cvref_t<decltype(vecz_of(std::declval<std::remove_cvref_t<T>&>()))>;
+/// Check that type `T` is not `void`. Used in the definition of `MimuDataStruct`.
 template<typename T> concept not_void = not std::same_as<void, T>;
+
+/// Check that type `T` seems to be a MIMU data vector. Used in the definition of `MimuDataStruct`.
 template<typename T> concept vec3_like
     =  not_void<vecx_t<T>>
     && not_void<vecy_t<T>>
@@ -97,20 +106,20 @@ template<typename T> concept vec3_like
     && std::same_as<vecx_t<T>, vecy_t<T>>
     && std::same_as<vecy_t<T>, vecz_t<T>>
     ;
-/// Check that the type T has accelerometer vector data at one of the expected interfaces
+/// Check that the type `T` has accelerometer vector data at one of the expected interfaces
 template<typename T> concept has_accl = not_void<accl_t<T>> && vec3_like<accl_t<T>>;
 
-/// Check that the type T has gyroscope vector data at one of the expected interfaces
+/// Check that the type `T` has gyroscope vector data at one of the expected interfaces
 template<typename T> concept has_gyro = not_void<gyro_t<T>> && vec3_like<gyro_t<T>>;
 
-/// Check that the type T has magnetometer vector data at one of the expected interfaces
+/// Check that the type `T` has magnetometer vector data at one of the expected interfaces
 template<typename T> concept has_magn = not_void<magn_t<T>> && vec3_like<magn_t<T>>;
 
-/// Check that the type T has accelerometer, gyroscope, and magnetometer data at one of the expected interfaces
+/// Check that the type `T` has accelerometer, gyroscope, and magnetometer data at one of the expected interfaces
 template<typename T>
 concept MimuDataStruct = has_accl<T> && has_gyro<T> && has_magn<T>;
 
-/// Check that the type T has an `outputs` struct that is a MIMU data structure
+/// Check that the type T has an `outputs` struct that is a MIMU data structure whose vectors satisfy the constraints of `ClearableFlag`
 template<typename T>
 concept MimuComponent
     =  MimuDataStruct<outputs_t<T>>

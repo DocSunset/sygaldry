@@ -1,4 +1,4 @@
-# ESP32 SPIFFS Session Storage Component
+\page bind_spiffs ESP32 SPIFFS Session Storage Component
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

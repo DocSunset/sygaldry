@@ -1,4 +1,4 @@
-# ESP32 GPIO
+\page comp_gpio_esp32 ESP32 GPIO
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

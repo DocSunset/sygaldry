@@ -1,4 +1,4 @@
-# WiFi
+\page bind_wifi WiFi
 
 Originally adapted from Puara Module Manager, itself adapted from the esp-idf
 wifi station and access point examples

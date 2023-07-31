@@ -1,4 +1,4 @@
-# T-Stick
+\page inst_t_stick T-Stick
 
 ```cpp
 //@#'t_stick.cpp'

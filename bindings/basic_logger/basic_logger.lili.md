@@ -1,4 +1,4 @@
-# Basic Logger
+\page bind_basic_logger Basic Logger
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

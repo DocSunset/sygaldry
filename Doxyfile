@@ -944,117 +944,19 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ./README.md\
-                         ./concepts/README.md\
-                         ./concepts/metadata.lili.md\
-                         ./concepts/endpoints.lili.md\
-                         ./concepts/components.lili.md\
-                         ./concepts/runtime.lili.md\
-                         ./helpers/metadata.lili.md\
-                         ./helpers/endpoints.lili.md\
-                         #./components/README.md\
-                         #./components/sensors/README.md\
-                         ./components/sensors/button.lili.md\
-                         ./components/sensors/gpio.lili.md\
-                         #./components/esp32/README.md\
-                         ./components/esp32/button.lili.md\
-                         ./components/esp32/gpio.lili.md\
-                         #./bindings/README.md\
-                         ./bindings/liblo.lili.md\
-                         ./bindings/cli/cli.lili.md\
-                         ./bindings/spelling.lili.md\
-                         ./bindings/name_dispatch.lili.md\
-                         ./bindings/esp32/wifi.lili.md\
-                         ./bindings/basic_logger/basic_logger.lili.md\
-                         ./bindings/basic_reader/basic_reader.lili.md\
-                         ./bindings/output_logger.lili.md\
-                         ./instruments/t_stick/t_stick.lili.md\
-                         ./instruments/one-bit-bongo/one-bit-bongo-esp32/one-bit-bongo-esp32.lili.md\
-                         .
-
-# This tag can be used to specify the character encoding of the source files
-# that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
-# libiconv (or the iconv built into libc) for the transcoding. See the libiconv
-# documentation (see:
-# https://www.gnu.org/software/libiconv/) for the list of possible encodings.
-# See also: INPUT_FILE_ENCODING
-# The default value is: UTF-8.
+                         ./docs/design_concepts.md\
+                         ./docs/user_reference.md\
+                         ./docs/implementation.md\
+                         ./helpers\
+                         ./components\
+                         ./concepts\
+                         ./bindings\
+                         .\
 
 INPUT_ENCODING         = UTF-8
 
-# This tag can be used to specify the character encoding of the source files
-# that doxygen parses The INPUT_FILE_ENCODING tag can be used to specify
-# character encoding on a per file pattern basis. Doxygen will compare the file
-# name with each pattern and apply the encoding instead of the default
-# INPUT_ENCODING) if there is a match. The character encodings are a list of the
-# form: pattern=encoding (like *.php=ISO-8859-1). See cfg_input_encoding
-# "INPUT_ENCODING" for further information on supported encodings.
-
-INPUT_FILE_ENCODING    =
-
-# If the value of the INPUT tag contains directories, you can use the
-# FILE_PATTERNS tag to specify one or more wildcard patterns (like *.cpp and
-# *.h) to filter out the source-files in the directories.
-#
-# Note that for custom extensions or not directly supported extensions you also
-# need to set EXTENSION_MAPPING for the extension otherwise the files are not
-# read by doxygen.
-#
-# Note the list of default checked file patterns might differ from the list of
-# default file extension mappings.
-#
-# If left blank the following patterns are tested:*.c, *.cc, *.cxx, *.cpp,
-# *.c++, *.java, *.ii, *.ixx, *.ipp, *.i++, *.inl, *.idl, *.ddl, *.odl, *.h,
-# *.hh, *.hxx, *.hpp, *.h++, *.l, *.cs, *.d, *.php, *.php4, *.php5, *.phtml,
-# *.inc, *.m, *.markdown, *.md, *.mm, *.dox (to be provided as doxygen C
-# comment), *.py, *.pyw, *.f90, *.f95, *.f03, *.f08, *.f18, *.f, *.for, *.vhd,
-# *.vhdl, *.ucf, *.qsf and *.ice.
-
-FILE_PATTERNS          = *.c \
-                         *.cc \
-                         *.cxx \
-                         *.cpp \
-                         *.c++ \
-                         *.java \
-                         *.ii \
-                         *.ixx \
-                         *.ipp \
-                         *.i++ \
-                         *.inl \
-                         *.idl \
-                         *.ddl \
-                         *.odl \
-                         *.h \
-                         *.hh \
-                         *.hxx \
-                         *.hpp \
-                         *.h++ \
-                         *.l \
-                         *.cs \
-                         *.d \
-                         *.php \
-                         *.php4 \
-                         *.php5 \
-                         *.phtml \
-                         *.inc \
-                         *.m \
-                         *.markdown \
-                         *.md \
-                         *.mm \
-                         *.dox \
-                         *.py \
-                         *.pyw \
-                         *.f90 \
-                         *.f95 \
-                         *.f03 \
-                         *.f08 \
-                         *.f18 \
-                         *.f \
-                         *.for \
-                         *.vhd \
-                         *.vhdl \
-                         *.ucf \
-                         *.qsf \
-                         *.ice
+FILE_PATTERNS          = *.hpp \
+                         *.md
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.

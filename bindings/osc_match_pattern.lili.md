@@ -1,4 +1,4 @@
-# OSC Address Pattern Matching
+\page bind_osc_match_pattern OSC Address Pattern Matching
 
 An OSC address (of an OSC Methd) is a null terminated string beginning with a
 `/` and consisting of `/` seperated ASCII-encoded parts, similar to a URL, that

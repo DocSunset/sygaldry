@@ -1,4 +1,4 @@
-# RapidJSON ESP32 Component
+\page bind_rapidjson RapidJSON ESP-IDF Component
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

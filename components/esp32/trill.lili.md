@@ -1,4 +1,4 @@
-# Trill on ESP32
+\page comp_trill_esp32 Trill on ESP32
 
 Only a very simple IDF component is required to make the `Trill-Arduino` library
 available for ESP32 builds.
