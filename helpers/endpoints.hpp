@@ -32,7 +32,7 @@ helpers are implemented.
 */
 /// \{
 /// \brief A wrapper around a numeric literal that enables using floats as template parameters.
-template<typename T> requires std::integral<T> || std::floating_point<T>;
+template<typename T> requires std::integral<T> || std::floating_point<T>
 struct num_literal
 {
     /// The underlying numeric type
@@ -305,7 +305,7 @@ struct text_message
 */
 template< string_literal name_str
         , string_literal desc = ""
-        , arithmetic T = float
+        , typename T = float
         , num_literal<T> min = 0.0f
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min
@@ -335,7 +335,7 @@ struct slider
 template< string_literal name_str
         , std::size_t N
         , string_literal desc = ""
-        , arithmetic T = float
+        , typename T = float
         , num_literal<T> min = 0.0f
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min
@@ -373,7 +373,7 @@ struct array
 template< string_literal name_str
         , std::size_t N
         , string_literal desc = ""
-        , arithmetic T = float
+        , typename T = float
         , num_literal<T> min = 0.0f
         , num_literal<T> max = 1.0f
         , num_literal<T> init = min

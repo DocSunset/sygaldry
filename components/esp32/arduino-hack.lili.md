@@ -45,6 +45,14 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+void pinMode(uint8_t pin, uint8_t mode)
+{
+}
+
+void digitalWrite(uint8_t pin, uint8_t val)
+{
+}
+
 void delay(unsigned long ms)
 {
 	vTaskDelay(pdMS_TO_TICKS(ms));
@@ -92,7 +100,8 @@ TwoWire::TwoWire()
 void TwoWire::begin()
 {
 	// there's no way without arduino to know what pins to use...
-	// so the user should really call begin() manually before calling Trill::begin()...
+    // so the user should really call begin() manually before calling
+    // Trill::begin() or anything else that calls Wire::begin()...
 }
 
 void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
@@ -138,6 +147,11 @@ void TwoWire::write(uint8_t b)
 	_tx_buffer[_tx_idx++] = b;
 }
 
+void TwoWire::write(uint8_t * buffer, uint8_t length)
+{
+    for (std::size_t i = 0; i < length; ++i) write(buffer[i]);
+}
+
 void TwoWire::endTransmission()
 {
 	esp_err_t err = i2c_master_write_to_device(_port, _tx_address, _tx_buffer, _tx_idx, _timeout);
@@ -158,6 +172,11 @@ void TwoWire::endTransmission()
 			printf("TwoWire::endTransmission: i2c bus timeout\n");
 			return;
 	}
+}
+
+void TwoWire::endTransmission(bool sendStop)
+{
+    endTransmission(); // TODO: handle sendStop = false appropriately; need to refactor to use esp-idf command list
 }
 
 uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)

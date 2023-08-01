@@ -11,6 +11,14 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+void pinMode(uint8_t pin, uint8_t mode)
+{
+}
+
+void digitalWrite(uint8_t pin, uint8_t val)
+{
+}
+
 void delay(unsigned long ms)
 {
 	vTaskDelay(pdMS_TO_TICKS(ms));

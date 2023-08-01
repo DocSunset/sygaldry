@@ -11,11 +11,11 @@ SPDX-License-Identifier: MIT
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <ICM_20948.h>
 #include <concepts/runtime.hpp>
 #include <components/esp32/button.hpp>
 #include <components/esp32/i2c.hpp>
 #include <components/trill_craft.hpp>
+#include <components/icm20948.hpp>
 #include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
@@ -31,7 +31,8 @@ struct OneBitBongo
         components::esp32::I2C<21,22/*,1000000*/> i2c;
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
-            components::TrillCraft trill;
+            components::TrillCraft touch;
+            components::ICM20948 mimu;
         } sensors;
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         bindings::LibloOsc<Sensors> osc;
