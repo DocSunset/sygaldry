@@ -207,6 +207,8 @@ as second argument to the script:
 
 # SPDX-License-Identifier: MIT
 
+./sh/lili.sh || exit 1
+
 sygaldry_root="$(pwd)"
 cd "$1"
 idf.py "$2" -D SYGALDRY_ROOT="$sygaldry_root"

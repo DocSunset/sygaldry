@@ -103,8 +103,7 @@ public:
 	void beginTransmission(uint8_t address);
 	void write(uint8_t byte);
 	void write(uint8_t * buffer, uint8_t length);
-	void endTransmission();
-	void endTransmission(bool sendStop);
+	void endTransmission(bool sendStop = true);
 	uint8_t requestFrom(uint8_t address, uint8_t reg);
 	uint8_t available();
 	uint8_t read();

@@ -32,7 +32,7 @@ struct OneBitBongo
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
             components::TrillCraft touch;
-            components::ICM20948 mimu;
+            //components::ICM20948 mimu;
         } sensors;
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         bindings::LibloOsc<Sensors> osc;
@@ -40,7 +40,7 @@ struct OneBitBongo
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
-    //bindings::CstdioOutputLogger<Instrument> log;
+    bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
 } bongo{};
 
@@ -54,6 +54,6 @@ extern "C" void app_main(void)
     while (true)
     {
         runtime.tick();
-        vTaskDelay(1 / portTICK_PERIOD_MS);
+        vTaskDelay(2 / portTICK_PERIOD_MS);
     }
 }
