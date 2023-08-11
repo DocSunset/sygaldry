@@ -14,6 +14,8 @@ SPDX-License-Identifier: MIT
 #include "helpers/endpoints.hpp"
 #include "helpers/mimu.hpp"
 
+#include <stdio.h>
+
 namespace sygaldry { namespace components {
 
 struct ICM20948
@@ -64,6 +66,7 @@ struct ICM20948
             outputs.running = false;
             return;
         }
+        printf("icm setup successful");
         outputs.running = icm->isConnected();
     }
 

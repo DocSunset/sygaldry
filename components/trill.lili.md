@@ -61,6 +61,7 @@ struct TrillCraft
     static constexpr unsigned int channels = 30;
     struct inputs_t {
         // TODO: set baseline, speed and resolution, noise threshold, prescaler
+        //array<"map", channels, etc.> map;
     } inputs;
 
     struct outputs_t {

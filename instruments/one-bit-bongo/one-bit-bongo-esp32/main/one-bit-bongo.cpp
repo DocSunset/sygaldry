@@ -50,10 +50,10 @@ extern "C" void app_main(void)
 {
     runtime.init();
     // give IDF processes time to finish up init business
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(100));
     while (true)
     {
         runtime.tick();
-        vTaskDelay(2 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }

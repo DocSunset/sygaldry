@@ -50,7 +50,7 @@ struct OneBitBongo
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
             components::TrillCraft touch;
-            components::ICM20948 mimu;
+            //components::ICM20948 mimu;
         } sensors;
         bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
         bindings::LibloOsc<Sensors> osc;
@@ -68,11 +68,11 @@ extern "C" void app_main(void)
 {
     runtime.init();
     // give IDF processes time to finish up init business
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(pdMS_TO_TICKS(100));
     while (true)
     {
         runtime.tick();
-        vTaskDelay(2 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 // @/
