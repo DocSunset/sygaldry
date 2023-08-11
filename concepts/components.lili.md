@@ -1597,7 +1597,7 @@ void activate(T& container)
 # Summary
 
 ```cpp
-// @#'components.hpp'
+// @#'concepts/components.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -1668,6 +1668,8 @@ using std::string;
 # @#'tests/components/CMakeLists.txt'
 add_executable(components-concepts-tests tests.cpp)
 target_link_libraries(components-concepts-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(components-concepts-tests PRIVATE Sygaldry::Concepts)
+target_link_libraries(components-concepts-tests PRIVATE Sygaldry::Helpers)
 catch_discover_tests(components-concepts-tests)
 # @/
 ```

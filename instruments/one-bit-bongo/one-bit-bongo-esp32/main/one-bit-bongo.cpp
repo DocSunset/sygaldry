@@ -34,7 +34,7 @@ struct OneBitBongo
             components::TrillCraft touch;
             //components::ICM20948 mimu;
         } sensors;
-        bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
+        bindings::esp32::WiFi wifi;
         bindings::LibloOsc<Sensors> osc;
     };
 

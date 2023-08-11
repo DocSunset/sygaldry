@@ -354,6 +354,7 @@ TEST_CASE("Passthrough spelling")
 # @#'tests/spelling/CMakeLists.txt'
 add_executable(spelling-tests tests.cpp)
 target_link_libraries(spelling-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(spelling-tests PRIVATE Sygaldry::Bindings)
 catch_discover_tests(spelling-tests)
 # @/
 ```
@@ -373,7 +374,7 @@ become necessary.
 # Summary
 
 ```cpp
-// @#'spelling.hpp'
+// @#'bindings/spelling.hpp'
 #pragma once
 #include <array>
 #include "utilities/consteval.hpp"

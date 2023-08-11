@@ -110,7 +110,7 @@ static_assert(MimuComponent<TestMimu>);
 # Summary
 
 ```cpp
-// @#'mimu.hpp'
+// @#'helpers/mimu.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -156,6 +156,8 @@ using namespace sygaldry;
 # @#'tests/mimu/CMakeLists.txt'
 add_executable(mimu-helper-tests tests.cpp)
 target_link_libraries(mimu-helper-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(mimu-helper-tests PRIVATE Sygaldry::Helpers)
+target_link_libraries(mimu-helper-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(mimu-helper-tests)
 # @/
 ```

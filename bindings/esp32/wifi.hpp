@@ -26,7 +26,6 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace bindings { namespace esp32 {
 
-template<typename Logger>
 struct WiFi
 : name_<"WiFi Manager">
 , author_<"Edu Meneses (2022) and Travis J. West (2023)">
@@ -87,7 +86,7 @@ struct WiFi
     struct handler_state_t {
         EventGroupHandle_t event_group;
         char connection_attempts;
-        Logger* log;
+        CstdioLogger* log;
         static constexpr int connected_bit = BIT0;
         static constexpr int fail_bit = BIT1;
         static constexpr int maximum_connection_attempts = 5;
@@ -120,7 +119,7 @@ struct WiFi
         }
     }
 
-    [[no_unique_address]] Logger log;
+    [[no_unique_address]] CstdioLogger log;
 
     void init()
     {

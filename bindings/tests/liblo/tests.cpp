@@ -11,7 +11,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <catch2/catch_test_macros.hpp>
 #include "concepts/components.hpp"
 #include "helpers/endpoints.hpp"
-#include "components/tests/testcomponent.hpp"
+#include "bindings/testcomponent.hpp"
 #include "bindings/liblo.hpp"
 
 using std::string;

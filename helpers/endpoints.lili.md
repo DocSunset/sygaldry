@@ -763,7 +763,7 @@ TEST_CASE("Bang", "[endpoints][bang]")
 # Summary
 
 ```cpp
-// @#'endpoints.hpp'
+// @#'helpers/endpoints.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -818,9 +818,7 @@ SPDX-License-Identifier: MIT
 
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
-#include <type_traits>
 #include <optional>
-#include <boost/pfr.hpp>
 #include "concepts/metadata.hpp"
 #include "concepts/endpoints.hpp"
 #include "helpers/endpoints.hpp"
@@ -836,6 +834,8 @@ using std::string_view;
 # @#'tests/endpoints/CMakeLists.txt'
 add_executable(endpoints-tests tests.cpp)
 target_link_libraries(endpoints-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(endpoints-tests PRIVATE Sygaldry::Helpers)
+target_link_libraries(endpoints-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(endpoints-tests)
 # @/
 ```

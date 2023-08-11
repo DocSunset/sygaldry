@@ -13,7 +13,7 @@ allowing us to use `consteval` where it is supported, we define a macro that is
 used throughout the repository in place of `consteval` directly.
 
 ```cpp
-// @#'consteval.hpp'
+// @#'utilities/consteval.hpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

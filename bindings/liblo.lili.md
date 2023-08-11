@@ -509,7 +509,7 @@ return;
 # Liblo OSC Binding Summary
 
 ```cpp
-// @#'liblo.hpp'
+// @#'bindings/liblo.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -586,7 +586,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <catch2/catch_test_macros.hpp>
 #include "concepts/components.hpp"
 #include "helpers/endpoints.hpp"
-#include "components/tests/testcomponent.hpp"
+#include "bindings/testcomponent.hpp"
 #include "bindings/liblo.hpp"
 
 using std::string;
@@ -613,6 +613,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBLO REQUIRED liblo)
 add_executable(liblo-tests tests.cpp)
 target_link_libraries(liblo-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(liblo-tests PRIVATE Sygaldry::Bindings)
 target_link_libraries(liblo-tests PRIVATE ${LIBLO_LIBRARIES})
 target_include_directories(liblo-tests PRIVATE ${LIBLO_INCLUDE_DIRS})
 catch_discover_tests(liblo-tests)

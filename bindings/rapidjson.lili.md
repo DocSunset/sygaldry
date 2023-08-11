@@ -396,7 +396,7 @@ TEST_CASE("RapidJSON external_destinations")
 # Summary
 
 ```cpp
-// @#'rapidjson.hpp'
+// @#'bindings/rapidjson.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -468,6 +468,8 @@ using namespace sygaldry::bindings;
 # @#'tests/rapidjson/CMakeLists.txt'
 add_executable(rapidjson-tests tests.cpp)
 target_link_libraries(rapidjson-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(rapidjson-tests PRIVATE Sygaldry::Bindings)
+target_include_directories(rapidjson-tests PRIVATE ${PROJECT_SOURCE_DIR}/dependencies/rapidjson/include)
 catch_discover_tests(rapidjson-tests)
 # @/
 ```

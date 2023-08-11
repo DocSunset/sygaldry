@@ -39,7 +39,7 @@ This is accomplished using the `for_each_endpoint` function provided by
 [the component concepts library](concepts/components.lili.md).
 
 ```cpp
-// @#'session_data.hpp'
+// @#'bindings/session_data.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory

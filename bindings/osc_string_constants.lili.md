@@ -244,7 +244,7 @@ constexpr bool osc_match_pattern(const char * p)
 # Summary
 
 ```cpp
-// @#'osc_string_constants.hpp'
+// @#'bindings/osc_string_constants.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -304,6 +304,7 @@ using namespace sygaldry::bindings;
 # @#'tests/osc_string_constants/CMakeLists.txt'
 add_executable(osc-string-constants-tests tests.cpp)
 target_link_libraries(osc-string-constants-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(osc-string-constants-tests PRIVATE Sygaldry::Bindings)
 catch_discover_tests(osc-string-constants-tests)
 # @/
 ```

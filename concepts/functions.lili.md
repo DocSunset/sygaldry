@@ -270,7 +270,7 @@ static_assert(function_reflectable<&int_main::main>);
 # Summary
 
 ```cpp
-// @#'functions.hpp'
+// @#'concepts/functions.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -324,6 +324,7 @@ using namespace sygaldry;
 # @#'tests/functions/CMakeLists.txt'
 add_executable(functions-concepts-tests tests.cpp)
 target_link_libraries(functions-concepts-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(functions-concepts-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(functions-concepts-tests)
 # @/
 ```

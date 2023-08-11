@@ -27,8 +27,8 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "concepts/components.hpp"
-#include "components/tests/testcomponent.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
+#include "bindings/testcomponent.hpp"
+#include "bindings/test_logger.hpp"
 #include "bindings/output_logger.hpp"
 
 using std::string;
@@ -95,12 +95,13 @@ TEST_CASE("Output Logger", "[bindings][output_logger]")
 # @#'tests/output_logger/CMakeLists.txt'
 add_executable(output-logger-tests tests.cpp)
 target_link_libraries(output-logger-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(output-logger-tests PRIVATE Sygaldry::Bindings)
 catch_discover_tests(output-logger-tests)
 # @/
 ```
 
 ```cpp
-// @#'output_logger.hpp'
+// @#'bindings/output_logger.hpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -116,7 +117,7 @@ SPDX-License-Identifier: MIT
 #include "concepts/components.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/osc_string_constants.hpp"
-#include "bindings/basic_logger/cstdio_logger.hpp"
+#include "bindings/cstdio_logger.hpp"
 
 namespace sygaldry { namespace bindings {
 

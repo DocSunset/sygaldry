@@ -642,7 +642,7 @@ struct Runtime
 # Runtime summary
 
 ```cpp
-// @#'runtime.hpp'
+// @#'concepts/runtime.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -692,6 +692,8 @@ using namespace sygaldry;
 # @#'tests/runtime/CMakeLists.txt'
 add_executable(runtime-tests tests.cpp)
 target_link_libraries(runtime-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(runtime-tests PRIVATE Sygaldry::Concepts)
+target_link_libraries(runtime-tests PRIVATE Sygaldry::Helpers)
 catch_discover_tests(runtime-tests)
 # @/
 ```

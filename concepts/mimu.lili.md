@@ -268,7 +268,7 @@ TEST_CASE("mimu endpoints accessors")
 # Summary
 
 ```cpp
-// @#'mimu.hpp'
+// @#'concepts/mimu.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -317,6 +317,8 @@ using namespace sygaldry;
 # @#'tests/mimu/CMakeLists.txt'
 add_executable(mimu-concepts-tests tests.cpp)
 target_link_libraries(mimu-concepts-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(mimu-concepts-tests PRIVATE Sygaldry::Concepts)
+target_link_libraries(mimu-concepts-tests PRIVATE Sygaldry::Helpers)
 catch_discover_tests(mimu-concepts-tests)
 # @/
 ```

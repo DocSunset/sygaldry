@@ -22,7 +22,7 @@ such classes, allowing us to easily add other textual metadata in this way.
 
 
 ```cpp
-// @#'metadata.hpp'
+// @#'helpers/metadata.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -123,9 +123,6 @@ SPDX-License-Identifier: MIT
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>
-#include <type_traits>
-#include <optional>
-#include <boost/pfr.hpp>
 #include "helpers/metadata.hpp"
 
 using namespace sygaldry;
@@ -153,6 +150,8 @@ TEST_CASE("name_", "[endpoints][bases][name_]")
 # @#'tests/metadata/CMakeLists.txt'
 add_executable(metadata-tests tests.cpp)
 target_link_libraries(metadata-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(metadata-tests PRIVATE Sygaldry::Helpers)
+target_link_libraries(metadata-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(metadata-tests)
 # @/
 ```

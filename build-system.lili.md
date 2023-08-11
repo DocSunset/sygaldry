@@ -1,9 +1,9 @@
 \page build_system The Build System
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 
@@ -175,12 +175,6 @@ submodules, and some may be required to build the default test suite.
 
 ```cmake
 # @='Include libraries'
-include_directories(dependencies/pfr/include)
-include_directories(dependencies/mp11/include)
-include_directories(dependencies/rapidjson/include)
-include_directories(./)
-set(AVENDISH_INCLUDE_SOURCE_ONLY ON)
-include_directories(dependencies/avendish/include/)
 # @/
 ```
 
@@ -252,9 +246,6 @@ set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 add_subdirectory(utilities)
 add_subdirectory(concepts)
 add_subdirectory(helpers)
-add_subdirectory(components)
 add_subdirectory(bindings)
-add_subdirectory(instruments)
-add_subdirectory(tests)
 # @/
 ```

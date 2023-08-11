@@ -629,7 +629,7 @@ tagged(session_data); // store this endpoint's value across sessions, e.g. acros
 # Summary
 
 ```cpp
-// @#'endpoints.hpp'
+// @#'concepts/endpoints.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -681,6 +681,8 @@ using std::string;
 # @#'tests/endpoints/CMakeLists.txt'
 add_executable(concepts-endpoints-tests tests.cpp)
 target_link_libraries(concepts-endpoints-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(concepts-endpoints-tests PRIVATE Sygaldry::Concepts)
+target_link_libraries(concepts-endpoints-tests PRIVATE Sygaldry::Helpers)
 catch_discover_tests(concepts-endpoints-tests)
 # @/
 ```

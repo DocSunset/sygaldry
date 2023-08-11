@@ -10,8 +10,8 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "concepts/components.hpp"
-#include "components/tests/testcomponent.hpp"
-#include "bindings/basic_logger/test_logger.hpp"
+#include "bindings/testcomponent.hpp"
+#include "bindings/test_logger.hpp"
 #include "bindings/output_logger.hpp"
 
 using std::string;

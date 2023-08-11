@@ -472,6 +472,7 @@ is reached, meaning the pattern did not match.
     }
     [[fallthrough]];
 // @/
+```
 
 # Summary
 
@@ -492,7 +493,7 @@ SPDX-License-Identifier: MIT
 @{tests}
 // @/
 
-// @#'osc_match_pattern.hpp'
+// @#'bindings/osc_match_pattern.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -504,6 +505,20 @@ SPDX-License-Identifier: MIT
 */
 
 // TODO: this should probably not be a header only implementation
+bool osc_match_pattern(const char * pattern, const char * address);
+// @/
+
+// @#'src/osc_match_pattern.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+#include "bindings/osc_match_pattern.hpp"
+
 @{osc_match_pattern}
 // @/
 ```
@@ -512,6 +527,7 @@ SPDX-License-Identifier: MIT
 # @#'tests/osc_match_pattern/CMakeLists.txt'
 add_executable(osc-match-tests tests.cpp)
 target_link_libraries(osc-match-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(osc-match-tests PRIVATE Sygaldry::Bindings)
 catch_discover_tests(osc-match-tests)
 # @/
 ```

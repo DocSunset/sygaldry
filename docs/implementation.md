@@ -1,4 +1,13 @@
-# Implementation Documentation {#implementation}
+\page docs_implementation Implementation Documentation
+
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
+[TOC]
 
 The source files are annotated with literate prose meant to facilitate the
 reader's understanding of the code. For more detailed documentation of the
@@ -34,7 +43,8 @@ library than Doxygen comments can provide, this is the authoritative source.
 
 ## Bindings
 
-\subpage readme_bindings
+- \subpage readme_bindings
+- \subpage bind_cmake
 
 ### Platform Independent
 
@@ -61,12 +71,14 @@ library than Doxygen comments can provide, this is the authoritative source.
 
 \subpage readme_helpers TODO
 
+- \subpage helpers_cmake
 - \subpage helpers_metadata
 - \subpage helpers_endpoints
 - \subpage helpers_mimu
 
 ## Concepts
 
+- \subpage concepts_cmake
 - \subpage concepts_runtime
 - \subpage concepts_components
 - \subpage concepts_endpoints

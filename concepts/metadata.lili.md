@@ -36,7 +36,7 @@ macro in `components/metadata.lili` to generate metadata helpers, here we
 use one to generate their generic accessors.
 
 ```cpp
-// @#'metadata.hpp'
+// @#'concepts/metadata.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -144,6 +144,7 @@ TEST_CASE("name_of", "[components][concepts][name_of]")
 add_compile_options(-fconcepts-diagnostics-depth=2)
 add_executable(concepts-metadata-tests tests.cpp)
 target_link_libraries(concepts-metadata-tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(concepts-metadata-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(concepts-metadata-tests)
 # @/
 ```

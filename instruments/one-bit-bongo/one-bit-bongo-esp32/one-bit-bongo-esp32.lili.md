@@ -52,7 +52,7 @@ struct OneBitBongo
             components::TrillCraft touch;
             //components::ICM20948 mimu;
         } sensors;
-        bindings::esp32::WiFi<bindings::CstdioLogger> wifi;
+        bindings::esp32::WiFi wifi;
         bindings::LibloOsc<Sensors> osc;
     };
 
@@ -92,22 +92,14 @@ project(one-bit-bongo)
 # @/
 ```
 
-Note that we add the ESP32 components directories as `EXTRA_COMPONENT_DIRS` so
-that IDF components (such as the `libmapper-arduino` component) will be picked
-up by the build system.
-
-We add `sygaldry` as an include directory, as well as its main header-only
-dependencies. This should arguably be handled by making `sygaldry` itself
-into an IDF component; this is left as future work.
-
-Note that, for the following
+Note that we add the ESP32 components and bindings directories, as well as the
+`SYGALDRY_ROOT` directory itself as `EXTRA_COMPONENT_DIRS` so that IDF
+components (such as the `libmapper-arduino` component) will be picked up by the
+build system.
 
 ```cmake
 # @#'main/CMakeLists.txt'
 idf_component_register(SRCS "one-bit-bongo.cpp"
-        INCLUDE_DIRS ${SYGALDRY_ROOT}/dependencies/pfr/include
-        INCLUDE_DIRS ${SYGALDRY_ROOT}/dependencies/mp11/include
-        INCLUDE_DIRS "." ${SYGALDRY_ROOT}
         )
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wfatal-errors")
 # @/

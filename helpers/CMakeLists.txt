@@ -1,3 +1,8 @@
+add_library(sygaldry_helpers INTERFACE)
+target_link_libraries(sygaldry_helpers INTERFACE Sygaldry::Utilities)
+target_include_directories(sygaldry_helpers INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
+add_library(Sygaldry::Helpers ALIAS sygaldry_helpers)
+
 add_subdirectory("tests/metadata")
 add_subdirectory("tests/endpoints")
 add_subdirectory("tests/mimu")
