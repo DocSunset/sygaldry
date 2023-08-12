@@ -88,6 +88,6 @@ library than Doxygen comments can provide, this is the authoritative source.
 
 ## Other
 
-- ./tests/esp32-tests/esp32.lili.md
 - \subpage build_system
 - \subpage consteval_and_clang
+- \subpage sygaldry_idf_component

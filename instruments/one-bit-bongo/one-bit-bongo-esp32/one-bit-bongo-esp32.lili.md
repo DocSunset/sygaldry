@@ -37,7 +37,7 @@ SPDX-License-Identifier: MIT
 #include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
-#include <bindings/cli/cli.hpp>
+#include <bindings/cli.hpp>
 #include <bindings/output_logger.hpp>
 
 using namespace sygaldry;
@@ -87,7 +87,7 @@ The `idf.py init` generated boilerplate `CMakeLists.txt` for an `esp-idf` projec
 cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT}/components/esp32 ${SYGALDRY_ROOT}/bindings/esp32)
+set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT} ${SYGALDRY_ROOT}/components/esp32 ${SYGALDRY_ROOT}/bindings/esp32)
 project(one-bit-bongo)
 # @/
 ```

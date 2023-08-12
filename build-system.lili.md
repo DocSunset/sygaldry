@@ -220,6 +220,12 @@ ESP-IDF; an appropriate version of the framework is included as a submodule,
 and should be used when installing and exporting the IDF, before running the
 above script or its equivalent on your machine.
 
+ESP-IDF projects should add Sygaldry as a component with the following line:
+
+```cmake
+set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT} ${SYGALDRY_ROOT}/components/esp32 ${SYGALDRY_ROOT}/bindings/esp32)
+```
+
 # Summary
 
 ```cmake
@@ -232,6 +238,7 @@ above script or its equivalent on your machine.
 # SPDX-License-Identifier: MIT
 
 cmake_minimum_required(VERSION 3.26)
+if (NOT ESP_PLATFORM)
 project(Sygaldry)
 set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
@@ -243,9 +250,22 @@ set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 @{Include libraries}
 
+set(SYGALDRY_BUILD_TESTS 1)
+endif()
+
+if (ESP_PLATFORM)
+idf_component_register()
+endif()
+add_library(sygaldry INTERFACE)
 add_subdirectory(utilities)
 add_subdirectory(concepts)
 add_subdirectory(helpers)
 add_subdirectory(bindings)
+add_subdirectory(components)
+target_link_libraries(sygaldry INTERFACE Sygaldry::Bindings)
+target_link_libraries(sygaldry INTERFACE Sygaldry::Components)
+if (ESP_PLATFORM)
+target_link_libraries(${COMPONENT_LIB} INTERFACE sygaldry)
+endif()
 # @/
 ```

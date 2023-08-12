@@ -30,7 +30,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <components/sensors/button.hpp>
+#include <components/button.hpp>
 #include <components/esp32/gpio.hpp>
 
 namespace sygaldry { namespace components { namespace esp32 {

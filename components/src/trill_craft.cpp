@@ -15,6 +15,8 @@ SPDX-License-Identifier: MIT
 #include <Trill.h>
 #include "components/trill_craft.hpp"
 
+namespace sygaldry { namespace components {
+
 void TrillCraft::init()
 {
     auto trill = new Trill();
@@ -82,3 +84,5 @@ void TrillCraft::main()
         }
     }
 }
+
+} }

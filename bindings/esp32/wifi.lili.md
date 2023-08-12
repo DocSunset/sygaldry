@@ -461,7 +461,7 @@ SPDX-License-Identifier: MIT
 #include <nvs_flash.h>
 #include <helpers/metadata.hpp>
 #include <helpers/endpoints.hpp>
-#include <bindings/basic_logger/cstdio_logger.hpp>
+#include <bindings/cstdio_logger.hpp>
 
 namespace sygaldry { namespace bindings { namespace esp32 {
 

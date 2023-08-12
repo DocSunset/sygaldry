@@ -12,7 +12,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <algorithm>
+#include <limits>
 #include "helpers/metadata.hpp"
 #include "helpers/endpoints.hpp"
 

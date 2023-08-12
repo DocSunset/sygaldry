@@ -42,7 +42,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <algorithm>
+#include <limits>
 #include "helpers/metadata.hpp"
 #include "helpers/endpoints.hpp"
 
@@ -127,6 +127,8 @@ SPDX-License-Identifier: MIT
 #include <Trill.h>
 #include "components/trill_craft.hpp"
 
+namespace sygaldry { namespace components {
+
 void TrillCraft::init()
 {
     auto trill = new Trill();
@@ -194,5 +196,7 @@ void TrillCraft::main()
         }
     }
 }
+
+} }
 // @/
 ```

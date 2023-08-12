@@ -19,7 +19,7 @@ SPDX-License-Identifier: MIT
 #include <bindings/esp32/spiffs.hpp>
 #include <bindings/esp32/wifi.hpp>
 #include <bindings/liblo.hpp>
-#include <bindings/cli/cli.hpp>
+#include <bindings/cli.hpp>
 #include <bindings/output_logger.hpp>
 
 using namespace sygaldry;

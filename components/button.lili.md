@@ -37,13 +37,13 @@ to implement a button for specific hardware, and that said platform-specific
 component will implement a name.
 
 ```cpp
-// @#'button.hpp'
+// @#'components/button.hpp'
 #pragma once
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -68,17 +68,36 @@ struct ButtonGestureModel
         bng<"falling edge"> falling_edge;
     } outputs;
 
-    void operator()()
-    {
-        if (outputs.debounced_state != inputs.button_state)
-        {
-            outputs.debounced_state = inputs.button_state;
-            outputs.any_edge();
-            if (inputs.button_state) outputs.rising_edge();
-            else outputs.falling_edge();
-        }
-    }
+    void operator()();
 };
+
+} }
+// @/
+
+// @#'src/button.cpp'
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
+#include "components/button.hpp"
+
+namespace sygaldry { namespace components {
+
+void ButtonGestureModel::operator()()
+{
+    if (outputs.debounced_state != inputs.button_state)
+    {
+        outputs.debounced_state = inputs.button_state;
+        outputs.any_edge();
+        if (inputs.button_state) outputs.rising_edge();
+        else outputs.falling_edge();
+    }
+}
 
 } }
 // @/

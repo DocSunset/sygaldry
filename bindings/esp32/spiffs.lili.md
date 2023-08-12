@@ -167,7 +167,7 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/writer.h>
 #include "esp_spiffs.h"
 #include "concepts/components.hpp"
-#include "components/tests/testcomponent.hpp"
+#include "bindings/testcomponent.hpp"
 #include "bindings/rapidjson.hpp"
 
 namespace sygaldry { namespace bindings { namespace esp32 {
