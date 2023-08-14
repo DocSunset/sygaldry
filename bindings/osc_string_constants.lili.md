@@ -258,8 +258,8 @@ SPDX-License-Identifier: MIT
 #include <array>
 #include <tuple>
 #include <concepts>
-#include "concepts/components.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings {
@@ -288,7 +288,7 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "helpers/endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 

@@ -48,7 +48,7 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "helpers/endpoints.hpp"
 
 namespace sygaldry { namespace components {

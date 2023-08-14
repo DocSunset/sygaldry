@@ -9,10 +9,10 @@ SPDX-License-Identifier: MIT
 */
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
-#include "concepts/metadata.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-metadata.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/osc_match_pattern.hpp"
 

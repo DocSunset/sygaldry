@@ -175,6 +175,8 @@ submodules, and some may be required to build the default test suite.
 
 ```cmake
 # @='Include libraries'
+add_subdirectory(dependencies/pfr)
+add_subdirectory(dependencies/mp11)
 # @/
 ```
 
@@ -238,34 +240,46 @@ set(EXTRA_COMPONENT_DIRS ${SYGALDRY_ROOT} ${SYGALDRY_ROOT}/components/esp32 ${SY
 # SPDX-License-Identifier: MIT
 
 cmake_minimum_required(VERSION 3.26)
-if (NOT ESP_PLATFORM)
 project(Sygaldry)
 set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 @{Set language standard}
 
+if (NOT ESP_PLATFORM)
 @{Fetch Catch2}
 
 @{Include automatic test registration}
 
-@{Include libraries}
-
 set(SYGALDRY_BUILD_TESTS 1)
 endif()
 
-if (ESP_PLATFORM)
-idf_component_register()
-endif()
+@{Include libraries}
 add_library(sygaldry INTERFACE)
-add_subdirectory(utilities)
-add_subdirectory(concepts)
+
+add_library(sygaldry-utilities INTERFACE)
+target_include_directories(sygaldry-utilities INTERFACE)
+add_subdirectory(utilities/consteval)
+target_link_libraries(sygaldry INTERFACE sygaldry-utilities)
+
+add_library(sygaldry-concepts INTERFACE)
+add_subdirectory(concepts/components)
+add_subdirectory(concepts/endpoints)
+add_subdirectory(concepts/functions)
+add_subdirectory(concepts/metadata)
+add_subdirectory(concepts/mimu)
+add_subdirectory(concepts/runtime)
+target_link_libraries(sygaldry INTERFACE sygaldry-concepts)
+
+#add_library(sygaldry-helpers INTERFACE)
 add_subdirectory(helpers)
+target_link_libraries(sygaldry INTERFACE sygaldry-helpers)
+
+add_library(sygaldry-bindings INTERFACE)
 add_subdirectory(bindings)
+target_link_libraries(sygaldry INTERFACE sygaldry-bindings)
+
+add_library(sygaldry-components INTERFACE)
 add_subdirectory(components)
-target_link_libraries(sygaldry INTERFACE Sygaldry::Bindings)
-target_link_libraries(sygaldry INTERFACE Sygaldry::Components)
-if (ESP_PLATFORM)
-target_link_libraries(${COMPONENT_LIB} INTERFACE sygaldry)
-endif()
+target_link_libraries(sygaldry INTERFACE sygaldry-components)
 # @/
 ```

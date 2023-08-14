@@ -14,12 +14,15 @@ This document describes the CMake script for the components library.
 ```cmake
 # @#'CMakeLists.txt'
 add_library(sygaldry_components STATIC src/button.cpp)
-if (ESP_PLATFORM)
-target_link_libraries(sygaldry_components PUBLIC idf::trill)
-target_sources(sygaldry_components PRIVATE src/trill_craft.cpp)
-endif()
 target_link_libraries(sygaldry_components PUBLIC Sygaldry::Helpers)
 target_include_directories(sygaldry_components PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
 add_library(Sygaldry::Components ALIAS sygaldry_components)
+
+add_subdirectory(trill_craft)
+add_subdirectory(arduino-hack)
+
+if (ESP_PLATFORM)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/esp32")
+endif()
 # @/
 ```

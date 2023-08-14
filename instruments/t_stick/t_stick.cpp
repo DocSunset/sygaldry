@@ -7,8 +7,8 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: AGPL-3.0-or-later
 */
 
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "components/metadata.hpp"
 #include "components/esp32/all.hpp"
 #include "bindings/esp32/all.hpp"

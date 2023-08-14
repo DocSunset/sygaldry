@@ -25,9 +25,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
-#include "concepts/runtime.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-runtime.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/cstdio_reader.hpp"

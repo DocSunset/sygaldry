@@ -1,4 +1,3 @@
-idf_component_register( SRC_DIRS ${SYGALDRY_ROOT}/components/esp32/arduino
-                        INCLUDE_DIRS ${SYGALDRY_ROOT}/components/esp32/arduino
-                        REQUIRES driver
-                      )
+set(lib sygaldry-components-arduino_hack)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)

@@ -278,7 +278,7 @@ template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_k
 #include <string_view>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "bindings/spelling.hpp"
 #include "helpers/metadata.hpp"
 
@@ -377,7 +377,7 @@ become necessary.
 // @#'bindings/spelling.hpp'
 #pragma once
 #include <array>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry { namespace bindings {
 

@@ -777,7 +777,7 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <string>
 #include <array>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "helpers/metadata.hpp"
 
 namespace sygaldry {
@@ -819,8 +819,8 @@ SPDX-License-Identifier: MIT
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 #include <optional>
-#include "concepts/metadata.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-metadata.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "helpers/endpoints.hpp"
 
 using namespace sygaldry;
@@ -835,7 +835,8 @@ using std::string_view;
 add_executable(endpoints-tests tests.cpp)
 target_link_libraries(endpoints-tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(endpoints-tests PRIVATE Sygaldry::Helpers)
-target_link_libraries(endpoints-tests PRIVATE Sygaldry::Concepts)
+target_link_libraries(endpoints-tests PRIVATE sygaldry-concepts-metadata)
+target_link_libraries(endpoints-tests PRIVATE sygaldry-concepts-endpoints)
 catch_discover_tests(endpoints-tests)
 # @/
 ```

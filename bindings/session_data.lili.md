@@ -50,8 +50,8 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "concepts/components.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 
 namespace sygaldry { namespace bindings {
 

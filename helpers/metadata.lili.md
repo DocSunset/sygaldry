@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <cstddef>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry {
 
@@ -151,7 +151,6 @@ TEST_CASE("name_", "[endpoints][bases][name_]")
 add_executable(metadata-tests tests.cpp)
 target_link_libraries(metadata-tests PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(metadata-tests PRIVATE Sygaldry::Helpers)
-target_link_libraries(metadata-tests PRIVATE Sygaldry::Concepts)
 catch_discover_tests(metadata-tests)
 # @/
 ```

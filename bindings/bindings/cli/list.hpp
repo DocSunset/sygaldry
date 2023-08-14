@@ -9,8 +9,8 @@ SPDX-License-Identifier: MIT
 */
 
 #include <type_traits>
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {

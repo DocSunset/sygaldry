@@ -26,7 +26,7 @@ SPDX-License-Identifier: MIT
 
 #include <string>
 #include <catch2/catch_test_macros.hpp>
-#include "concepts/components.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/test_logger.hpp"
 #include "bindings/output_logger.hpp"
@@ -113,8 +113,8 @@ SPDX-License-Identifier: MIT
 
 #pragma once
 #include "bindings/spelling.hpp"
-#include "concepts/metadata.hpp"
-#include "concepts/components.hpp"
+#include "sygaldry-concepts-metadata.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/cstdio_logger.hpp"

@@ -1,4 +1,5 @@
-idf_component_register( SRC_DIRS ${SYGALDRY_ROOT}/components/esp32/arduino-hack
-                        INCLUDE_DIRS ${SYGALDRY_ROOT}/components/arduino-hack
-                        REQUIRES driver
-                      )
+set(lib sygaldry-components-esp32-arduino_hack)
+add_library(${lib} STATIC)
+target_link_libraries(${lib} PUBLIC sygaldry-components-arduino_hack)
+target_link_libraries(${lib} PRIVATE idf::driver)
+target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)

@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry { namespace bindings {
 

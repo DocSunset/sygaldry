@@ -11,8 +11,8 @@ SPDX-License-Identifier: MIT
 #include <array>
 #include <tuple>
 #include <concepts>
-#include "concepts/components.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/spelling.hpp"
 
 namespace sygaldry { namespace bindings {

@@ -1,7 +1,7 @@
 #include <string_view>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "bindings/spelling.hpp"
 #include "helpers/metadata.hpp"
 

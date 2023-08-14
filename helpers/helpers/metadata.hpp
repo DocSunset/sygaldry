@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <cstddef>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry {
 

@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <charconv>
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/osc_match_pattern.hpp"
 

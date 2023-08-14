@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <concepts>
 #include <cstdlib>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/osc_match_pattern.hpp"
 #include "bindings/cstdio_logger.hpp"

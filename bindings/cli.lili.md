@@ -596,7 +596,7 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <concepts>
 #include <cstdlib>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 #include "helpers/metadata.hpp"
 #include "bindings/osc_match_pattern.hpp"
 #include "bindings/cstdio_logger.hpp"
@@ -733,7 +733,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 struct Help
@@ -816,8 +816,8 @@ SPDX-License-Identifier: MIT
 */
 
 #include <type_traits>
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "bindings/osc_string_constants.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
@@ -1091,10 +1091,10 @@ SPDX-License-Identifier: MIT
 */
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
-#include "concepts/metadata.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
+#include "sygaldry-concepts-metadata.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/osc_match_pattern.hpp"
 
@@ -1371,7 +1371,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <charconv>
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/osc_match_pattern.hpp"
 
@@ -1419,8 +1419,8 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <memory>
 #include <catch2/catch_test_macros.hpp>
-#include "utilities/consteval.hpp"
-#include "concepts/components.hpp"
+#include "sygaldry-utilities-consteval.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/test_logger.hpp"
 #include "bindings/test_reader.hpp"

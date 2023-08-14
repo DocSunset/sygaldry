@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <boost/pfr.hpp>
-#include "utilities/consteval.hpp"
+#include "sygaldry-utilities-consteval.hpp"
 
 namespace sygaldry { namespace bindings { namespace clicommands {
 struct Help

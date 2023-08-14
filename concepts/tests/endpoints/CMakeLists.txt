@@ -1,5 +1,0 @@
-add_executable(concepts-endpoints-tests tests.cpp)
-target_link_libraries(concepts-endpoints-tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(concepts-endpoints-tests PRIVATE Sygaldry::Concepts)
-target_link_libraries(concepts-endpoints-tests PRIVATE Sygaldry::Helpers)
-catch_discover_tests(concepts-endpoints-tests)

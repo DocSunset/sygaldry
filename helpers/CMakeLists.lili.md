@@ -18,10 +18,10 @@ include directories that need to be exposed to clients of the library.
 
 ```cmake
 # @#'CMakeLists.txt'
-add_library(sygaldry_helpers INTERFACE)
-target_link_libraries(sygaldry_helpers INTERFACE Sygaldry::Utilities)
-target_include_directories(sygaldry_helpers INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
-add_library(Sygaldry::Helpers ALIAS sygaldry_helpers)
+add_library(sygaldry-helpers INTERFACE)
+target_link_libraries(sygaldry-helpers INTERFACE sygaldry-utilities)
+target_include_directories(sygaldry-helpers INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
+add_library(Sygaldry::Helpers ALIAS sygaldry-helpers)
 
 if (SYGALDRY_BUILD_TESTS)
 add_subdirectory("tests/metadata")

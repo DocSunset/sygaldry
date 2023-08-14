@@ -166,7 +166,7 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
 #include "esp_spiffs.h"
-#include "concepts/components.hpp"
+#include "sygaldry-concepts-components.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/rapidjson.hpp"
 

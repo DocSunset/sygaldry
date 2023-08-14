@@ -13,8 +13,8 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <lo/lo.h>
 #include <lo/lo_lowlevel.h>
 #include <lo/lo_types.h>
-#include "concepts/metadata.hpp"
-#include "concepts/endpoints.hpp"
+#include "sygaldry-concepts-metadata.hpp"
+#include "sygaldry-concepts-endpoints.hpp"
 #include "helpers/endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 
