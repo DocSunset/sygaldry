@@ -411,7 +411,7 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/document.h>
 #include "sygaldry-concepts-endpoints.hpp"
 #include "sygaldry-concepts-components.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/session_data.hpp"
 
@@ -453,7 +453,7 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/stream.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "bindings/rapidjson.hpp"
 
 using std::string;

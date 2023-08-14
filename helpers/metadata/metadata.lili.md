@@ -22,7 +22,7 @@ such classes, allowing us to easily add other textual metadata in this way.
 
 
 ```cpp
-// @#'helpers/metadata.hpp'
+// @#'sygaldry-helpers-metadata.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -110,7 +110,7 @@ runtime performance. For now, we opt for the base-class approach in keeping
 with our overall strategy.
 
 ```cpp
-// @#'tests/metadata/tests.cpp'
+// @#'sygaldry-helpers-metadata.test.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -123,7 +123,7 @@ SPDX-License-Identifier: MIT
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 
 using namespace sygaldry;
 
@@ -147,10 +147,18 @@ TEST_CASE("name_", "[endpoints][bases][name_]")
 ```
 
 ```cmake
-# @#'tests/metadata/CMakeLists.txt'
-add_executable(metadata-tests tests.cpp)
-target_link_libraries(metadata-tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(metadata-tests PRIVATE Sygaldry::Helpers)
-catch_discover_tests(metadata-tests)
+# @#'CMakeLists.txt'
+set(lib sygaldry-helpers-metadata)
+add_library(${lib} INTERFACE)
+target_link_libraries(${lib} INTERFACE sygaldry-utilities-consteval)
+target_include_directories(${lib} INTERFACE .)
+
+target_link_libraries(sygaldry-helpers INTERFACE ${lib})
+
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain
+        PRIVATE sygaldry-helpers-metadata
+        )
+catch_discover_tests(${lib}-test)
 # @/
 ```

@@ -8,8 +8,8 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "helpers/metadata.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-metadata.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 
 namespace sygaldry {
 ///\defgroup helpers_mimu_endpoints MIMU Endpoints Helpers

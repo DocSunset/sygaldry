@@ -664,8 +664,8 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <string>
 #include <type_traits>
-#include "helpers/metadata.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-metadata.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "sygaldry-concepts-endpoints.hpp"
 
 using namespace sygaldry;
@@ -687,7 +687,7 @@ target_link_libraries(sygaldry-concepts INTERFACE ${lib})
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(${lib}-test PRIVATE ${lib})
-target_link_libraries(${lib}-test PRIVATE Sygaldry::Helpers)
+target_link_libraries(${lib}-test PRIVATE sygaldry-helpers)
 catch_discover_tests(${lib}-test)
 # @/
 ```

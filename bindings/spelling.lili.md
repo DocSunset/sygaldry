@@ -280,7 +280,7 @@ template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_k
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-utilities-consteval.hpp"
 #include "bindings/spelling.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 
 using std::string_view;
 using namespace sygaldry;

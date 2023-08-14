@@ -270,8 +270,10 @@ add_subdirectory(concepts/mimu)
 add_subdirectory(concepts/runtime)
 target_link_libraries(sygaldry INTERFACE sygaldry-concepts)
 
-#add_library(sygaldry-helpers INTERFACE)
-add_subdirectory(helpers)
+add_library(sygaldry-helpers INTERFACE)
+add_subdirectory(helpers/endpoints)
+add_subdirectory(helpers/metadata)
+add_subdirectory(helpers/mimu)
 target_link_libraries(sygaldry INTERFACE sygaldry-helpers)
 
 add_library(sygaldry-bindings INTERFACE)

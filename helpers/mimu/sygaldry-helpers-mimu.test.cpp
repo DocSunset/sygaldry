@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-concepts-mimu.hpp"
-#include "helpers/mimu.hpp"
+#include "sygaldry-helpers-mimu.hpp"
 
 using namespace sygaldry;
 

@@ -1,6 +1,6 @@
 add_library(sygaldry_bindings STATIC src/osc_match_pattern.cpp)
 target_link_libraries(sygaldry_bindings PUBLIC sygaldry-concepts)
-target_link_libraries(sygaldry_bindings PUBLIC Sygaldry::Helpers)
+target_link_libraries(sygaldry_bindings PUBLIC sygaldry-helpers)
 target_include_directories(sygaldry_bindings PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
 add_library(Sygaldry::Bindings ALIAS sygaldry_bindings)
 

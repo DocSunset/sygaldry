@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-utilities-consteval.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "bindings/osc_string_constants.hpp"
 
 using std::string_view;

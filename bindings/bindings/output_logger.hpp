@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "bindings/spelling.hpp"
 #include "sygaldry-concepts-metadata.hpp"
 #include "sygaldry-concepts-components.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/cstdio_logger.hpp"
 

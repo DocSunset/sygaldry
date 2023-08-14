@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-concepts-runtime.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 
 using namespace sygaldry;
 

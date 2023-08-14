@@ -11,8 +11,8 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
-#include "helpers/metadata.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-metadata.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "sygaldry-concepts-components.hpp"
 
 using namespace sygaldry;

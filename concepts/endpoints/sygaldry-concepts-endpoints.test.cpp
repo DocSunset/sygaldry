@@ -11,8 +11,8 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <string>
 #include <type_traits>
-#include "helpers/metadata.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-metadata.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "sygaldry-concepts-endpoints.hpp"
 
 using namespace sygaldry;

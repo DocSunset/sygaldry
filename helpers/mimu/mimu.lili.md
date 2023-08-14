@@ -110,7 +110,7 @@ static_assert(MimuComponent<TestMimu>);
 # Summary
 
 ```cpp
-// @#'helpers/mimu.hpp'
+// @#'sygaldry-helpers-mimu.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -121,8 +121,8 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "helpers/metadata.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-metadata.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 
 namespace sygaldry {
 ///\defgroup helpers_mimu_endpoints MIMU Endpoints Helpers
@@ -132,7 +132,7 @@ namespace sygaldry {
 }
 // @/
 
-// @#'tests/mimu/tests.cpp'
+// @#'sygaldry-helpers-mimu.test.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -144,7 +144,7 @@ SPDX-License-Identifier: MIT
 
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-concepts-mimu.hpp"
-#include "helpers/mimu.hpp"
+#include "sygaldry-helpers-mimu.hpp"
 
 using namespace sygaldry;
 
@@ -153,11 +153,20 @@ using namespace sygaldry;
 ```
 
 ```cmake
-# @#'tests/mimu/CMakeLists.txt'
-add_executable(mimu-helper-tests tests.cpp)
-target_link_libraries(mimu-helper-tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(mimu-helper-tests PRIVATE Sygaldry::Helpers)
-target_link_libraries(mimu-helper-tests PRIVATE sygaldry-concepts-mimu)
-catch_discover_tests(mimu-helper-tests)
+# @#'CMakeLists.txt'
+set(lib sygaldry-helpers-mimu)
+add_library(${lib} INTERFACE)
+target_link_libraries(${lib} INTERFACE sygaldry-helpers-metadata)
+target_link_libraries(${lib} INTERFACE sygaldry-helpers-endpoints)
+target_include_directories(${lib} INTERFACE .)
+
+target_link_libraries(sygaldry-helpers INTERFACE ${lib})
+
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain
+        PRIVATE sygaldry-helpers-mimu
+        PRIVATE sygaldry-concepts-mimu
+        )
+catch_discover_tests(${lib}-test)
 # @/
 ```

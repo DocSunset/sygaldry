@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/document.h>
 #include "sygaldry-concepts-endpoints.hpp"
 #include "sygaldry-concepts-components.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 #include "bindings/osc_string_constants.hpp"
 #include "bindings/session_data.hpp"
 

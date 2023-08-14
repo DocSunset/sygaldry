@@ -10,7 +10,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "sygaldry-concepts-components.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/liblo.hpp"
 

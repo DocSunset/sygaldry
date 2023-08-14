@@ -304,7 +304,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <catch2/catch_test_macros.hpp>
-#include "helpers/mimu.hpp"
+#include "sygaldry-helpers-mimu.hpp"
 #include "sygaldry-concepts-mimu.hpp"
 
 using namespace sygaldry;
@@ -324,7 +324,7 @@ target_link_libraries(sygaldry-concepts INTERFACE ${lib})
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(${lib}-test PRIVATE ${lib})
-target_link_libraries(${lib}-test PRIVATE Sygaldry::Helpers)
+target_link_libraries(${lib}-test PRIVATE sygaldry-helpers)
 catch_discover_tests(${lib}-test)
 # @/
 ```

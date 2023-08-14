@@ -49,7 +49,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include "sygaldry-utilities-consteval.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 
 namespace sygaldry { namespace components {
 

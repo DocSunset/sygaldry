@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include "Wire.h"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 
 namespace sygaldry { namespace components { namespace esp32 {
 

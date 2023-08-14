@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
 #include "sygaldry-utilities-consteval.hpp"
 #include "sygaldry-concepts-components.hpp"
 #include "sygaldry-concepts-runtime.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 #include "bindings/testcomponent.hpp"
 #include "bindings/cstdio_reader.hpp"
 #include "bindings/cstdio_logger.hpp"

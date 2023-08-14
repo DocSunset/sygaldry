@@ -763,7 +763,7 @@ TEST_CASE("Bang", "[endpoints][bang]")
 # Summary
 
 ```cpp
-// @#'helpers/endpoints.hpp'
+// @#'sygaldry-helpers-endpoints.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -778,7 +778,7 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <array>
 #include "sygaldry-utilities-consteval.hpp"
-#include "helpers/metadata.hpp"
+#include "sygaldry-helpers-metadata.hpp"
 
 namespace sygaldry {
 
@@ -806,7 +806,7 @@ helpers are implemented.
 } // namespaces
 // @/
 
-// @#'tests/endpoints/tests.cpp'
+// @#'sygaldry-helpers-endpoints.test.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -821,7 +821,7 @@ SPDX-License-Identifier: MIT
 #include <optional>
 #include "sygaldry-concepts-metadata.hpp"
 #include "sygaldry-concepts-endpoints.hpp"
-#include "helpers/endpoints.hpp"
+#include "sygaldry-helpers-endpoints.hpp"
 
 using namespace sygaldry;
 using std::string_view;
@@ -831,12 +831,20 @@ using std::string_view;
 ```
 
 ```cmake
-# @#'tests/endpoints/CMakeLists.txt'
-add_executable(endpoints-tests tests.cpp)
-target_link_libraries(endpoints-tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(endpoints-tests PRIVATE Sygaldry::Helpers)
-target_link_libraries(endpoints-tests PRIVATE sygaldry-concepts-metadata)
-target_link_libraries(endpoints-tests PRIVATE sygaldry-concepts-endpoints)
-catch_discover_tests(endpoints-tests)
+# @#'CMakeLists.txt'
+set(lib sygaldry-helpers-endpoints)
+add_library(${lib} INTERFACE)
+target_link_libraries(${lib} INTERFACE sygaldry-utilities-consteval)
+target_link_libraries(${lib} INTERFACE sygaldry-helpers-metadata)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(sygaldry-helpers INTERFACE ${lib})
+
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain
+        PRIVATE sygaldry-helpers-endpoints
+        PRIVATE sygaldry-concepts-metadata
+        PRIVATE sygaldry-concepts-endpoints
+        )
+catch_discover_tests(${lib}-test)
 # @/
 ```

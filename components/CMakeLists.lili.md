@@ -14,7 +14,7 @@ This document describes the CMake script for the components library.
 ```cmake
 # @#'CMakeLists.txt'
 add_library(sygaldry_components STATIC src/button.cpp)
-target_link_libraries(sygaldry_components PUBLIC Sygaldry::Helpers)
+target_link_libraries(sygaldry_components PUBLIC sygaldry-helpers)
 target_include_directories(sygaldry_components PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
 add_library(Sygaldry::Components ALIAS sygaldry_components)
 
