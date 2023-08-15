@@ -284,8 +284,8 @@ SPDX-License-Identifier: MIT
 
 #include <driver/gpio.h>
 #include <hal/gpio_types.h>
-#include <helpers/metadata.hpp>
-#include <helpers/endpoints.hpp>
+#include <sygaldry-helpers-metadata.hpp>
+#include <sygaldry-helpers-endpoints.hpp>
 
 namespace sygaldry { namespace components { namespace esp32 {
 

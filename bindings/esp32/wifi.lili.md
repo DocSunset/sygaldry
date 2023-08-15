@@ -459,8 +459,8 @@ SPDX-License-Identifier: MIT
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include <nvs_flash.h>
-#include <helpers/metadata.hpp>
-#include <helpers/endpoints.hpp>
+#include <sygaldry-helpers-metadata.hpp>
+#include <sygaldry-helpers-endpoints.hpp>
 #include <bindings/cstdio_logger.hpp>
 
 namespace sygaldry { namespace bindings { namespace esp32 {

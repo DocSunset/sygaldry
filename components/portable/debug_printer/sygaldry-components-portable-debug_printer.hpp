@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygaldry-helpers-metadata.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace portable
 
 template<typename Logger, string_literal message>
 struct DebugPrinter
@@ -27,4 +27,5 @@ struct DebugPrinter
     void main() { log.println(message.value, " main"); }
     void external_destinations() { log.println(message.value, " external_destinations"); }
 };
-} }
+
+} } }

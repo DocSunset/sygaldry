@@ -8,8 +8,8 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <components/button.hpp>
-#include <sygaldry-components-esp32-gpio.hpp>
+#include "sygaldry-components-portable-button.hpp"
+#include "sygaldry-components-esp32-gpio.hpp"
 
 namespace sygaldry { namespace components { namespace esp32 {
 
@@ -21,7 +21,7 @@ struct Button
 , author_<"Travis J. West">
 , copyright_<"Travis J. West (C) 2023">
 , description_<"A single button attached to a GPIO">
-, ButtonGestureModel
+, portable::ButtonGestureModel
 {
     using gpio = GPIO<pin_number>;
 

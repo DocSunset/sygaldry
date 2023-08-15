@@ -1,4 +1,4 @@
-# Concepts
+\page docs-design_concepts
 
 The concepts library defines the expected conventions for components and
 bindings. As such, it is the root of the `sygaldry` framework, and used

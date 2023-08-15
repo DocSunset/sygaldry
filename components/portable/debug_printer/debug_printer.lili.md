@@ -17,7 +17,7 @@ to modify other components. It's subroutines simply print a message
 customized by a template parameter.
 
 ```cpp
-// @#'debug_printer.hpp'
+// @#'sygaldry-components-portable-debug_printer.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -30,7 +30,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygaldry-helpers-metadata.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace portable
 
 template<typename Logger, string_literal message>
 struct DebugPrinter
@@ -47,6 +47,20 @@ struct DebugPrinter
     void main() { log.println(message.value, " main"); }
     void external_destinations() { log.println(message.value, " external_destinations"); }
 };
-} }
+
+} } }
 // @/
+```
+
+```cmake
+# @#'CMakeLists.txt'
+set(lib sygaldry-components-portable-debug_printer)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+        INTERFACE sygaldry-helpers-metadata
+        )
+
+target_link_libraries(sygaldry-components-portable INTERFACE ${lib})
+# @/
 ```

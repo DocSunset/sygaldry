@@ -20,10 +20,10 @@ API is provided.
 # ESP Component CMakeLists.txt
 
 ```cmake
-# @#'arduino-hack/CMakeLists.txt'
+# @#'CMakeLists.txt'
 set(lib sygaldry-components-esp32-arduino_hack)
 add_library(${lib} STATIC)
-target_link_libraries(${lib} PUBLIC sygaldry-components-arduino_hack)
+target_link_libraries(${lib} PUBLIC sygaldry-components-portable-arduino_hack)
 target_link_libraries(${lib} PRIVATE idf::driver)
 target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)
 # @/
@@ -32,7 +32,7 @@ target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)
 # ESP Arduino.h
 
 ```cpp
-// @#'arduino-hack/Arduino.cpp'
+// @#'Arduino.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -68,7 +68,7 @@ It remains as future work to properly document this implementation, but it
 is hoped that the reader will find it reasonably straightforward.
 
 ```cpp
-// @#'arduino-hack/Wire.cpp'
+// @#'Wire.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

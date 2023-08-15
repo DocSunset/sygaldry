@@ -1,5 +1,6 @@
 set(lib sygaldry-components-esp32-button)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygaldry-components-portable-button)
 target_link_libraries(${lib} INTERFACE sygaldry-components-esp32-gpio)
-target_link_libraries(${lib} INTERFACE Sygaldry::Components)
+target_link_libraries(sygaldry-components-esp32 INTERFACE ${lib})

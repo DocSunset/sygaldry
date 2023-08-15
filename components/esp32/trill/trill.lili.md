@@ -5,18 +5,32 @@ available for ESP32 builds.
 
 ```cmake
 # @#'CMakeLists.txt'
-set(LIB sygaldry-components-esp32-trill)
-add_library(${LIB} STATIC)
-target_include_directories(${LIB} PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
-target_include_directories(${LIB} PRIVATE "${SYGALDRY_ROOT}/dependencies/Trill-Arduino")
-target_sources(${LIB} PRIVATE ${LIB}.cpp ${SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp)
-target_link_libraries(${LIB} PUBLIC sygaldry-components-esp32-arduino_hack)
-target_link_libraries(${LIB} PUBLIC sygaldry-components-trill_craft)
+set(lib sygaldry-components-esp32-trill)
+add_library(${lib} STATIC)
+target_include_directories(${lib}
+        PUBLIC .
+        PRIVATE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino
+        )
+target_sources(${lib}
+        PRIVATE ${lib}.cpp
+        PRIVATE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp
+        )
+target_link_libraries(${lib}
+        PUBLIC sygaldry-components-esp32-arduino_hack
+        PUBLIC sygaldry-components-arduino-trill_craft
+        )
+
+target_link_libraries(sygaldry-components-esp32 INTERFACE ${lib})
 # @/
 ```
 
 ```cpp
+// @#'sygaldry-components-esp32-trill.hpp'
+#pragma once
+#include "sygaldry-components-arduino-trill_craft.hpp"
+// @/
+
 // @#'sygaldry-components-esp32-trill.cpp'
-#include "sygaldry-components-trill_craft.impl.hpp"
+#include "sygaldry-components-arduino-trill_craft.impl.hpp"
 // @/
 ```

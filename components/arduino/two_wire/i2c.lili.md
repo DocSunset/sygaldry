@@ -1,9 +1,9 @@
-\page comp_i2c_esp32 ESP32 I2C
+\page comp-two_wire-arduino Arduino TwoWire Component
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 
@@ -11,7 +11,7 @@ This simple wrapper component simply initializes the Arduino TwoWire API I2C
 bus using the given template parameters for pin numbers and frequency.
 
 ```cpp
-// @#'i2c.hpp'
+// @#'sygaldry-components-arduino-i2c.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -25,12 +25,12 @@ SPDX-License-Identifier: MIT
 #include "Wire.h"
 #include "sygaldry-helpers-metadata.hpp"
 
-namespace sygaldry { namespace components { namespace esp32 {
+namespace sygaldry { namespace components { namespace arduino {
 
 template<int sda_pin, int scl_pin, uint32_t frequency = 400000>
-struct I2C
-: name_<"I2C">
-, description_<"the ESP32 I2C bus driver">
+struct TwoWire
+: name_<"Two Wire Bus">
+, description_<"the Arduino I2C bus driver">
 , author_<"Travis J. West">
 , copyright_<"Copyright 2023 Travis J. West">
 , license_<"SPDX-License-Identifier: MIT">
@@ -44,4 +44,15 @@ struct I2C
 
 } } }
 // @/
+```
+
+```cmake
+# @#'CMakeLists.txt'
+set(lib sygaldry-components-arduino-i2c)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygaldry-helpers-metadata)
+
+target_link_libraries(sygaldry-components-arduino INTERFACE ${lib})
+# @/
 ```

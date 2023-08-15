@@ -11,16 +11,16 @@ SPDX-License-Identifier: MIT
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <concepts/runtime.hpp>
-#include <sygaldry-components-esp32-button.hpp>
-//#include <sygaldry-components-esp32-i2c.hpp>
-#include <sygaldry-components-trill_craft.hpp>
-//#include <components/icm20948.hpp>
-//#include <bindings/esp32/spiffs.hpp>
-//#include <bindings/esp32/wifi.hpp>
-//#include <bindings/liblo.hpp>
-//#include <bindings/cli.hpp>
-//#include <bindings/output_logger.hpp>
+#include "sygaldry-concepts-runtime.hpp"
+#include "sygaldry-components-esp32-button.hpp"
+//#include "sygaldry-components-esp32-i2c.hpp"
+#include "sygaldry-components-esp32-trill.hpp"
+//#include "components/icm20948.hpp"
+//#include "bindings/esp32/spiffs.hpp"
+//#include "bindings/esp32/wifi.hpp"
+//#include "bindings/liblo.hpp"
+//#include "bindings/cli.hpp"
+//#include "bindings/output_logger.hpp"
 
 using namespace sygaldry;
 

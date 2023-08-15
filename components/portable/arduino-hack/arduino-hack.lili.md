@@ -37,7 +37,7 @@ suggests that `Arduino.h` and `WProgram.h` provide identical APIs, with
 the latter being a legacy include path.
 
 ```cpp
-// @#'arduino-hack/Arduino.h'
+// @#'Arduino.h'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -69,7 +69,7 @@ void delay(unsigned long ms);
 //void delayMicroseconds(unsigned int us);
 // @/
 
-// @#'arduino-hack/WProgram.h'
+// @#'WProgram.h'
 #include "Arduino.h"
 // @/
 ```
@@ -79,7 +79,7 @@ void delay(unsigned long ms);
 The `TwoWire` API provides access to the I2C bus.
 
 ```cpp
-// @#'arduino-hack/Wire.h'
+// @#'Wire.h'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -118,7 +118,7 @@ extern TwoWire Wire;
 The `SPIClass` API provides access to the SPI bus.
 
 ```cpp
-// @#'arduino-hack/SPI.h'
+// @#'SPI.h'
 #pragma once
 /*
 Copyright 2010 by Cristian Maglie <c.maglie@@arduino.cc>
@@ -190,9 +190,11 @@ extern SPIClass SPI;
 ```
 
 ```cmake
-# @#'arduino-hack/CMakeLists.txt'
-set(lib sygaldry-components-arduino_hack)
+# @#'CMakeLists.txt'
+set(lib sygaldry-components-portable-arduino_hack)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
+
+target_link_libraries(sygaldry-components-portable INTERFACE ${lib})
 # @/
 ```

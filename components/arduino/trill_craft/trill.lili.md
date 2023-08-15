@@ -27,7 +27,7 @@ implementation for the T-Stick firmware.
 # Trill Craft
 
 ```cpp
-// @#'sygaldry-components-trill_craft.hpp'
+// @#'sygaldry-components-arduino-trill_craft.hpp'
 #pragma once
 /*
 Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société des
@@ -109,7 +109,7 @@ struct TrillCraft
 } }
 // @/
 
-// @#'sygaldry-components-trill_craft.impl.hpp'
+// @#'sygaldry-components-arduino-trill_craft.impl.hpp'
 /*
 Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société des
 Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
@@ -123,7 +123,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "sygaldry-components-trill_craft.hpp"
+#include "sygaldry-components-arduino-trill_craft.hpp"
 #include <algorithm>
 #include <Trill.h>
 
@@ -205,9 +205,10 @@ TODO: write tests. And documentation...
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygaldry-components-trill_craft)
+set(lib sygaldry-components-arduino-trill_craft)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygaldry-helpers)
+target_link_libraries(sygaldry-components-arduino INTERFACE ${lib})
 # @/
 ```

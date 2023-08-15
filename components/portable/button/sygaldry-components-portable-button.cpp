@@ -7,9 +7,9 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "components/button.hpp"
+#include "sygaldry-components-portable-button.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace portable {
 
 void ButtonGestureModel::operator()()
 {
@@ -22,4 +22,4 @@ void ButtonGestureModel::operator()()
     }
 }
 
-} }
+} } }

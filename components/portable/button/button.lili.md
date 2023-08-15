@@ -37,7 +37,7 @@ to implement a button for specific hardware, and that said platform-specific
 component will implement a name.
 
 ```cpp
-// @#'components/button.hpp'
+// @#'sygaldry-components-portable-button.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -51,7 +51,7 @@ SPDX-License-Identifier: MIT
 #include "sygaldry-utilities-consteval.hpp"
 #include "sygaldry-helpers-endpoints.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace portable {
 
 struct ButtonGestureModel
 {
@@ -71,10 +71,10 @@ struct ButtonGestureModel
     void operator()();
 };
 
-} }
+} } }
 // @/
 
-// @#'src/button.cpp'
+// @#'sygaldry-components-portable-button.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -84,9 +84,9 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "components/button.hpp"
+#include "sygaldry-components-portable-button.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace portable {
 
 void ButtonGestureModel::operator()()
 {
@@ -99,8 +99,22 @@ void ButtonGestureModel::operator()()
     }
 }
 
-} }
+} } }
 // @/
 ```
 
 TODO: write tests for this component
+
+```cmake
+# @#'CMakeLists.txt'
+set(lib sygaldry-components-portable-button)
+add_library(${lib} STATIC)
+target_include_directories(${lib} PUBLIC .)
+target_sources(${lib} PRIVATE ${lib}.cpp)
+target_link_libraries(${lib}
+        PUBLIC sygaldry-utilities-consteval
+        PUBLIC sygaldry-helpers-endpoints
+        )
+target_link_libraries(sygaldry-components-portable INTERFACE ${lib})
+# @/
+```

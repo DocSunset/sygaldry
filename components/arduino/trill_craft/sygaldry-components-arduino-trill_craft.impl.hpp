@@ -11,16 +11,16 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
+#include "sygaldry-components-arduino-trill_craft.hpp"
 #include <algorithm>
 #include <Trill.h>
-#include "components/trill_craft.hpp"
 
 namespace sygaldry { namespace components {
 
 void TrillCraft::init()
 {
     auto trill = new Trill();
-    trill_vptr = static_cast<void *>(trill);
+    pimpl = static_cast<void*>(trill);
     int setup_return_code = trill->setup(Trill::TRILL_CRAFT);
     if (0 != setup_return_code)
     {
@@ -54,7 +54,7 @@ void TrillCraft::main()
 {
     if (not outputs.running) return; // TODO: try to reconnect every so often
 
-    auto trill = static_cast<Trill *>(trill_vptr);
+    auto trill = static_cast<Trill*>(pimpl);
     trill->requestRawData();
     for (int i=0; i<30; i++) {
         if (trill->rawDataAvailable() > 0) {

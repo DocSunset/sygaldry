@@ -30,8 +30,8 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <components/button.hpp>
-#include <sygaldry-components-esp32-gpio.hpp>
+#include "sygaldry-components-portable-button.hpp"
+#include "sygaldry-components-esp32-gpio.hpp"
 
 namespace sygaldry { namespace components { namespace esp32 {
 
@@ -43,7 +43,7 @@ struct Button
 , author_<"Travis J. West">
 , copyright_<"Travis J. West (C) 2023">
 , description_<"A single button attached to a GPIO">
-, ButtonGestureModel
+, portable::ButtonGestureModel
 {
     using gpio = GPIO<pin_number>;
 
@@ -76,7 +76,7 @@ incorporating interrupts or what have you, then tests should be incorporated at
 that time as well.
 
 ```cpp
-// @#'button.test.cpp'
+// @#'sygaldry-components-esp32-button.test.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -86,7 +86,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <components/esp32/button.hpp>
+#include "sygaldry-components-esp32-button.hpp"
 
 void button()
 {
@@ -102,7 +102,8 @@ void button()
 set(lib sygaldry-components-esp32-button)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygaldry-components-portable-button)
 target_link_libraries(${lib} INTERFACE sygaldry-components-esp32-gpio)
-target_link_libraries(${lib} INTERFACE Sygaldry::Components)
+target_link_libraries(sygaldry-components-esp32 INTERFACE ${lib})
 # @/
 ```
