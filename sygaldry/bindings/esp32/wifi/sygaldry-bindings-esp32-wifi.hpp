@@ -3,10 +3,10 @@ Copyright 2022 Edu Meneses https://www.edumeneses.com, Metalab - Société des
 Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
 (IDMIL), McGill University
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -22,7 +22,7 @@ SPDX-License-Identifier: MIT
 #include <nvs_flash.h>
 #include <sygaldry-helpers-metadata.hpp>
 #include <sygaldry-helpers-endpoints.hpp>
-#include <bindings/cstdio_logger.hpp>
+#include <sygaldry-utility_components-portable-cstdio_logger.hpp>
 
 namespace sygaldry { namespace bindings { namespace esp32 {
 
@@ -86,7 +86,7 @@ struct WiFi
     struct handler_state_t {
         EventGroupHandle_t event_group;
         char connection_attempts;
-        CstdioLogger* log;
+        utility_components::CstdioLogger* log;
         static constexpr int connected_bit = BIT0;
         static constexpr int fail_bit = BIT1;
         static constexpr int maximum_connection_attempts = 5;
@@ -119,7 +119,7 @@ struct WiFi
         }
     }
 
-    [[no_unique_address]] CstdioLogger log;
+    [[no_unique_address]] utility_components::CstdioLogger log;
 
     void init()
     {

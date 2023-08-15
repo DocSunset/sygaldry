@@ -46,7 +46,7 @@ SPDX-License-Identifier: MIT
 #include "sygaldry-helpers-metadata.hpp"
 #include "sygaldry-helpers-endpoints.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace arduino {
 
 struct TrillCraft
 : name_<"Trill Craft">
@@ -106,7 +106,7 @@ struct TrillCraft
     void main();
 };
 
-} }
+} } }
 // @/
 
 // @#'sygaldry-sensors-arduino-trill_craft.impl.hpp'
@@ -127,7 +127,7 @@ SPDX-License-Identifier: MIT
 #include <algorithm>
 #include <Trill.h>
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace components { namespace arduino {
 
 void TrillCraft::init()
 {
@@ -197,7 +197,7 @@ void TrillCraft::main()
     }
 }
 
-} }
+} } }
 // @/
 ```
 

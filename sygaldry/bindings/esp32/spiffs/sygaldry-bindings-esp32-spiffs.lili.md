@@ -1,15 +1,15 @@
-\page bind_spiffs ESP32 SPIFFS Session Storage Component
+\page page-sygaldry-bindings-esp32-spiffs ESP32 SPIFFS Session Storage Component
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 
 This document describes the implementation of the SPIFFS session data storage
 component for ESP32, compatible with the
-[RapidJSON session manager](bindings/rapidjson.lili.md).
+[RapidJSON session manager](\ref page-sygaldry-bindings-portable-rapid_json).
 
 [TOC]
 
@@ -18,7 +18,7 @@ component for ESP32, compatible with the
 Much of the functionality of this component is derived from the underlying JSON
 session management component, which formats the stored data when session
 parameters change. This component, the SPIFFS storage component, has these main
-responsibilities: to set up the SPIFFS virtual filesystem, open and class files
+responsibilities: to set up the SPIFFS virtual filesystem, open and close files
 appropriately, and pass streams to `RapidJsonSessionStorage` so that it can
 read and write from these files.
 
@@ -149,13 +149,13 @@ struct SpiffsJsonOStream
 # Summary
 
 ```cpp
-// @#'spiffs.hpp'
+// @#'sygaldry-bindings-esp32-spiffs.hpp'
 #pragma once
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -165,10 +165,8 @@ SPDX-License-Identifier: MIT
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
-#include "esp_spiffs.h"
-#include "sygaldry-concepts-components.hpp"
-#include "bindings/testcomponent.hpp"
-#include "bindings/rapidjson.hpp"
+#include <esp_spiffs.h>
+#include "sygaldry-bindings-portable-rapid_json.hpp"
 
 namespace sygaldry { namespace bindings { namespace esp32 {
 
@@ -196,9 +194,23 @@ struct SpiffsSessionStorage
     }
 };
 
-
-static_assert(Component<SpiffsSessionStorage<components::TestComponent>>);
-
 } } }
 // @/
+```
+
+```cmake
+# @#'CMakeLists.txt'
+set(lib sygaldry-bindings-esp32-spiffs)
+
+add_library(${lib} INTERFACE)
+    target_include_directories(${lib}
+            INTERFACE ${SYGALDRY_ROOT}/dependencies/rapidjson/include
+            INTERFACE .
+            )
+    target_link_libraries(${lib}
+        INTERFACE sygaldry-bindings-portable-rapid_json
+        INTERFACE idf::spiffs
+        )
+target_link_libraries(sygaldry-bindings-esp32 INTERFACE ${lib})
+# @/
 ```
