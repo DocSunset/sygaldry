@@ -1,0 +1,5 @@
+set(lib sygaldry-sensors-esp32-arduino_hack)
+add_library(${lib} STATIC)
+target_link_libraries(${lib} PUBLIC sygaldry-sensors-portable-arduino_hack)
+target_link_libraries(${lib} PRIVATE idf::driver)
+target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)

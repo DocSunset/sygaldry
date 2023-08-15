@@ -825,7 +825,7 @@ LAYOUT_FILE            =
 # LATEX_BIB_STYLE. To use this feature you need bibtex and perl available in the
 # search path. See also \cite for info how to create references.
 
-CITE_BIB_FILES         = ./doxygen/citations.bib
+CITE_BIB_FILES         = ./sygaldry/docs/citations.bib
 
 #---------------------------------------------------------------------------
 # Configuration options related to warning and progress messages
@@ -944,13 +944,11 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ./README.md\
-                         ./docs/design_concepts.md\
-                         ./docs/user_reference.md\
-                         ./docs/implementation.md\
-                         ./helpers\
-                         ./components\
-                         ./concepts\
-                         ./bindings\
+                         ./sygaldry/docs/design_concepts.md\
+                         ./sygaldry/docs/user_reference.md\
+                         ./sygaldry/docs/contributing.md\
+                         ./sygaldry/docs/implementation.md\
+                         ./sygaldry\
                          .\
 
 INPUT_ENCODING         = UTF-8
@@ -986,7 +984,7 @@ EXCLUDE_SYMLINKS       = NO
 # Note that the wildcards are matched against the file with absolute path, so to
 # exclude all test directories for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = */dependencies/* *_build*/* */doxygen/* */*test*/* *tests*.cpp
+EXCLUDE_PATTERNS       = */dependencies/* *_build*/* */*test*/* *tests*.cpp *.test.cpp
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the

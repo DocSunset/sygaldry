@@ -1,2 +1,0 @@
-idf_component_register()
-add_library(sygaldry_components_esp32_adc

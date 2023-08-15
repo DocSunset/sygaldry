@@ -1,0 +1,5 @@
+set(lib sygaldry-sensors-arduino-trill_craft)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygaldry-helpers)
+target_link_libraries(sygaldry-sensors-arduino INTERFACE ${lib})
