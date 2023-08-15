@@ -87,6 +87,9 @@ Rules for component implementations:
 - components that implement bindings should access bound components generically using the concepts library
     - i.e. components are considered as part of a seperate library about which we should try to avoid making assumptions
     - the assumptions that we do make are meant to be encapsulated and isolated in the concepts library, so that changes in those assumptions are insulated from the bindings library
+- components that are platform independent (in the portable subgroup) should be declared in the package group namespace rather than a platform-specific namespace
+    - e.g. `namespace sygaldry { namespace sensors {` rather than something like `namespace sygaldry { namespace sensors { namespace portable {`
+    - this facilitates reuse of these components for specific platforms
 - freely use the explicit API of other components within the same package group (e.g. sensors, bindings)
     - i.e. all components in a group are part of one library, and our assumptions
       about other components in the library should be enforced within it
@@ -122,7 +125,7 @@ Rules for component implementations:
         - `sygaldry-package-component.test.cpp`
         - `CMakeLists.txt`
         - we are currently not strict about Lakos's policy that there must always be an `hpp` and a `cpp`.
-        - the existence of a single `lili.md` and `CMakeLists.txt` in the same directory is a strong signal that the directory contains a self-contained component
+            - the existence of a `CMakeLists.txt` in the same directory as an `hpp` is a strong enough signal that the directory contains a self-contained component
     - template compile time optimization
         - complex templates, especially bindings, should have separate interface (`.hpp`) and implementation (`.impl.hpp`)
 

@@ -1,5 +1,0 @@
-add_executable(rapidjson-tests tests.cpp)
-target_link_libraries(rapidjson-tests PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(rapidjson-tests PRIVATE Sygaldry::Bindings)
-target_include_directories(rapidjson-tests PRIVATE ${PROJECT_SOURCE_DIR}/dependencies/rapidjson/include)
-catch_discover_tests(rapidjson-tests)
