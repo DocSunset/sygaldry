@@ -31,6 +31,7 @@ SPDX-License-Identifier: MIT
 #include <freertos/task.h>
 #include "sygaldry-concepts-runtime.hpp"
 #include "sygaldry-sensors-esp32-button.hpp"
+#include "sygaldry-sensors-esp32-adc.hpp"
 #include "sygaldry-sensors-arduino-two_wire.hpp"
 #include "sygaldry-sensors-esp32-trill.hpp"
 //#include "components/icm20948.hpp"
@@ -49,6 +50,7 @@ struct OneBitBongo
         components::arduino::TwoWire<21,22/*,1000000*/> i2c;
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
+            sensors::esp32::OneshotAdc<33> adc;
             components::arduino::TrillCraft touch;
             //components::arduino::ICM20948 mimu;
         } sensors;

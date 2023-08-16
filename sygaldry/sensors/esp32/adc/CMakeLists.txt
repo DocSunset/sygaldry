@@ -10,6 +10,8 @@ target_include_directories(${lib}
 target_link_libraries(${lib}
         PUBLIC sygaldry-helpers-endpoints
         PUBLIC sygaldry-helpers-metadata
+        PRIVATE idf::esp_adc
+        PRIVATE idf::esp_common
         )
 
 target_link_libraries(sygaldry-sensors-esp32 INTERFACE ${lib})
