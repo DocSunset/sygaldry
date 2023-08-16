@@ -16,7 +16,12 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/*! \defgroup helpers_endpoints_group Endpoints Helpers
+/*! \addtogroup sygaldry-helpers Sygaldry Helpers
+*/
+/// \{
+
+/*! \defgroup sygaldry-helpers-endpoints Endpoints Helpers
+
 The endpoint helpers are intended to serve as value-like types. Users can
 declare instances of these templates in the `inputs` and `outputs` structures
 of a component to add endpoints with convenient APIs, documenting them through
@@ -25,13 +30,15 @@ library for numerous examples.
 */
 /// \{
 
-/*! \defgroup helpers_endpoints_bases Endpoints Bases
+/*! \defgroup sygaldry-endpoints-helpers-bases Endpoints Bases
+
 Base classes for building endpoints. Advanced users may inherit from these
 classes to compose new endpoint types. This is how the canonical endpoint
 helpers are implemented.
 */
 /// \{
-/// \brief A wrapper around a numeric literal that enables using floats as template parameters.
+
+/// A wrapper around a numeric literal that enables using floats as template parameters.
 template<typename T> requires std::integral<T> || std::floating_point<T>
 struct num_literal
 {
@@ -197,6 +204,7 @@ struct occasional
     /// Clear the `updated` flag. This can also be achieved by assignment from empty braces, e.g. `x = {};`
     constexpr void reset() noexcept {updated = false;} // maintains current state
 };
+
 
 /// \}
 

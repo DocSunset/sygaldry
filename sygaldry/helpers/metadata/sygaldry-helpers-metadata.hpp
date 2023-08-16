@@ -55,7 +55,7 @@ metadata_struct(copyright);
 metadata_struct(uuid);
 /// Document a textual description of the version number of an entity, e.g. a component or binding
 metadata_struct(version);
-/// Document a textual description of the date when an entity was release, e.g. a component or binding
+/// Document a textual description of the date when an entity was released, e.g. a component or binding
 metadata_struct(date);
 
 #undef metadata_struct

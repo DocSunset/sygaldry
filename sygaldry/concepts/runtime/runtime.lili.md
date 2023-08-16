@@ -573,9 +573,9 @@ identified, e.g. `constexpr auto runtime = Runtime{container};`.
 template<typename ComponentContainer>
 struct Runtime
 {
-    /*! \brief A reference to the component container managed by the `Runtime`.
+    /*! A reference to the component container managed by the `Runtime`.
 
-    \detail This is intended to refer to the top level component container that
+    This is intended to refer to the top level component container that
     implements an instrument. In principle, it could also be a lower-level
     subcomponent used as a part in a subassembly.
 
@@ -645,10 +645,10 @@ struct Runtime
 // @#'sygaldry-concepts-runtime.hpp'
 #pragma once
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -659,21 +659,33 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
+/*! \defgroup sygaldry-concepts-runtime Runtime
+*/
+/// \{
+
+/*! \defgroup sygaldry-concepts-runtime-detail
+These entities are used in the implementation of the Runtime class and should
+be considered private implementation details.
+*/
+/// \{
 @{component_runtime}
 
 @{runtime tuple}
+/// \}
 
 @{Runtime}
+
+/// \}
 
 }
 // @/
 
 // @#'sygaldry-concepts-runtime.test.cpp'
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
