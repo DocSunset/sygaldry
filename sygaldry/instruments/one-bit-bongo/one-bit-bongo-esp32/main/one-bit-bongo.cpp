@@ -32,7 +32,7 @@ struct OneBitBongo
         components::arduino::TwoWire<21,22/*,1000000*/> i2c;
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
-            sensors::esp32::OneshotAdc<sensors::esp32::ADC1_CHANNEL_5> adc;
+            sensors::esp32::OneshotAdc<33> adc;
             components::arduino::TrillCraft touch;
             //components::arduino::ICM20948 mimu;
         } sensors;

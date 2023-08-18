@@ -397,7 +397,7 @@ target_link_libraries(sygaldry INTERFACE sygaldry-components)
 
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.24)
 project(Sygaldry)
 
 @{set SYGALDRY_ROOT}

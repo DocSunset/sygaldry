@@ -118,6 +118,12 @@ struct range_
         } r;
         return r;
     }
+    /// Returns the minimum value of the range
+    static _consteval auto min() { return _min.value; }
+    /// Returns the maximum value of the range
+    static _consteval auto max() { return _max.value; }
+    /// Returns the initial value of the range
+    static _consteval auto init() { return _init.value; }
 };
 // @/
 
@@ -593,6 +599,10 @@ struct array
 , tagged_<Tags...>
 {
     using persistent<std::array<T, N>>::operator=;
+    constexpr const auto& operator[](std::size_t i) const noexcept
+    {
+        return persistent<std::array<T, N>>::value[i];
+    }
     constexpr auto& operator[](std::size_t i) noexcept
     {
         return persistent<std::array<T, N>>::value[i];
@@ -631,6 +641,10 @@ struct array_message
 , tagged_<Tags...>
 {
     using occasional<std::array<T, N>>::operator=;
+    constexpr const auto& operator[](std::size_t i) const noexcept
+    {
+        return occasional<std::array<T,N>>::state[i];
+    }
     constexpr auto& operator[](std::size_t i) noexcept
     {
         return occasional<std::array<T,N>>::state[i];
