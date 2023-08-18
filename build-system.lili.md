@@ -323,6 +323,7 @@ add_library(sygaldry-components INTERFACE)
         add_library(sygaldry-sensors-portable INTERFACE)
             # arduino-hack, alphabetically missing here, is added only where required by a platform
             add_subdirectory(sygaldry/sensors/portable/button)
+            add_subdirectory(sygaldry/sensors/portable/array_order_mapping)
         target_link_libraries(sygaldry-sensors INTERFACE sygaldry-sensors-portable)
 
         if (ESP_PLATFORM)
@@ -396,7 +397,7 @@ target_link_libraries(sygaldry INTERFACE sygaldry-components)
 
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.0)
 project(Sygaldry)
 
 @{set SYGALDRY_ROOT}
