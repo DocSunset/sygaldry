@@ -335,18 +335,22 @@ As well as being troublingly verbose when editing, this proved problematic when
 building on Windows, which at the time in the year 2023 enforced a limit of 260
 characters on the length of a path when making a directory. Some instrument
 firmwares being built at the time would include the main repository root as a
-library, resulting in very long build artefact paths such as `C:\Users\user\Github\sygaldry\sygaldry\instruments\instrument_name\instrument_name_platform\instrument\build\main\sygbuild\C_Users\user\Github\sygaldry\sensors\arduino\trill_craft\sygsa-trill_craft.obj.d` that would eventually trip the path length limit. Although it was possible to modify registry keys and otherwise work
-around the issue, given the inconvenience entailed in editing and maintaining the
-long component names, it was decided to adopt an organizational scheme with
-better characteristics in terms of brevity.
+library, resulting in very long build artefact paths such as
+`C:\Users\user\Github\sygaldry\sygaldry\instruments\instrument_name\instrument_name_platform\instrument\build\main\sygbuild\C_Users\user\Github\sygaldry\sensors\arduino\trill_craft\sygaldry-sensors-arduino-trill_craft.obj.d`
+that would eventually trip the path length limit. Although it was possible to
+modify registry keys and otherwise work around the issue, given the
+inconvenience entailed in editing and maintaining the long component names, it
+was decided to adopt an organizational scheme with better characteristics in
+terms of brevity.
 
 The repository now contains two main content directories: `sygaldry` and
 `instruments`. The `sygaldry` directory contains all of the software components
 in the library, except for the instruments, which are unsurprisingly found in
-the other directory. Rather than being named verbosely, in keeping with
-\cite lakos2019large-scale-cpp, packages and their components are given identifiers
-of the form `sygXY` where `XY` is the package identifier, with `X` typically (currently always)
-referring to the broad type of components and `Y` to the platform.
+the other directory. Rather than being named verbosely, in keeping with \cite
+lakos2019large-scale-cpp, packages and their components are given identifiers
+of the form `sygXY` where `XY` is the package identifier, with `X` typically
+(currently always) referring to the broad type of components and `Y` to the
+platform.
 
 ```cmake
 # @='add subdirectories'

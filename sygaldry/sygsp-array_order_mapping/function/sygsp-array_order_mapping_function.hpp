@@ -57,7 +57,41 @@ constexpr void array_order_mapping(const T(& in)[N], auto& out, const auto& orde
     array_order_mapping(in, out, N, order);
 }
 
-} } }
+/*! \brief Verify that the given order array's elements are valid indices.
+
+\param[in] size Expected size of the array to reorder.
+\param[in] order The re-ordering indices to validate.
+\return True if the order is valid, false otherwise.
+
+\warning
+
+This function assumes that the `order` array is at least `size` elements long.
+If that is not the case, an out of bounds memory access will occur resulting in
+undefined behavior. It also doesn't check whether the `in` and `out` arrays are
+the right size.
+*/
+constexpr bool array_order_mapping_is_valid(std::size_t size, const auto& order) noexcept
+{
+    for (std::size_t i = 0; i < size; ++i) if (order[i] < 0 || size <= order[i]) return false;
+    return true;
+}
+
+/// Overload for array-like types that have a size member function.
+template<typename T> requires requires (T t) { t.size(); }
+constexpr void array_order_mapping_is_valid(const T& in, const auto& order) noexcept
+{
+    array_order_mapping_is_valid(in.size(), order);
+}
+
+/// Overload for raw C-style arrays
+template<typename T, std::size_t N>
+constexpr void array_order_mapping_is_valid(const T(& in)[N], const auto& order) noexcept
+{
+    array_order_mapping_is_valid(N, order);
+}
 
 /// \}
 /// \}
+
+} } }
+

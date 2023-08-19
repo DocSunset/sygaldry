@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 using namespace sygaldry;
 using namespace sygaldry::sensors;
 using namespace sygaldry::sensors::portable;
-TEST_CASE("sygsp-array_order_mapping_function")
+TEST_CASE("sygsp-array_order_mapping function")
 {
     SECTION("c array")
     {
@@ -44,4 +44,23 @@ TEST_CASE("sygsp-array_order_mapping_function")
         array_order_mapping(in, out, order);
         CHECK(out.value == order);
     }
+
+    SECTION("sygaldry::array_message")
+    {
+        array_message<"array1", 5, "for testing", int, 0, 4> in; in.value() = {0, 1, 2, 3, 4};
+        array_message<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping(in, out, order);
+        CHECK(out.value() == order);
+    }
+}
+TEST_CASE("sygsp-array_order_mapping_is_valid")
+{
+    static constexpr int order[5] = {0,1,2,3,4};
+    static constexpr int too_big_order[5] = {5,1,2,3,4};
+    static constexpr int negative_order[5] = {5,1,2,3,4};
+
+    static_assert(array_order_mapping_is_valid(5, order));
+    static_assert(!array_order_mapping_is_valid(5, too_big_order));
+    static_assert(!array_order_mapping_is_valid(5, negative_order));
 }

@@ -7,6 +7,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
+#include "sygah-metadata.hpp"
+#include "sygah-endpoints.hpp"
+#include "sygsp-array_order_mapping_function.hpp"
 
 namespace sygaldry { namespace sensors { namespace portable {
 
@@ -20,6 +23,11 @@ namespace sygaldry { namespace sensors { namespace portable {
 
 /*! Map the template-parameterised input array to a re-ordered output.
 
+Unlike the `array_order_mapping` function, this component is safe at
+runtime, and guarantees statically that no out of bounds access will
+occur, as long as `array_in` is a `sygaldry::array`, or something
+equivalent.
+
 \tparam array_in The type of the input array to be passed to `main()`.
 \tparam order
 
@@ -28,7 +36,7 @@ See \ref sygsp-array_order_mapping_function for the
 expected format of this array.
 
 */
-template<typename array_in, std::array<std::size_t, array_in::size()> order, typename ... Tags>
+template<typename array_in, std::size_t ... indices>
 struct ArrayOrderMapping
 : name_<"Array Order Mapping">
 , author_<"Travis J. West">
@@ -39,12 +47,12 @@ struct ArrayOrderMapping
     struct outputs_t {
         array< "reordered"
              , array_in::size()
-             , array_in::description()
+             , "reordered array"
+             , typename array_in::type
              , array_in::min()
              , array_in::max()
              , array_in::init()
-             , Tags...
-             > reordered;
+             > out;
     } outputs;
 
     /*! Perform the remapping with output to `reordered`.
@@ -53,11 +61,20 @@ struct ArrayOrderMapping
     
     \sa \ref sygsp-array_order_mapping_function.
     */
-    void main()
+    void main(array_in& in) noexcept
     {
-        array_order_mapping(
+        static constexpr const std::array<std::size_t, sizeof...(indices)> order{indices...};
+        static_assert( array_in::size() == sizeof...(indices)
+                     , "you must pass the same number of indices as the size of the input array"
+                     );
+        static_assert(array_order_mapping_is_valid(array_in::size(), order));
+        array_order_mapping(in, outputs.out, order);
+        if constexpr (requires (array_in a) {a.set_updated;}) outputs.out.set_updated();
     }
-}
+
+    /// Alias for `main()`.
+    void operator()(array_in& in) noexcept {main(in);}
+};
 
 /// \}
 /// \}

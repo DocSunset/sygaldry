@@ -363,6 +363,7 @@ struct array
 , tagged_<Tags...>
 {
     using persistent<std::array<T, N>>::operator=;
+    using type = T;
     constexpr const auto& operator[](std::size_t i) const noexcept
     {
         return persistent<std::array<T, N>>::value[i];
@@ -405,6 +406,7 @@ struct array_message
 , tagged_<Tags...>
 {
     using occasional<std::array<T, N>>::operator=;
+    using type = T;
     constexpr const auto& operator[](std::size_t i) const noexcept
     {
         return occasional<std::array<T,N>>::state[i];

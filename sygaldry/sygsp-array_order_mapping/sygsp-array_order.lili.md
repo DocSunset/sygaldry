@@ -11,11 +11,11 @@ SPDX-License-Identifier: MIT
 
 This component implements a simple mapping that changes the order of the
 elements of an array based on a given specification. It's a patch bay, or a
-combinator. It was originally implemented for use by the [Trill Craft
-component](\ref sygsa-trill_craft) in the T-Stick to
-facilitate changing the order of the raw sensor data from the order in which it
-is measured by the sensor to the order in which the touch sensors appear in a
-T-Stick.
+combinator. It was originally implemented for use by
+[the Trill Craft component](\ref sygsa-trill_craft) in
+[the T-Stick](\ref sygin-t_stick) to facilitate changing the order of the raw
+sensor data from the order in which it is measured by the sensor to the order
+in which the touch sensors appear in a T-Stick.
 
 # Core Implementation
 
@@ -82,7 +82,7 @@ constexpr void array_order_mapping(const T(& in)[N], auto& out, const auto& orde
 
 ```cpp
 // @='core tests'
-TEST_CASE("sygsp-array_order_mapping_function")
+TEST_CASE("sygsp-array_order_mapping function")
 {
     SECTION("c array")
     {
@@ -110,6 +110,71 @@ TEST_CASE("sygsp-array_order_mapping_function")
         array_order_mapping(in, out, order);
         CHECK(out.value == order);
     }
+
+    SECTION("sygaldry::array_message")
+    {
+        array_message<"array1", 5, "for testing", int, 0, 4> in; in.value() = {0, 1, 2, 3, 4};
+        array_message<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping(in, out, order);
+        CHECK(out.value() == order);
+    }
+}
+// @/
+```
+
+For convenience, a function is also provided that allows to verify that the
+order array is valid for reordering an input with a given number of elements.
+
+```cpp
+// @+'core implementation'
+
+/*! \brief Verify that the given order array's elements are valid indices.
+
+\param[in] size Expected size of the array to reorder.
+\param[in] order The re-ordering indices to validate.
+\return True if the order is valid, false otherwise.
+
+\warning
+
+This function assumes that the `order` array is at least `size` elements long.
+If that is not the case, an out of bounds memory access will occur resulting in
+undefined behavior. It also doesn't check whether the `in` and `out` arrays are
+the right size.
+*/
+constexpr bool array_order_mapping_is_valid(std::size_t size, const auto& order) noexcept
+{
+    for (std::size_t i = 0; i < size; ++i) if (order[i] < 0 || size <= order[i]) return false;
+    return true;
+}
+
+/// Overload for array-like types that have a size member function.
+template<typename T> requires requires (T t) { t.size(); }
+constexpr void array_order_mapping_is_valid(const T& in, const auto& order) noexcept
+{
+    array_order_mapping_is_valid(in.size(), order);
+}
+
+/// Overload for raw C-style arrays
+template<typename T, std::size_t N>
+constexpr void array_order_mapping_is_valid(const T(& in)[N], const auto& order) noexcept
+{
+    array_order_mapping_is_valid(N, order);
+}
+// @/
+```
+
+```cpp
+// @+'core tests'
+TEST_CASE("sygsp-array_order_mapping_is_valid")
+{
+    static constexpr int order[5] = {0,1,2,3,4};
+    static constexpr int too_big_order[5] = {5,1,2,3,4};
+    static constexpr int negative_order[5] = {5,1,2,3,4};
+
+    static_assert(array_order_mapping_is_valid(5, order));
+    static_assert(!array_order_mapping_is_valid(5, too_big_order));
+    static_assert(!array_order_mapping_is_valid(5, negative_order));
 }
 // @/
 ```
@@ -140,10 +205,11 @@ namespace sygaldry { namespace sensors { namespace portable {
 
 @{core implementation}
 
+/// \}
+/// \}
+
 } } }
 
-/// \}
-/// \}
 // @/
 ```
 
@@ -206,6 +272,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
+#include "sygah-metadata.hpp"
+#include "sygah-endpoints.hpp"
+#include "sygsp-array_order_mapping_function.hpp"
 
 namespace sygaldry { namespace sensors { namespace portable {
 
@@ -219,6 +288,11 @@ namespace sygaldry { namespace sensors { namespace portable {
 
 /*! Map the template-parameterised input array to a re-ordered output.
 
+Unlike the `array_order_mapping` function, this component is safe at
+runtime, and guarantees statically that no out of bounds access will
+occur, as long as `array_in` is a `sygaldry::array`, or something
+equivalent.
+
 \tparam array_in The type of the input array to be passed to `main()`.
 \tparam order
 
@@ -227,7 +301,7 @@ See \ref sygsp-array_order_mapping_function for the
 expected format of this array.
 
 */
-template<typename array_in, std::array<std::size_t, array_in::size()> order, typename ... Tags>
+template<typename array_in, std::size_t ... indices>
 struct ArrayOrderMapping
 : name_<"Array Order Mapping">
 , author_<"Travis J. West">
@@ -238,12 +312,12 @@ struct ArrayOrderMapping
     struct outputs_t {
         array< "reordered"
              , array_in::size()
-             , array_in::description()
+             , "reordered array"
+             , typename array_in::type
              , array_in::min()
              , array_in::max()
              , array_in::init()
-             , Tags...
-             > reordered;
+             > out;
     } outputs;
 
     /*! Perform the remapping with output to `reordered`.
@@ -252,16 +326,37 @@ struct ArrayOrderMapping
     
     \sa \ref sygsp-array_order_mapping_function.
     */
-    void main()
+    void main(array_in& in) noexcept
     {
-        array_order_mapping(
+        static constexpr const std::array<std::size_t, sizeof...(indices)> order{indices...};
+        static_assert( array_in::size() == sizeof...(indices)
+                     , "you must pass the same number of indices as the size of the input array"
+                     );
+        static_assert(array_order_mapping_is_valid(array_in::size(), order));
+        array_order_mapping(in, outputs.out, order);
+        if constexpr (requires (array_in a) {a.set_updated;}) outputs.out.set_updated();
     }
-}
+
+    /// Alias for `main()`.
+    void operator()(array_in& in) noexcept {main(in);}
+};
 
 /// \}
 /// \}
 
 } } }
+// @/
+```
+
+```cpp
+// @+'tests'
+TEST_CASE("sygsp-array_order_mapping component")
+{
+    array<"in", 5, "for testing", int, 0, 4> in; in.value = {0,1,2,3,4};
+    ArrayOrderMapping<decltype(in), 4, 3, 2, 1, 0> mapping;
+    mapping(in);
+    CHECK(mapping.outputs.out.value == std::array<int,5>{4,3,2,1,0});
+}
 // @/
 ```
 
@@ -282,9 +377,13 @@ namespace sygaldry { namespace sensors { namespace portable {
 
 ```cpp
 // @#'sygsp-array_order_mapping.test.cpp'
+#include <catch2/catch_test_macros.hpp>
+#include "sygah-endpoints.hpp"
 #include "sygsp-array_order_mapping.hpp"
 
-// test suite setup
+using namespace sygaldry;
+using namespace sygaldry::sensors;
+using namespace sygaldry::sensors::portable;
 
 @{tests}
 // @/
@@ -307,10 +406,16 @@ target_include_directories(${lib}
 target_link_libraries(${lib}
         PUBLIC sygah-endpoints
         PUBLIC sygah-metadata
+        PUBLIC sygsp-array_order_mapping_function
         )
 
-# build automation for the test suite goes here
-
+if (SYGALDRY_BUILD_TESTS)
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(${lib}-test PRIVATE ${lib})
+target_link_libraries(${lib}-test PRIVATE sygah-endpoints)
+catch_discover_tests(${lib}-test)
+endif()
 # @/
 ```
 

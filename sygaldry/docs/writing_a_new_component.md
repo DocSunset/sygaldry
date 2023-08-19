@@ -11,11 +11,13 @@ Work in progress!
 
 Remember to add your new component to the top level CMakeLists.txt!
 
-\subpage page-sygXY-new_sensor New Sensor
+I repeat: Remember to add your new component to the top level CMakeLists.txt!
+
+\subpage page-sygXY-newcomponent New Component
 
 # New Component Template
 
-\page page-sygXY-new_sensor New Sensor
+\page page-sygXY-newcomponent New Component
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -29,7 +31,7 @@ SPDX-License-Identifier: MIT
 Literate explication of the design and implementation goes here.
 
 ```cpp
-// @#'sygaldry-sensors-esp32-newsensor.hpp'
+// @#'sygXY-newcomponent.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
@@ -44,11 +46,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sensors { namespace esp32 {
 
-/*! \addtogroup sygaldry-sensors-esp32 ESP32 Sensors
+/*! \addtogroup sygXY
 */
 /// \{
 
-/*! \defgroup sygaldry-sensors-esp32-newsensor New Sensor
+/*! \defgroup sygXY-newcomponent New Component
 */
 /// \{
 
@@ -56,8 +58,8 @@ namespace sygaldry { namespace sensors { namespace esp32 {
 
 detailed doc
 */
-struct NewSensor
-: name_<"New Sensor">
+struct NewComponent
+: name_<"New Component">
 , description_<"Description goes here">
 , author_<"Travis J. West">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
@@ -85,7 +87,7 @@ struct NewSensor
 ```
 
 ```cpp
-// @#'sygaldry-sensors-esp32-newsensor.cpp'
+// @#'sygXY-newcomponent.cpp'
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -94,15 +96,15 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
-#include "sygaldry-sensors-esp32-newsensor"
+#include "sygXY-newcomponent.hpp"
 
-namespace sygaldry { namespace sensors { namespace esp32 {
+namespace sygaldry { namespace sygXY {
 
-void NewSensor::init()
+void NewComponent::init()
 {
 }
 
-void NewSensor::main()
+void NewComponent::main()
 {
 }
 
@@ -111,10 +113,12 @@ void NewSensor::main()
 ```
 
 ```cpp
-// @#'sygaldry-sensors-esp32-newsensor.test.cpp'
-#include "sygaldry-sensors-esp32-newsensor.hpp"
+// @#'sygXY-newcomponent.test.cpp'
+#include <catch2/catch_test_macros.hpp>
+#include "sygXY-newcomponent.hpp"
 
-// test suite setup
+using namespace sygaldry;
+using namespace sygaldry::sygXY;
 
 @{tests}
 // @/
@@ -122,7 +126,7 @@ void NewSensor::main()
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygaldry-sensors-esp32-newsensor)
+set(lib sygXY-newcomponent)
 add_library(${lib} STATIC)
     target_sources(${lib}
             PRIVATE ${lib}.cpp
@@ -134,9 +138,14 @@ add_library(${lib} STATIC)
             PUBLIC sygah-endpoints
             PUBLIC sygaldry-helpers-metadata
             )
-target_link_libraries(sygaldry-sensors-esp32 INTERFACE ${lib})
 
-# build automation for the test suite goes here
+if (SYGALDRY_BUILD_TESTS)
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(${lib}-test PRIVATE ${lib})
+#target_link_libraries(${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
+catch_discover_tests(${lib}-test)
+endif()
 
 # @/
 ```
