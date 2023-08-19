@@ -1,4 +1,4 @@
-\page page-sygaldry-docs-writing_a_new_component Writing a New Component
+\page page-docs-writing_a_new_component Writing a New Component
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -11,9 +11,11 @@ Work in progress!
 
 Remember to add your new component to the top level CMakeLists.txt!
 
+\subpage page-sygXY-new_sensor New Sensor
+
 # New Component Template
 
-\page page-sygaldry-sensors-esp32-newsensor New Sensor
+\page page-sygXY-new_sensor New Sensor
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -129,7 +131,7 @@ add_library(${lib} STATIC)
             PUBLIC .
             )
     target_link_libraries(${lib}
-            PUBLIC sygaldry-helpers-endpoints
+            PUBLIC sygah-endpoints
             PUBLIC sygaldry-helpers-metadata
             )
 target_link_libraries(sygaldry-sensors-esp32 INTERFACE ${lib})

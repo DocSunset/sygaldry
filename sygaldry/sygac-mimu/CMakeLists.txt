@@ -1,0 +1,13 @@
+set(lib sygac-mimu)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygac-components)
+target_link_libraries(sygac INTERFACE ${lib})
+
+if (SYGALDRY_BUILD_TESTS)
+add_executable(${lib}-test ${lib}.test.cpp)
+target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(${lib}-test PRIVATE ${lib})
+target_link_libraries(${lib}-test PRIVATE sygah)
+catch_discover_tests(${lib}-test)
+endif()

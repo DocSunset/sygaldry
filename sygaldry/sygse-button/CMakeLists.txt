@@ -1,0 +1,6 @@
+set(lib sygse-button)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygsp-button)
+target_link_libraries(${lib} INTERFACE sygse-gpio)
+target_link_libraries(sygse INTERFACE ${lib})

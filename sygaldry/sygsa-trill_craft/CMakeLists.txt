@@ -1,0 +1,5 @@
+set(lib sygsa-trill_craft)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygah)
+target_link_libraries(sygsa INTERFACE ${lib})

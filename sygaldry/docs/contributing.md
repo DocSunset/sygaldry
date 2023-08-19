@@ -1,4 +1,4 @@
-\page page-sygaldry-docs-contributing Contributors' Guide
+\page page-docs-contributing Contributors' Guide
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -10,6 +10,8 @@ SPDX-License-Identifier: MIT
 This is currently a work in progress--not so much a guide as a disorganized
 dumping ground where I note things that contributors should probably be aware
 of, as well as a record of conventions I aim to follow myself.
+
+\subpage page-docs-writing_a_new_component
 
 # Licenses
 
@@ -134,7 +136,7 @@ enum class a_simple_enum {
 /// \}
 ```
 
-- See \ref page-sygaldry-helpers-endpoints for an example of the annotation syntax
+- See \ref page-sygah-endpoints for an example of the annotation syntax
 - For entities that can be described in one line, use `/// brief description`
 - For entities that require more in depth documentation, use `/*!` to begin the
   documentation block and `*/` to close it.

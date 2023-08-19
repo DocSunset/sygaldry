@@ -1,4 +1,4 @@
-\page build_system The Build System
+\page page-build_system The Build System
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -160,18 +160,18 @@ environment exports first.
 # @#'sh/idf.sh'
 #!/bin/sh -e
 
-# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+# Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+# Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+# Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 # SPDX-License-Identifier: MIT
 
 ./sh/lili.sh || exit 1
 
-sygaldry_root="$(pwd)"
-cd "$1"
-idf.py "$2" -D SYGALDRY_ROOT="$sygaldry_root"
+cd "sygaldry-instruments/$1"
+shift
+idf.py $@@
 # @/
 ```
 
@@ -293,96 +293,176 @@ the sense described by John Lakos \cite lakos2019large-scale-cpp. Each
 component lives in its own directory, with its own CMakeLists.txt file. The
 main list file's main job is to include these components as subdirectories.
 
+In an earlier version of the project, there was a directory structure resembing
+the following, where each leaf node was a directory containing a component as
+just described:
+
+```
+sygaldry
+├── bindings
+│   ├── esp32
+│   │   ├── libmapper-arduino
+│   │   ├── spiffs
+│   │   └── etc.
+│   └── portable
+│       ├── cli
+│       ├── output_logger
+│       └── etc.
+├── concepts
+│   ├── components
+│   ├── endpoints
+│   └── etc.
+├── helpers
+│   ├── endpoints
+│   ├── metadata
+│   └── etc.
+└── sensors
+    ├── arduino
+    │   ├── icm20948
+    │   ├── trill_craft
+    │   └── etc.
+    ├── esp32
+    │   ├── adc
+    │   ├── arduino-hack
+    │   └── etc.
+    └── portable
+        └── etc.
+```
+
+Components were correspondingly named e.g. `sygse-adc`.
+
+As well as being troublingly verbose when editing, this proved problematic when
+building on Windows, which at the time in the year 2023 enforced a limit of 260
+characters on the length of a path when making a directory. Some instrument
+firmwares being built at the time would include the main repository root as a
+library, resulting in very long build artefact paths such as `C:\Users\user\Github\sygaldry\sygaldry\instruments\instrument_name\instrument_name_platform\instrument\build\main\sygbuild\C_Users\user\Github\sygaldry\sensors\arduino\trill_craft\sygsa-trill_craft.obj.d` that would eventually trip the path length limit. Although it was possible to modify registry keys and otherwise work
+around the issue, given the inconvenience entailed in editing and maintaining the
+long component names, it was decided to adopt an organizational scheme with
+better characteristics in terms of brevity.
+
+The repository now contains two main content directories: `sygaldry` and
+`instruments`. The `sygaldry` directory contains all of the software components
+in the library, except for the instruments, which are unsurprisingly found in
+the other directory. Rather than being named verbosely, in keeping with
+\cite lakos2019large-scale-cpp, packages and their components are given identifiers
+of the form `sygXY` where `XY` is the package identifier, with `X` typically (currently always)
+referring to the broad type of components and `Y` to the platform.
+
 ```cmake
 # @='add subdirectories'
 add_library(sygaldry INTERFACE)
 
-add_library(sygaldry-utilities INTERFACE)
-    add_subdirectory(sygaldry/utilities/consteval)
-target_link_libraries(sygaldry INTERFACE sygaldry-utilities)
+add_library(sygac INTERFACE)
+                add_subdirectory(sygaldry/sygac-components)
+    target_link_libraries(sygac INTERFACE sygac-components)
+                add_subdirectory(sygaldry/sygac-endpoints)
+    target_link_libraries(sygac INTERFACE sygac-endpoints)
+                add_subdirectory(sygaldry/sygac-functions)
+    target_link_libraries(sygac INTERFACE sygac-functions)
+                add_subdirectory(sygaldry/sygac-metadata)
+    target_link_libraries(sygac INTERFACE sygac-metadata)
+                add_subdirectory(sygaldry/sygac-mimu)
+    target_link_libraries(sygac INTERFACE sygac-mimu)
+                add_subdirectory(sygaldry/sygac-runtime)
+    target_link_libraries(sygac INTERFACE sygac-runtime)
+target_link_libraries(sygaldry INTERFACE sygac)
 
-add_library(sygaldry-concepts INTERFACE)
-    add_subdirectory(sygaldry/concepts/components)
-    add_subdirectory(sygaldry/concepts/endpoints)
-    add_subdirectory(sygaldry/concepts/functions)
-    add_subdirectory(sygaldry/concepts/metadata)
-    add_subdirectory(sygaldry/concepts/mimu)
-    add_subdirectory(sygaldry/concepts/runtime)
-target_link_libraries(sygaldry INTERFACE sygaldry-concepts)
+add_library(sygah INTERFACE)
+                add_subdirectory(sygaldry/sygah-consteval)
+    target_link_libraries(sygah INTERFACE sygah-consteval)
+                add_subdirectory(sygaldry/sygah-endpoints)
+    target_link_libraries(sygah INTERFACE sygah-endpoints)
+                add_subdirectory(sygaldry/sygah-metadata)
+    target_link_libraries(sygah INTERFACE sygah-metadata)
+                add_subdirectory(sygaldry/sygah-mimu)
+    target_link_libraries(sygah INTERFACE sygah-mimu)
+target_link_libraries(sygaldry INTERFACE sygah)
 
-add_library(sygaldry-helpers INTERFACE)
-    add_subdirectory(sygaldry/helpers/endpoints)
-    add_subdirectory(sygaldry/helpers/metadata)
-    add_subdirectory(sygaldry/helpers/mimu)
-target_link_libraries(sygaldry INTERFACE sygaldry-helpers)
+add_library(sygsp INTERFACE)
+    # arduino-hack, alphabetically missing here, is added only where required by a platform
+                add_subdirectory(sygaldry/sygsp-button)
+    target_link_libraries(sygsp INTERFACE sygsp-button)
+                add_subdirectory(sygaldry/sygsp-array_order_mapping)
+    target_link_libraries(sygsp INTERFACE sygsp-array_order_mapping)
+target_link_libraries(sygaldry INTERFACE sygsp)
 
-add_library(sygaldry-components INTERFACE)
+if (ESP_PLATFORM)
+    add_library(sygse INTERFACE)
+    add_library(sygsa INTERFACE)
+                    add_subdirectory(sygaldry/sygsp-arduino_hack)
+        target_link_libraries(sygsp INTERFACE sygsp-arduino_hack)
+                    add_subdirectory(sygaldry/sygse-arduino_hack)
+        target_link_libraries(sygse INTERFACE sygse-arduino_hack)
+                    add_subdirectory(sygaldry/sygsa-two_wire)
+        target_link_libraries(sygsa INTERFACE sygsa-two_wire)
+                    add_subdirectory(sygaldry/sygsa-trill_craft)
+        target_link_libraries(sygsa INTERFACE sygsa-trill_craft)
+                    add_subdirectory(sygaldry/sygse-adc)
+        target_link_libraries(sygse INTERFACE sygse-adc)
+                    add_subdirectory(sygaldry/sygse-button)
+        target_link_libraries(sygse INTERFACE sygse-button)
+                    add_subdirectory(sygaldry/sygse-gpio)
+        target_link_libraries(sygse INTERFACE sygse-gpio)
+        #            add_subdirectory(sygaldry/sygse-icm20948)
+        #target_link_libraries(sygse INTERFACE sygse-icm20948)
+                    add_subdirectory(sygaldry/sygse-trill)
+        target_link_libraries(sygse INTERFACE sygse-trill)
+    target_link_libraries(sygaldry INTERFACE sygse)
+    target_link_libraries(sygaldry INTERFACE sygsa)
+endif()
 
-    add_library(sygaldry-sensors INTERFACE)
+add_library(sygbp INTERFACE)
+                add_subdirectory(sygaldry/sygbp-cstdio_reader)
+    target_link_libraries(sygbp INTERFACE sygbp-cstdio_reader)
+                add_subdirectory(sygaldry/sygbp-cli)
+    target_link_libraries(sygbp INTERFACE sygbp-cli)
+                add_subdirectory(sygaldry/sygbp-liblo)
+    target_link_libraries(sygbp INTERFACE sygbp-liblo)
+                add_subdirectory(sygaldry/sygbp-osc_match_pattern)
+    target_link_libraries(sygbp INTERFACE sygbp-osc_match_pattern)
+                add_subdirectory(sygaldry/sygbp-osc_string_constants)
+    target_link_libraries(sygbp INTERFACE sygbp-osc_string_constants)
+                add_subdirectory(sygaldry/sygbp-output_logger)
+    target_link_libraries(sygbp INTERFACE sygbp-output_logger)
+                add_subdirectory(sygaldry/sygbp-rapid_json)
+    target_link_libraries(sygbp INTERFACE sygbp-rapid_json)
+                add_subdirectory(sygaldry/sygbp-session_data)
+    target_link_libraries(sygbp INTERFACE sygbp-session_data)
+                add_subdirectory(sygaldry/sygbp-spelling)
+    target_link_libraries(sygbp INTERFACE sygbp-spelling)
+    if (SYGALDRY_BUILD_TESTS)
+                    add_subdirectory(sygaldry/sygbp-test_reader)
+        target_link_libraries(sygbp INTERFACE sygbp-test_reader)
+                    add_subdirectory(sygaldry/sygbp-test_component)
+        target_link_libraries(sygbp INTERFACE sygbp-test_component)
+    endif()
+target_link_libraries(sygaldry INTERFACE sygbp)
 
-        add_library(sygaldry-sensors-portable INTERFACE)
-            # arduino-hack, alphabetically missing here, is added only where required by a platform
-            add_subdirectory(sygaldry/sensors/portable/button)
-            add_subdirectory(sygaldry/sensors/portable/array_order_mapping)
-        target_link_libraries(sygaldry-sensors INTERFACE sygaldry-sensors-portable)
+if (ESP_PLATFORM)
+add_library(sygbe INTERFACE)
 
-        if (ESP_PLATFORM)
-            add_library(sygaldry-sensors-esp32 INTERFACE)
-            add_library(sygaldry-sensors-arduino INTERFACE)
-                add_subdirectory(sygaldry/sensors/portable/arduino-hack)
-                add_subdirectory(sygaldry/sensors/esp32/arduino-hack)
-                add_subdirectory(sygaldry/sensors/arduino/two_wire)
-                add_subdirectory(sygaldry/sensors/arduino/trill_craft)
-                add_subdirectory(sygaldry/sensors/esp32/adc)
-                add_subdirectory(sygaldry/sensors/esp32/button)
-                add_subdirectory(sygaldry/sensors/esp32/gpio)
-                    #add_subdirectory(sygaldry/sensors/esp32/icm20948)
-                add_subdirectory(sygaldry/sensors/esp32/trill)
-            target_link_libraries(sygaldry-sensors INTERFACE sygaldry-sensors-esp32)
-            target_link_libraries(sygaldry-sensors INTERFACE sygaldry-sensors-arduino)
-        endif()
+                add_subdirectory(sygaldry/sygbe-libmapper_arduino)
+    target_link_libraries(sygbe INTERFACE sygbe-libmapper_arduino)
+                add_subdirectory(sygaldry/sygbe-spiffs)
+    target_link_libraries(sygbe INTERFACE sygbe-spiffs)
+                add_subdirectory(sygaldry/sygbe-wifi)
+    target_link_libraries(sygbe INTERFACE sygbe-wifi)
 
-    target_link_libraries(sygaldry-components INTERFACE sygaldry-sensors)
+target_link_libraries(sygaldry INTERFACE sygbe)
+endif()
 
-    add_library(sygaldry-bindings INTERFACE)
+add_library(sygup INTERFACE)
 
-        add_library(sygaldry-bindings-portable INTERFACE)
-            add_subdirectory(sygaldry/bindings/portable/basic_reader/cstdio_reader)
-            add_subdirectory(sygaldry/bindings/portable/cli)
-            add_subdirectory(sygaldry/bindings/portable/osc/liblo)
-            add_subdirectory(sygaldry/bindings/portable/osc/match_pattern)
-            add_subdirectory(sygaldry/bindings/portable/osc/string_constants)
-            add_subdirectory(sygaldry/bindings/portable/output_logger)
-            add_subdirectory(sygaldry/bindings/portable/rapidjson)
-            add_subdirectory(sygaldry/bindings/portable/session_data)
-            add_subdirectory(sygaldry/bindings/portable/spelling)
-            if (SYGALDRY_BUILD_TESTS)
-                add_subdirectory(sygaldry/bindings/portable/basic_reader/test_reader)
-                add_subdirectory(sygaldry/bindings/portable/test_component)
-            endif()
-        target_link_libraries(sygaldry-bindings INTERFACE sygaldry-bindings-portable)
+                add_subdirectory(sygaldry/sygup-basic_logger)
+    target_link_libraries(sygup INTERFACE sygup-basic_logger)
+                add_subdirectory(sygaldry/sygup-cstdio_logger)
+    target_link_libraries(sygup INTERFACE sygup-cstdio_logger)
+    if (SYGALDRY_BUILD_TESTS)
+                    add_subdirectory(sygaldry/sygup-test_logger)
+        target_link_libraries(sygup INTERFACE sygup-test_logger)
+    endif()
 
-        if (ESP_PLATFORM)
-            add_library(sygaldry-bindings-esp32 INTERFACE)
-                add_subdirectory(sygaldry/bindings/esp32/libmapper-arduino)
-                add_subdirectory(sygaldry/bindings/esp32/spiffs)
-                add_subdirectory(sygaldry/bindings/esp32/wifi)
-            target_link_libraries(sygaldry-bindings INTERFACE sygaldry-bindings-esp32)
-        endif()
-
-    target_link_libraries(sygaldry-components INTERFACE sygaldry-bindings)
-
-    add_library(sygaldry-utility_components INTERFACE)
-
-        add_subdirectory(sygaldry/utility_components/portable/basic_logger/basic_logger)
-        if (SYGALDRY_BUILD_TESTS)
-            add_subdirectory(sygaldry/utility_components/portable/basic_logger/test_logger)
-        endif()
-        add_subdirectory(sygaldry/utility_components/portable/basic_logger/cstdio_logger)
-
-    target_link_libraries(sygaldry-components INTERFACE sygaldry-utility_components)
-
-target_link_libraries(sygaldry INTERFACE sygaldry-components)
+target_link_libraries(sygaldry INTERFACE sygup)
 # @/
 ```
 
