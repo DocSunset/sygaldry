@@ -63,12 +63,7 @@ struct ArrayOrderMapping
     */
     void main(array_in& in) noexcept
     {
-        static constexpr const std::array<std::size_t, sizeof...(indices)> order{indices...};
-        static_assert( array_in::size() == sizeof...(indices)
-                     , "you must pass the same number of indices as the size of the input array"
-                     );
-        static_assert(array_order_mapping_is_valid(array_in::size(), order));
-        array_order_mapping(in, outputs.out, order);
+        array_order_mapping<indices...>(in, outputs.out);
         if constexpr (requires (array_in a) {a.set_updated;}) outputs.out.set_updated();
     }
 

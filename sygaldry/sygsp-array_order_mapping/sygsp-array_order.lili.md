@@ -35,15 +35,20 @@ should be given. E.g. to reverse a 3-element input, give `order = {2,1,0};`.
 \warning
 
 It is assumed without checking to that all elements of `order` are valid
-indices into the input array, e.g. non-negative integers less than `size`.
-If this is not true, an out of bounds memory access will occur resulting in
-undefined behaviour (likely a crash).
+indices into the input array, e.g. non-negative integers less than `size`, and
+that all arrays have at least `size` elements. If either assumption is invalid,
+an out of bounds memory access will occur resulting in undefined behaviour
+(likely a crash). Use one of the overloads below for greater static safety
+guarantees.
 
 */
-constexpr void array_order_mapping(const auto& in, auto& out, std::size_t size, const auto& order) noexcept
+constexpr void array_order_mapping( const auto& in
+                                  , auto& out
+                                  , std::size_t size
+                                  , const auto& order
+                                  ) noexcept
 {
-    for (std::size_t i = 0; i < size; ++i)
-        out[i] = in[order[i]];
+    for (std::size_t i = 0; i < size; ++i) out[i] = in[order[i]];
 }
 // @/
 ```
@@ -59,22 +64,48 @@ types that will obviously not work.
 
 For convenience, we provide specialised overloads for some common expected
 cases. The overload for `std::array`-like input (with `size()` member function)
-should probably be constained more carefully.
+should probably be constained more carefully, but once again trust is placed
+with the user not to try to cram something unexpected through this overload.
 
 ```cpp
 // @+'core implementation'
 
-/// Overload for array-like types that have a size member function
-template<typename T> requires requires (T t) { t.size(); }
-constexpr void array_order_mapping(const T& in, auto& out, const auto& order) noexcept
+/*! Overload for array-like types that have a size member function
+
+This overload ensures that the output and order arrays have at least as many
+elements as the input array (they are allowed to have more that will not be
+accessed by this function), but it does not validate the order indices. See
+array_order_mapping_is_valid.
+
+Note that it is allowed for all three arrays to have different value types.
+*/
+template<typename T, typename Y, typename Z>
+    requires requires (T t) { t.size(); }
+    && requires (Y y) { y.size(); }
+    && requires (Z z) { z.size(); }
+constexpr void array_order_mapping(const T& in, Y& out, const Z& order) noexcept
 {
+    static_assert( T{}.size() <= Y{}.size() && T{}.size() <= Z{}.size()
+                 , "out and order arrays must be at least as long or longer than input array"
+                 );
     array_order_mapping(in, out, in.size(), order);
 }
 
-/// Overload for raw C-style arrays
-template<typename T, std::size_t N>
-constexpr void array_order_mapping(const T(& in)[N], auto& out, const auto& order) noexcept
+/*! Overload for raw C-style arrays
+
+This overload ensures that the output and order arrays have at least as many
+elements as the input array (they are allowed to have more that will not be
+accessed by this function), but it does not validate the order indices. See
+array_order_mapping_is_valid.
+
+Note that it is allowed for all three arrays to have different value types.
+*/
+template<typename T, std::size_t N, typename Y, std::size_t M, typename Z, std::size_t L>
+constexpr void array_order_mapping(const T(& in)[N], Y(& out)[M], const Z(& order)[L]) noexcept
 {
+    static_assert( N <= M && N <= L
+                 , "out and order arrays must be at least as long or longer than input array"
+                 );
     array_order_mapping(in, out, N, order);
 }
 // @/
@@ -147,20 +178,6 @@ constexpr bool array_order_mapping_is_valid(std::size_t size, const auto& order)
     for (std::size_t i = 0; i < size; ++i) if (order[i] < 0 || size <= order[i]) return false;
     return true;
 }
-
-/// Overload for array-like types that have a size member function.
-template<typename T> requires requires (T t) { t.size(); }
-constexpr void array_order_mapping_is_valid(const T& in, const auto& order) noexcept
-{
-    array_order_mapping_is_valid(in.size(), order);
-}
-
-/// Overload for raw C-style arrays
-template<typename T, std::size_t N>
-constexpr void array_order_mapping_is_valid(const T(& in)[N], const auto& order) noexcept
-{
-    array_order_mapping_is_valid(N, order);
-}
 // @/
 ```
 
@@ -179,6 +196,103 @@ TEST_CASE("sygsp-array_order_mapping_is_valid")
 // @/
 ```
 
+Based on this predicate, if the order indices are known at compile time we can
+statically assert their validity.
+
+```cpp
+// @+'core implementation'
+
+/*! Overload where the order indices are known at compile time, but not the size of the input and output arrays
+
+This overload ensures that the indices in the `order` array, given as template
+parameters, are valid with respect to the size `N` given as a template
+parameter. It's not possible to ensure whether the number of indices
+corresponds correctly to the size of the `input` or `output` arrays in this
+case, where the type of these arrays is unknown.
+*/
+template<std::size_t N, std::size_t ... indices>
+constexpr void array_order_mapping(const auto& in, auto& out) noexcept
+{
+    constexpr const std::size_t order[sizeof...(indices)]{indices...};
+    static_assert(N <= sizeof...(indices));
+    static_assert(array_order_mapping_is_valid(N, order));
+    array_order_mapping(in, out, N, order);
+}
+
+/*! Overload where the order indices are known at compile time for types with constexpr size operators and constructors
+
+This overload is statically safety-checked and guaranteed not to result in
+runtime errors due to out-of-bounds memory access.
+*/
+template<std::size_t ... indices, typename T, typename Y>
+    requires requires (T t) { t.size(); }
+    && requires (Y y) { y.size(); }
+constexpr void array_order_mapping(const T& in, Y& out) noexcept
+{
+    constexpr const std::size_t order[sizeof...(indices)]{indices...};
+    static_assert(T{}.size() <= Y{}.size() && T{}.size() <= sizeof...(indices));
+    static_assert(array_order_mapping_is_valid(T{}.size(), order));
+    array_order_mapping(in, out, T{}.size(), order);
+}
+
+/*! Overload where the order indices are known at compile time for c arrays
+
+This overload is statically safety-checked and guaranteed not to result in
+runtime errors due to out-of-bounds memory access.
+*/
+template<std::size_t ... indices, typename T, std::size_t N, typename Y, std::size_t M>
+constexpr void array_order_mapping(const T(& in)[N], Y(& out)[M]) noexcept
+{
+    constexpr std::size_t order[sizeof...(indices)]{indices...};
+    static_assert(N <= M && N <= sizeof...(indices));
+    static_assert(array_order_mapping_is_valid(N, order));
+    array_order_mapping(in, out, N, order);
+}
+// @/
+```
+```cpp
+// @+'core tests'
+TEST_CASE("sygsp-array_order_mapping safe overloads")
+{
+    SECTION("c array")
+    {
+        int in[5] = {0, 1, 2, 3, 4};
+        int out[5] = {0};
+        int order[5] = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(std::memcmp((const void *)out, (const void *)order, 5 * sizeof(int)) == 0);
+    }
+
+    SECTION("std::array")
+    {
+        std::array<int, 5> in = {0, 1, 2, 3, 4};
+        std::array<int, 5> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out == order);
+    }
+
+    SECTION("sygaldry::array")
+    {
+        array<"array1", 5, "for testing", int, 0, 4> in; in.value = {0, 1, 2, 3, 4};
+        array<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out.value == order);
+    }
+
+    SECTION("sygaldry::array_message")
+    {
+        array_message<"array1", 5, "for testing", int, 0, 4> in; in.value() = {0, 1, 2, 3, 4};
+        array_message<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out.value() == order);
+    }
+}
+// @/
+```
+
 ## Core Boilerplate
 
 ```cpp
@@ -192,6 +306,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
+#include <array>
 
 namespace sygaldry { namespace sensors { namespace portable {
 
@@ -328,12 +443,7 @@ struct ArrayOrderMapping
     */
     void main(array_in& in) noexcept
     {
-        static constexpr const std::array<std::size_t, sizeof...(indices)> order{indices...};
-        static_assert( array_in::size() == sizeof...(indices)
-                     , "you must pass the same number of indices as the size of the input array"
-                     );
-        static_assert(array_order_mapping_is_valid(array_in::size(), order));
-        array_order_mapping(in, outputs.out, order);
+        array_order_mapping<indices...>(in, outputs.out);
         if constexpr (requires (array_in a) {a.set_updated;}) outputs.out.set_updated();
     }
 

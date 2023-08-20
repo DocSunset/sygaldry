@@ -64,3 +64,41 @@ TEST_CASE("sygsp-array_order_mapping_is_valid")
     static_assert(!array_order_mapping_is_valid(5, too_big_order));
     static_assert(!array_order_mapping_is_valid(5, negative_order));
 }
+TEST_CASE("sygsp-array_order_mapping safe overloads")
+{
+    SECTION("c array")
+    {
+        int in[5] = {0, 1, 2, 3, 4};
+        int out[5] = {0};
+        int order[5] = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(std::memcmp((const void *)out, (const void *)order, 5 * sizeof(int)) == 0);
+    }
+
+    SECTION("std::array")
+    {
+        std::array<int, 5> in = {0, 1, 2, 3, 4};
+        std::array<int, 5> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out == order);
+    }
+
+    SECTION("sygaldry::array")
+    {
+        array<"array1", 5, "for testing", int, 0, 4> in; in.value = {0, 1, 2, 3, 4};
+        array<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out.value == order);
+    }
+
+    SECTION("sygaldry::array_message")
+    {
+        array_message<"array1", 5, "for testing", int, 0, 4> in; in.value() = {0, 1, 2, 3, 4};
+        array_message<"array2", 5, "for testing", int, 0, 4> out{};
+        std::array<int, 5> order = {1, 2, 4, 0, 3};
+        array_order_mapping<1,2,4,0,3>(in, out);
+        CHECK(out.value() == order);
+    }
+}
