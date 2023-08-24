@@ -23,7 +23,7 @@ The liblo binding has the following responsibilities:
     - registering an error handler callback with the same,
     - registering at least one handler with `lo_server_add_method`,
 - Route incoming messages to the appropriate endpoints, e.g. within a server
-  thread method or methods
+  method or methods
 - Recognize when output signals have changed, and produce output messages
   accordingly using `lo_send` or another method
 
@@ -39,7 +39,7 @@ accurate time stamps may not behave as intended.
 
 # Init
 
-## Server
+## Server Setup
 
 First, we wish to set up a liblo server.
 
@@ -109,20 +109,41 @@ TEST_CASE("liblo osc port is valid")
 // @/
 ```
 
+Server setup begins by validating the input source port using this method. If
+the port has been updated and is valid, then we need to restart the server with
+the new port. However, if either or these conditions is not met (i.e. the port
+has not been updated or the port is not valid), and the server is already
+running, it would be inappropriate to restart the server, so we short circuit
+in this case.
+
 ```cpp
 // @+'set_server'
 void set_server(auto& components)
 {
-    bool user_src_port = port_is_valid(inputs.src_port);
+    bool valid_user_src_port = port_is_valid(inputs.src_port);
 
-    // set the server if the server is not running or the source port has been validly updated
-    if (outputs.server_running && not (inputs.src_port.updated && user_src_port)) return;
+    // do not reset the server if the server is already running and the source port has not been validly updated
+    if (outputs.server_running && not (inputs.src_port.updated && valid_user_src_port)) return;
 
     fprintf(stdout, "liblo: setting up server\n");
+// @/
+```
 
+Having checked that, we can be certain that we have everything we need to start
+setting up the server.
+
+If the server already exists, we free it. The port must have been updated, so
+we need to create a new server instance with the new port.
+
+We then create the new server instance, either allowing liblo to find an unused
+port (in case we don't have a valid one), or using the valid port given by the
+user.
+
+```cpp
+// @+'set_server'
     if (server) lo_server_free(server);
 
-    if (not user_src_port)
+    if (not valid_user_src_port)
     {
         fprintf(stdout, "liblo: searching for unused port\n");
         server = lo_server_new(NULL, &LibloOsc::server_error_handler);
@@ -132,6 +153,15 @@ void set_server(auto& components)
         fprintf(stdout, "liblo: using given port %s\n", inputs.src_port->c_str());
         server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
     }
+// @/
+```
+
+We check to make sure that worked as expected, signalling an error through the
+output flag in case of failure.
+
+```cpp
+// @+'set_server'
+
     if (server == NULL)
     {
         fprintf(stderr, "liblo: server setup failed\n");
@@ -140,8 +170,17 @@ void set_server(auto& components)
     }
 
     fprintf(stderr, "liblo: server setup successful\n");
+// @/
+```
 
-    if (not user_src_port)
+If we didn't already have a valid port, then liblo will have automatically
+found one. We set the input source port to this port. In either case, we then
+print the source port.
+
+```cpp
+// @+'set_server'
+
+    if (not valid_user_src_port)
     {
         char port_str[6] = {0};
         int port_num = lo_server_get_port(server);
@@ -152,6 +191,14 @@ void set_server(auto& components)
     }
     else
         fprintf(stdout, "liblo: connected on port %s\n", inputs.src_port->c_str());
+// @/
+```
+
+Finally, we register callbacks with the server and signal that it was
+successfully set up.
+
+```cpp
+// @+'set_server'
 
     fprintf(stderr, "liblo: registering callbacks\n");
     @{register callbacks}
@@ -161,7 +208,13 @@ void set_server(auto& components)
     return;
 }
 // @/
+```
 
+During the initialization subroutine, we call this method after setting the
+`server_running` flag low to prevent it from immediately returning without
+setting up the server.
+
+```cpp
 // @+'init'
 fprintf(stdout, "liblo: initializing\n");
 outputs.server_running = 0; // so that set_server doesn't short circuit immediately
@@ -184,9 +237,9 @@ static void server_error_handler(int num, const char *msg, const char *where)
 
 ## Destination Address
 
-Setting up the address is a similar matter, however, we require an address
-*and* port before we can create the `lo_address`. Ideally we could have
-multiple destinations, but for now this is left as future work.
+Setting up the output liblo address is a similar matter, however, we require an
+IP address *and* port before we can create the `lo_address`. Ideally we could
+have multiple destinations, but for now this is left as future work.
 
 ```cpp
 // @+'data members'
@@ -212,12 +265,16 @@ available; if the address and port are ready during initialization, the address
 will be set immediately. Otherwise, it will be run in the main subroutine when
 the address and port have been set.
 
+As with the server setup method, we define a flag to signal whether the
+destination destination is set up, as well as methods to validate the inputs
+required to set up the destination address.
+
 ```cpp
 // @+'outputs'
 toggle<"output running"> output_running;
 // @/
 
-// @='set_dst'
+// @+'set_dst'
 bool ip_addr_is_valid(auto& ip)
 {
     // TODO: implement a more robust verification of the dst ip address
@@ -230,7 +287,16 @@ bool dst_inputs_are_valid()
 {
     return ip_addr_is_valid(inputs.dst_addr) and port_is_valid(inputs.dst_port);
 }
+// @/
+```
 
+The setup method is slightly simpler. If the destination parameters (IP address
+and port) have changed, we free any existing destination address and then reset
+a new one. We then simply set the `output_running` flag according to whether
+this was successful.
+
+```cpp
+// @+'set_dst'
 void set_dst()
 {
     bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated);
@@ -255,6 +321,11 @@ set_dst();
 // @/
 ```
 
+Compared with setting up the server, we don't need to grab any information from
+liblo after setting up the destination address (because we have all relevant
+information before setting it up), and we don't have to register callbacks,
+which make this subroutine noticeably simpler.
+
 ## Registering callbacks
 
 There are broadly two appoaches that we could take for the server callback
@@ -270,10 +341,11 @@ for each endpoint. For now, we opt for the former approach, as it enables us to
 get to a working implementation more quickly. If runtime memory becomes an
 issue, this may be one area where gains could be made.
 
-For each input endpoint in the component tree, we register a callback that
-defers setting the input to an overloaded template function that does most of
-the work; the callback registered with liblo basically just holds the type
-information of the endpoint.
+For each input endpoint in the component tree, we register a `handler` callback
+that defers setting the input to an overloaded template function `set_input`
+that does most of the work; the `handler` callback registered with liblo
+basically just holds the type information of the endpoint in the form of a type
+parameter that gets captured by this lambda.
 
 ```cpp
 // @='register callbacks'
@@ -302,9 +374,9 @@ for_each_input(components, [&]<typename T>(T& in)
 // @/
 ```
 
-The inner callback simply inspects the endpoint and attempts to apply the OSC
-arguments to it. This implementation bears a lot of duplication that should be
-reduced in future work.
+The `set_input` function simply inspects the endpoint and attempts to apply the
+OSC arguments to it. This implementation bears a lot of duplication that should
+be reduced in future work.
 
 ```cpp
 // @='set_input'
@@ -404,13 +476,14 @@ void main(Components& components)
 ```
 
 External destinations: we send output messages. This step is a bit more
-involved. An earlier implementation of this subroutine simply called `lo_send`
-and its relatives to send each output endpoint's current value as an OSC
-message. This results in a large number of calls to the underlying sockets API
-`sendto` function, which was enough to overwhelm the ESP32 socket driver
-buffers. To avoid this, and likely improve performance on all platforms, we
-place our messages into a bundle so that only one socket `sendto` is issued for
-each tick.
+involved.
+
+An earlier implementation of this subroutine simply called `lo_send` and its
+relatives to send each output endpoint's current value as an OSC message. This
+results in a large number of calls to the underlying sockets API `sendto`
+function, which was enough to overwhelm the ESP32 socket driver buffers. To
+avoid this, and likely improve performance on all platforms, we place our
+messages into a bundle so that only one socket `sendto` is issued for each tick.
 
 First, we only send messages if the output is running, i.e. we have a
 destination IP address and port number. If so, we populate the message with
@@ -429,10 +502,10 @@ void external_destinations(Components& components)
             @{populate output messages}
         });
         int ret = lo_send_bundle(dst, bundle);
-        if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
-                            , lo_address_errno(dst)
-                            , lo_address_errstr(dst)
-                            );
+        //if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
+        //                    , lo_address_errno(dst)
+        //                    , lo_address_errstr(dst)
+        //                    );
         lo_bundle_free_recursive(bundle);
     }
 }
@@ -442,8 +515,8 @@ void external_destinations(Components& components)
 The way in which an output endpoint should be converted to OSC depends on its
 type. Bangs and occasional values only need to be sent when they have been
 updated. We check these types of endpoints for readiness before allocating a
-message. Notice that the return statements here function as a way to break out
-of the loop over output endpoints; they don't short circuit the overall
+message. Notice that the return statements here function as a way to continue
+the loop over output endpoints; they don't short circuit the overall
 `external_destinations` subroutine.
 
 ```cpp

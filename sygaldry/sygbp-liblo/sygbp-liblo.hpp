@@ -129,16 +129,15 @@ struct LibloOsc
     }
     void set_server(auto& components)
     {
-        bool user_src_port = port_is_valid(inputs.src_port);
+        bool valid_user_src_port = port_is_valid(inputs.src_port);
 
-        // set the server if the server is not running or the source port has been validly updated
-        if (outputs.server_running && not (inputs.src_port.updated && user_src_port)) return;
+        // do not reset the server if the server is already running and the source port has not been validly updated
+        if (outputs.server_running && not (inputs.src_port.updated && valid_user_src_port)) return;
 
         fprintf(stdout, "liblo: setting up server\n");
-
         if (server) lo_server_free(server);
 
-        if (not user_src_port)
+        if (not valid_user_src_port)
         {
             fprintf(stdout, "liblo: searching for unused port\n");
             server = lo_server_new(NULL, &LibloOsc::server_error_handler);
@@ -148,6 +147,7 @@ struct LibloOsc
             fprintf(stdout, "liblo: using given port %s\n", inputs.src_port->c_str());
             server = lo_server_new(inputs.src_port->c_str(), &LibloOsc::server_error_handler);
         }
+
         if (server == NULL)
         {
             fprintf(stderr, "liblo: server setup failed\n");
@@ -157,7 +157,7 @@ struct LibloOsc
 
         fprintf(stderr, "liblo: server setup successful\n");
 
-        if (not user_src_port)
+        if (not valid_user_src_port)
         {
             char port_str[6] = {0};
             int port_num = lo_server_get_port(server);
@@ -210,7 +210,6 @@ struct LibloOsc
     {
         return ip_addr_is_valid(inputs.dst_addr) and port_is_valid(inputs.dst_port);
     }
-
     void set_dst()
     {
         bool dst_updated = (inputs.dst_port.updated || inputs.dst_addr.updated);
@@ -303,10 +302,10 @@ struct LibloOsc
                 return;
             });
             int ret = lo_send_bundle(dst, bundle);
-            if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
-                                , lo_address_errno(dst)
-                                , lo_address_errstr(dst)
-                                );
+            //if (ret < 0) fprintf( stderr, "liblo: error %d sending bundle --- %s\n"
+            //                    , lo_address_errno(dst)
+            //                    , lo_address_errstr(dst)
+            //                    );
             lo_bundle_free_recursive(bundle);
         }
     }
