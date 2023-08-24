@@ -571,6 +571,34 @@ struct slider
     using persistent<T>::operator=;
 };
 
+/*! \brief A numeric endpoint with user customizeable range and occasional value semantics
+\details Example: `slider_message<"pressure", "Current reading from the pressure sensor"> pressure;`
+\tparam name_str The name of the endpoint. Required.
+\tparam desc A description of the endpoint. Defaults to an empty string.
+\tparam T Underlying value type of the endpoint. Defaults to `float`.
+\tparam min Expected minimum value of the endpoint. Defaults to `0.0f`.
+\tparam max Expected maximum value of the endpoint. Defaults to `1.0f`.
+\tparam init The initial value of the endpoint. Defaults to `min`.
+\tparam Tags Tag helper classes to apply to the endpoint. None by default.
+*/
+template< string_literal name_str
+        , string_literal desc = ""
+        , typename T = float
+        , num_literal<T> min = 0.0f
+        , num_literal<T> max = 1.0f
+        , num_literal<T> init = min
+        , typename ... Tags
+        >
+struct slider_message
+: occasional<T>
+, name_<name_str>
+, description_<desc>
+, range_<min, max, init>
+, tagged_<Tags...>
+{
+    using occasional<T>::operator=;
+};
+
 /*! \brief A multi-dimensional numeric endpoint with user customizeable range and persistent value semantics
 \details Example: `array<"acceleration", 3, "Acceleration due to gravity and motion", float, -1.0f, 1.0f> accl;`
 \tparam name_str The name of the endpoint. Required.

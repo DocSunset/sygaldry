@@ -43,6 +43,7 @@ SPDX-License-Identifier: MIT
 */
 
 #include <limits>
+#include <cstdint>
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
@@ -50,7 +51,7 @@ namespace sygaldry { namespace components { namespace arduino {
 
 struct TrillCraft
 : name_<"Trill Craft">
-, description_<"a capacitive touch sensor with 30 electrodes to be connected by the user">
+, description_<"A capacitive touch sensor with 30 electrodes to be connected by the user. Operates in DIFF mode only. See https://learn.bela.io/using-trill/settings-and-sensitivity/ for more information on configuration.">
 , author_<"Edu Meneses, Travis J. West">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
@@ -59,6 +60,13 @@ struct TrillCraft
     static constexpr unsigned int channels = 30;
     struct inputs_t {
         // TODO: set baseline, speed and resolution, noise threshold, prescaler
+        slider_message<"prescaler", "measurement gain adjustment", uint8_t, 1, 8, 1, tag_session_data> prescaler;
+        slider_message<"noise threshold", "threshold for ignoring low-level noise", uint8_t, 0, 255, 0, tag_session_data> noise_threshold;
+        slider_message<"sampling speed", "0 - ultra fast (57 to 2800 us per sensor), 3 - slow (205 to 22000 us per sensor). Broad sampling rate adjustment; see also resolution", uint8_t, 0, 3, 1, tag_session_data> speed;
+        slider_message<"resolution", "measurement resolution in bits; higher resolutions reduce effective sampling rate", uint8_t, 1, 8, 1, tag_session_data> resolution;
+        bng<"update baseline", "reset the baseline capacitance based on the current sensor state. Avoid touching the sensor while updating the baseline reading."> update_baseline;
+        // NOTE: the IDAC value method provided by the Trill API seems not to be of any use. According to the datasheet linked from the Bela API documentation (https://www.infineon.com/dgdl/Infineon-CapSense_Sigma-Delta_Datasheet_CSD-Software+Module+Datasheets-v02_02-EN.pdf?fileId=8ac78c8c7d0d8da4017d0f9f5d9b0e82&redirId=File_1_2_579), this value is overridden by the firmware by default. So don't worry about adding an endpoint for setIDACValue()!
+        // TODO: autoscan
         //array<"map", channels, etc.> map;
     } inputs;
 
@@ -67,24 +75,23 @@ struct TrillCraft
         text_message<"error status", "indicates error conditions"> error_status;
 
         array<"raw", channels
-             , "unprocessed difference in capacitance with respect to baseline"
-             , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
+             , "unprocessed difference in capacitance with respect to baseline" // Technically not the actual raw measurement, but close enough?
+             , int, 0, std::numeric_limits<int>::max(), 0
              // TOOD: what are the actual minimum and maximum values that can be found?
              > raw;
         toggle<"any", "indicates presence of any touch"> any;
-        slider<"instant max", "the maximum reading currently"
-              , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
-              > instant_max;
-        slider<"max seen", "the maximum reading seen since boot"
-              , int, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), 0
-              // arguably this should be session data
+        array<"max seen", channels, "the maximum reading seen"
+              , int, 0, decltype(raw)::max(), 0
               > max_seen;
-        array<"mask", channels, "indicates which electrodes are touched"
-             , char, 0, 1, 0
-             > mask;
         array<"normalized", channels
              , "normalized capacitance reading"
              > normalized;
+        array<"mask", channels, "indicates which electrodes are touched"
+             , char, 0, 1, 0
+             > mask;
+        slider<"instant max", "the maximum normalized reading currently"
+              , float
+              > instant_max;
     } outputs;
 
     void * pimpl = nullptr;
@@ -102,7 +109,7 @@ struct TrillCraft
     */
     void init();
 
-    /// Attempt to read raw data, producing updated instant maximum, normlized, and discretized values
+    /// Update configuration parameters and attempt to read raw data, producing updated instant maximum, normalized, and discretized values
     void main();
 };
 
@@ -111,14 +118,14 @@ struct TrillCraft
 
 // @#'sygsa-trill_craft.impl.hpp'
 /*
-Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société des
-Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
+Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société
+des Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
 (IDMIL), McGill University
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -167,6 +174,18 @@ void TrillCraft::main()
     if (not outputs.running) return; // TODO: try to reconnect every so often
 
     auto trill = static_cast<Trill*>(pimpl);
+
+    if (inputs.speed || inputs.resolution) trill->setScanSettings(inputs.speed, inputs.resolution);
+    if (inputs.noise_threshold)            trill->setNoiseThreshold(inputs.noise_threshold);
+    //if (inputs.idac_value)                 trill->setIDACValue(inputs.idac_value);
+    //if (inputs.autoscan_interval)          trill->setAutoScanInterval(inputs.autoscan_interval);
+    if (inputs.prescaler)                  trill->setPrescaler(inputs.prescaler);
+    if (inputs.resolution || inputs.prescaler || inputs.update_baseline)
+    {
+        for (auto& max : outputs.max_seen.value) max = 0;
+        trill->updateBaseline();
+    }
+
     trill->requestRawData();
     for (int i=0; i<30; i++) {
         if (trill->rawDataAvailable() > 0) {
@@ -174,26 +193,26 @@ void TrillCraft::main()
         }
     }
 
-    outputs.instant_max = *std::max_element( outputs.raw.value.data()
-                                           , outputs.raw.value.data()+channels
-                                           );
-
-    if (outputs.instant_max == 0) {
-        outputs.any = 0;
-    } else {
-        outputs.any = 1;
-    }
-
-    outputs.max_seen = std::max(outputs.max_seen.value, outputs.instant_max.value);
-
     for (int i = 0; i < channels; i++) {
         if (outputs.raw[i] != 0) {
             outputs.mask[i] = true;
+            outputs.max_seen[i] = std::max(outputs.max_seen[i], outputs.raw[i]);
             outputs.normalized[i] = static_cast<float>(outputs.raw[i])
-                                  / static_cast<float>(outputs.max_seen);
+                                  / static_cast<float>(outputs.max_seen[i]);
         } else {
+            outputs.normalized[i] = 0.0f;
             outputs.mask[i] = false;
         }
+    }
+
+    outputs.instant_max = *std::max_element( outputs.normalized.value.data()
+                                           , outputs.normalized.value.data()+channels
+                                           );
+
+    if (outputs.instant_max == 0.0f) {
+        outputs.any = 0;
+    } else {
+        outputs.any = 1;
     }
 }
 
