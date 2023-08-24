@@ -145,3 +145,5 @@ add_library(sygup INTERFACE)
     endif()
 
 target_link_libraries(sygaldry INTERFACE sygup)
+
+add_subdirectory(sygaldry-instruments/test)
