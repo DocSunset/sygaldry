@@ -21,7 +21,11 @@ namespace sygaldry { namespace components { namespace arduino {
 
 struct TrillCraft
 : name_<"Trill Craft">
-, description_<"A capacitive touch sensor with 30 electrodes to be connected by the user. Operates in DIFF mode only. See https://learn.bela.io/using-trill/settings-and-sensitivity/ for more information on configuration.">
+, description_<"A capacitive touch sensor with 30 electrodes to be connected by "
+               "the user. Operates in DIFF mode only. See "
+               "https://learn.bela.io/using-trill/settings-and-sensitivity/ "
+               "for more information on configuration."
+              >
 , author_<"Edu Meneses, Travis J. West">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
@@ -30,14 +34,49 @@ struct TrillCraft
     static constexpr unsigned int channels = 30;
     struct inputs_t {
         // TODO: set baseline, speed and resolution, noise threshold, prescaler
-        slider_message<"prescaler", "measurement gain adjustment", uint8_t, 1, 8, 1, tag_session_data> prescaler;
-        slider_message<"noise threshold", "threshold for ignoring low-level noise", uint8_t, 0, 255, 0, tag_session_data> noise_threshold;
-        slider_message<"sampling speed", "0 - ultra fast (57 to 2800 us per sensor), 3 - slow (205 to 22000 us per sensor). Broad sampling rate adjustment; see also resolution", uint8_t, 0, 3, 1, tag_session_data> speed;
-        slider_message<"resolution", "measurement resolution in bits; higher resolutions reduce effective sampling rate", uint8_t, 1, 8, 1, tag_session_data> resolution;
-        bng<"update baseline", "reset the baseline capacitance based on the current sensor state. Avoid touching the sensor while updating the baseline reading."> update_baseline;
-        // NOTE: the IDAC value method provided by the Trill API seems not to be of any use. According to the datasheet linked from the Bela API documentation (https://www.infineon.com/dgdl/Infineon-CapSense_Sigma-Delta_Datasheet_CSD-Software+Module+Datasheets-v02_02-EN.pdf?fileId=8ac78c8c7d0d8da4017d0f9f5d9b0e82&redirId=File_1_2_579), this value is overridden by the firmware by default. So don't worry about adding an endpoint for setIDACValue()!
-        // TODO: autoscan
-        //array<"map", channels, etc.> map;
+        slider_message<"prescaler", "measurement gain adjustment"
+                      , uint8_t, 1, 8, 1
+                      , tag_session_data
+                      > prescaler;
+        slider_message<"noise threshold", "threshold for ignoring low-level noise"
+                      , uint8_t, 0, 255, 0
+                      , tag_session_data
+                      > noise_threshold;
+        slider_message<"sampling speed"
+                      , "0 - ultra fast (57 to 2800 us per sensor), "
+                        "3 - slow (205 to 22000 us per sensor). "
+                        "Broad sampling rate adjustment; see also resolution"
+                      , uint8_t, 0, 3, 1
+                      , tag_session_data
+                      > speed;
+        slider_message<"resolution"
+                      , "measurement resolution in bits; "
+                        "higher resolutions reduce effective sampling rate"
+                      , uint8_t, 1, 8, 1
+                      , tag_session_data
+                      > resolution;
+        bng<"update baseline"
+           , "reset the baseline capacitance based on the current sensor state."
+             "Avoid touching the sensor while updating the baseline reading."
+           > update_baseline;
+
+        /* NOTE: the IDAC value method provided by the Trill API seems not to be of
+        any use. According to the datasheet linked from the Bela API documentation
+
+        (https://www.infineon.com/dgdl/Infineon-CapSense_Sigma-Delta_Datasheet_CSD-Software+Module+Datasheets-v02_02-EN.pdf?fileId=8ac78c8c7d0d8da4017d0f9f5d9b0e82&redirId=File_1_2_579),
+
+        this value is overridden by the firmware by default. So don't worry about
+        adding an endpoint for setIDACValue()! */
+
+        // TODO: autoscan, event pin interrupt
+
+        array<"map", channels
+             , "mapping from raw channel to normalized channel, "
+               "e.g. if the 0th element in the map is 5, then the 0th raw"
+               "channel will be written to the normalized channel with index 5."
+             , int, 0, 29, 0
+             , tag_session_data
+             > map;
     } inputs;
 
     struct outputs_t {

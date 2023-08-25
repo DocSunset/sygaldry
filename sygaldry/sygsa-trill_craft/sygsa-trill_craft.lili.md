@@ -22,7 +22,7 @@ Arduino hack subsystem documentation for more information.
 
 Currently only one wrapper is provided for Trill Craft, which simply exposes
 the sensor's 30 touch readings. This is largely adapted from Edu Meneses'
-implementation for the T-Stick firmware.
+implementation for a previous version of the T-Stick firmware.
 
 # Trill Craft
 
@@ -30,14 +30,14 @@ implementation for the T-Stick firmware.
 // @#'sygsa-trill_craft.hpp'
 #pragma once
 /*
-Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société des
-Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
+Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société
+des Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
 (IDMIL), McGill University
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -51,7 +51,11 @@ namespace sygaldry { namespace components { namespace arduino {
 
 struct TrillCraft
 : name_<"Trill Craft">
-, description_<"A capacitive touch sensor with 30 electrodes to be connected by the user. Operates in DIFF mode only. See https://learn.bela.io/using-trill/settings-and-sensitivity/ for more information on configuration.">
+, description_<"A capacitive touch sensor with 30 electrodes to be connected by "
+               "the user. Operates in DIFF mode only. See "
+               "https://learn.bela.io/using-trill/settings-and-sensitivity/ "
+               "for more information on configuration."
+              >
 , author_<"Edu Meneses, Travis J. West">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
@@ -60,14 +64,49 @@ struct TrillCraft
     static constexpr unsigned int channels = 30;
     struct inputs_t {
         // TODO: set baseline, speed and resolution, noise threshold, prescaler
-        slider_message<"prescaler", "measurement gain adjustment", uint8_t, 1, 8, 1, tag_session_data> prescaler;
-        slider_message<"noise threshold", "threshold for ignoring low-level noise", uint8_t, 0, 255, 0, tag_session_data> noise_threshold;
-        slider_message<"sampling speed", "0 - ultra fast (57 to 2800 us per sensor), 3 - slow (205 to 22000 us per sensor). Broad sampling rate adjustment; see also resolution", uint8_t, 0, 3, 1, tag_session_data> speed;
-        slider_message<"resolution", "measurement resolution in bits; higher resolutions reduce effective sampling rate", uint8_t, 1, 8, 1, tag_session_data> resolution;
-        bng<"update baseline", "reset the baseline capacitance based on the current sensor state. Avoid touching the sensor while updating the baseline reading."> update_baseline;
-        // NOTE: the IDAC value method provided by the Trill API seems not to be of any use. According to the datasheet linked from the Bela API documentation (https://www.infineon.com/dgdl/Infineon-CapSense_Sigma-Delta_Datasheet_CSD-Software+Module+Datasheets-v02_02-EN.pdf?fileId=8ac78c8c7d0d8da4017d0f9f5d9b0e82&redirId=File_1_2_579), this value is overridden by the firmware by default. So don't worry about adding an endpoint for setIDACValue()!
-        // TODO: autoscan
-        //array<"map", channels, etc.> map;
+        slider_message<"prescaler", "measurement gain adjustment"
+                      , uint8_t, 1, 8, 1
+                      , tag_session_data
+                      > prescaler;
+        slider_message<"noise threshold", "threshold for ignoring low-level noise"
+                      , uint8_t, 0, 255, 0
+                      , tag_session_data
+                      > noise_threshold;
+        slider_message<"sampling speed"
+                      , "0 - ultra fast (57 to 2800 us per sensor), "
+                        "3 - slow (205 to 22000 us per sensor). "
+                        "Broad sampling rate adjustment; see also resolution"
+                      , uint8_t, 0, 3, 1
+                      , tag_session_data
+                      > speed;
+        slider_message<"resolution"
+                      , "measurement resolution in bits; "
+                        "higher resolutions reduce effective sampling rate"
+                      , uint8_t, 1, 8, 1
+                      , tag_session_data
+                      > resolution;
+        bng<"update baseline"
+           , "reset the baseline capacitance based on the current sensor state."
+             "Avoid touching the sensor while updating the baseline reading."
+           > update_baseline;
+
+        /* NOTE: the IDAC value method provided by the Trill API seems not to be of
+        any use. According to the datasheet linked from the Bela API documentation
+
+        (https://www.infineon.com/dgdl/Infineon-CapSense_Sigma-Delta_Datasheet_CSD-Software+Module+Datasheets-v02_02-EN.pdf?fileId=8ac78c8c7d0d8da4017d0f9f5d9b0e82&redirId=File_1_2_579),
+
+        this value is overridden by the firmware by default. So don't worry about
+        adding an endpoint for setIDACValue()! */
+
+        // TODO: autoscan, event pin interrupt
+
+        array<"map", channels
+             , "mapping from raw channel to normalized channel, "
+               "e.g. if the 0th element in the map is 5, then the 0th raw"
+               "channel will be written to the normalized channel with index 5."
+             , int, 0, 29, 0
+             , tag_session_data
+             > map;
     } inputs;
 
     struct outputs_t {
@@ -140,6 +179,24 @@ void TrillCraft::init()
 {
     auto trill = new Trill();
     pimpl = static_cast<void*>(trill);
+
+    // TODO: initialize *all* input parameters in case there is no session data
+    bool initialize_map = false;
+    std::array<bool, channels> channel_indexed{0};
+    for (std::size_t i = 0; i < channels && !initialize_map; ++i)
+    {
+        if (inputs.map[i] < 30)
+        {
+            if (channel_indexed[inputs.map[i]]) initialize_map = true; // channel already indexed
+            else channel_indexed[inputs.map[i]] = true;
+        }
+        else
+        {
+            initialize_map = true;
+        }
+    }
+    if (initialize_map) for (std::size_t i = 0; i < channels; ++i) inputs.map[i] = i;
+
     int setup_return_code = trill->setup(Trill::TRILL_CRAFT);
     if (0 != setup_return_code)
     {
@@ -175,9 +232,9 @@ void TrillCraft::main()
 
     auto trill = static_cast<Trill*>(pimpl);
 
+    // TODO: we should check and constrain boundary conditions
     if (inputs.speed || inputs.resolution) trill->setScanSettings(inputs.speed, inputs.resolution);
     if (inputs.noise_threshold)            trill->setNoiseThreshold(inputs.noise_threshold);
-    //if (inputs.idac_value)                 trill->setIDACValue(inputs.idac_value);
     //if (inputs.autoscan_interval)          trill->setAutoScanInterval(inputs.autoscan_interval);
     if (inputs.prescaler)                  trill->setPrescaler(inputs.prescaler);
     if (inputs.resolution || inputs.prescaler || inputs.update_baseline)
@@ -195,13 +252,13 @@ void TrillCraft::main()
 
     for (int i = 0; i < channels; i++) {
         if (outputs.raw[i] != 0) {
-            outputs.mask[i] = true;
             outputs.max_seen[i] = std::max(outputs.max_seen[i], outputs.raw[i]);
-            outputs.normalized[i] = static_cast<float>(outputs.raw[i])
-                                  / static_cast<float>(outputs.max_seen[i]);
+            outputs.normalized[inputs.map[i]] = static_cast<float>(outputs.raw[i])
+                                              / static_cast<float>(outputs.max_seen[i]);
+            outputs.mask[inputs.map[i]] = true;
         } else {
-            outputs.normalized[i] = 0.0f;
-            outputs.mask[i] = false;
+            outputs.normalized[inputs.map[i]] = 0.0f;
+            outputs.mask[inputs.map[i]] = false;
         }
     }
 

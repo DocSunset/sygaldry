@@ -21,6 +21,24 @@ void TrillCraft::init()
 {
     auto trill = new Trill();
     pimpl = static_cast<void*>(trill);
+
+    // TODO: initialize *all* input parameters in case there is no session data
+    bool initialize_map = false;
+    std::array<bool, channels> channel_indexed{0};
+    for (std::size_t i = 0; i < channels && !initialize_map; ++i)
+    {
+        if (inputs.map[i] < 30)
+        {
+            if (channel_indexed[inputs.map[i]]) initialize_map = true; // channel already indexed
+            else channel_indexed[inputs.map[i]] = true;
+        }
+        else
+        {
+            initialize_map = true;
+        }
+    }
+    if (initialize_map) for (std::size_t i = 0; i < channels; ++i) inputs.map[i] = i;
+
     int setup_return_code = trill->setup(Trill::TRILL_CRAFT);
     if (0 != setup_return_code)
     {
@@ -56,9 +74,9 @@ void TrillCraft::main()
 
     auto trill = static_cast<Trill*>(pimpl);
 
+    // TODO: we should check and constrain boundary conditions
     if (inputs.speed || inputs.resolution) trill->setScanSettings(inputs.speed, inputs.resolution);
     if (inputs.noise_threshold)            trill->setNoiseThreshold(inputs.noise_threshold);
-    //if (inputs.idac_value)                 trill->setIDACValue(inputs.idac_value);
     //if (inputs.autoscan_interval)          trill->setAutoScanInterval(inputs.autoscan_interval);
     if (inputs.prescaler)                  trill->setPrescaler(inputs.prescaler);
     if (inputs.resolution || inputs.prescaler || inputs.update_baseline)
@@ -76,13 +94,13 @@ void TrillCraft::main()
 
     for (int i = 0; i < channels; i++) {
         if (outputs.raw[i] != 0) {
-            outputs.mask[i] = true;
             outputs.max_seen[i] = std::max(outputs.max_seen[i], outputs.raw[i]);
-            outputs.normalized[i] = static_cast<float>(outputs.raw[i])
-                                  / static_cast<float>(outputs.max_seen[i]);
+            outputs.normalized[inputs.map[i]] = static_cast<float>(outputs.raw[i])
+                                              / static_cast<float>(outputs.max_seen[i]);
+            outputs.mask[inputs.map[i]] = true;
         } else {
-            outputs.normalized[i] = 0.0f;
-            outputs.mask[i] = false;
+            outputs.normalized[inputs.map[i]] = 0.0f;
+            outputs.mask[inputs.map[i]] = false;
         }
     }
 
