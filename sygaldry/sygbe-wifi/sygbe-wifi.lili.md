@@ -254,7 +254,7 @@ struct handler_state_t {
     utility_components::CstdioLogger* log;
     static constexpr int connected_bit = BIT0;
     static constexpr int fail_bit = BIT1;
-    static constexpr int maximum_connection_attempts = 5;
+    static constexpr int maximum_connection_attempts = 2;
 };
 // @/
 
