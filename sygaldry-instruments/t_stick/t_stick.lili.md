@@ -33,6 +33,7 @@ SPDX-License-Identifier: MIT
 #include "sygsa-two_wire.hpp"
 #include "sygse-trill.hpp"
 //#include "components/icm20948.hpp"
+#include "sygse-icm20948-tests.hpp"
 #include "sygbe-spiffs.hpp"
 #include "sygbe-wifi.hpp"
 #include "sygbp-liblo.hpp"
@@ -57,7 +58,7 @@ struct TStick
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
-    bindings::CstdioOutputLogger<Instrument> log;
+    //bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
 } tstick{};
 
@@ -68,6 +69,7 @@ extern "C" void app_main(void)
     runtime.init();
     // give IDF processes time to finish up init business
     vTaskDelay(pdMS_TO_TICKS(100));
+    sygse::ICM20948Tests<0b1101001>::test();
     while (true)
     {
         runtime.tick();
@@ -94,7 +96,6 @@ project(t-stick)
 idf_component_register(SRCS "t_stick.cpp"
         )
 add_subdirectory(../../../ sygbuild)
-target_compile_options(${COMPONENT_LIB} PRIVATE "-Wfatal-errors")
 target_link_libraries(${COMPONENT_LIB} PRIVATE sygaldry)
 # @/
 ```

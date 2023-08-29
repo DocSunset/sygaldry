@@ -43,7 +43,8 @@ disuse after a short amount of time \cite morreale2017nime_design-for-longevity.
 is an important subject for DMI research, and numerous approaches have been
 proposed to enable long-lasting DMI design and use, from socio-ecologic
 approaches \cite mcpherson2012cmj_problem-of-the-second-performer, to musical
-\cite marquez-borbon2018nime_dmi-adoption-and-longevity and technical \cite zayas-garin2021nime_dmi-apprenticeship pedagogy, and implementation
+\cite marquez-borbon2018nime_dmi-adoption-and-longevity and technical
+\cite zayas-garin2021nime_dmi-apprenticeship pedagogy, and implementation
 strategies that can improve longevity \cite franco2017prynth.
 
 A major challenge facing long-term DMI use is technical failure.

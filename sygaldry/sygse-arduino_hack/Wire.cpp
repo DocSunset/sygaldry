@@ -159,7 +159,7 @@ void TwoWire::endTransmission(bool sendStop)
                 printf("TwoWire::endTransmission: invalid argument\n");
                 return;
             case ESP_FAIL:
-                printf("TwoWire::endTransmission: failure; no subnode NACK\n");
+                printf("TwoWire::endTransmission: failure; no subnode ACK\n");
                 return;
             case ESP_ERR_INVALID_STATE:
                 printf("TwoWire::endTransmission: invalid state; was TwoWire::begin() called successfully?\n");
@@ -183,6 +183,7 @@ uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
     {
         err = i2c_master_write_read_device(_port, address, _tx_buffer, _tx_idx, _rx_buffer, length, _timeout);
         _tx_idx = 0;
+        _repeated_start = false;
     }
     else
     {
