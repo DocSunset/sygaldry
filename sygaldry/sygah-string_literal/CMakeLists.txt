@@ -1,6 +1,5 @@
-set(lib sygah-metadata)
+set(lib sygah-string_literal)
 add_library(${lib} INTERFACE)
-target_link_libraries(${lib} INTERFACE sygah-string_literal)
 target_link_libraries(${lib} INTERFACE sygah-consteval)
 target_include_directories(${lib} INTERFACE .)
 
