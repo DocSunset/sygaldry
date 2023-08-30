@@ -24,7 +24,7 @@ API is provided.
 set(lib sygse-arduino_hack)
 add_library(${lib} STATIC)
 target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
-target_link_libraries(${lib} PRIVATE idf::driver)
+target_link_libraries(${lib} PRIVATE idf::driver idf::esp_timer)
 target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)
 # @/
 ```
@@ -45,6 +45,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include "Arduino.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "esp_timer.h"
 
 void pinMode(uint8_t pin, uint8_t mode)
 {
@@ -52,6 +53,11 @@ void pinMode(uint8_t pin, uint8_t mode)
 
 void digitalWrite(uint8_t pin, uint8_t val)
 {
+}
+
+unsigned long micros()
+{
+    return static_cast<unsigned long>(esp_timer_get_time());
 }
 
 void delay(unsigned long ms)

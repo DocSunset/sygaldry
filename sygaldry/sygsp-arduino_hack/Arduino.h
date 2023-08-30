@@ -24,6 +24,6 @@ void digitalWrite(uint8_t pin, uint8_t val);
 //int analogRead(uint8_t pin);
 
 //unsigned long millis(void);
-//unsigned long micros(void);
+unsigned long micros(void);
 void delay(unsigned long ms);
 //void delayMicroseconds(unsigned int us);

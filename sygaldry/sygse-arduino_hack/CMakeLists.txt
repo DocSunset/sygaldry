@@ -1,5 +1,5 @@
 set(lib sygse-arduino_hack)
 add_library(${lib} STATIC)
 target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
-target_link_libraries(${lib} PRIVATE idf::driver)
+target_link_libraries(${lib} PRIVATE idf::driver idf::esp_timer)
 target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)

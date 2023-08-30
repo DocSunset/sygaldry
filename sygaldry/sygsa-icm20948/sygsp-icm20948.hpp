@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_registers.hpp"
 #include "sygsp-icm20948_tests.hpp"
 #include "sygsp-delay.hpp"
+#include "sygsp-micros.hpp"
 
 namespace sygaldry { namespace sygsp {
 
@@ -44,6 +45,8 @@ struct ICM20948
         slider<"magnetometer sensitivity", "LSB/uT", float, 0.15f, 0.15f, 0.15f> magn_sensitivity;
         vec3_message<"magnetometer", float, -4900, 4900, "uT"> magn;
 
+        slider_message<"elapsed", "time in microseconds elapsed since last measurement", unsigned long, 0, 1000000, 0> elapsed;
+
         text_message<"error message"> error_message;
 
         toggle<"running"> running;
@@ -65,18 +68,28 @@ struct ICM20948
     void main()
     {
         if (!outputs.running) return; // TODO: retry connecting every so often
-        if (!Registers::INT_STATUS_1::read()) return;
         static constexpr uint8_t N_OUT = 1 + Registers::GYRO_ZOUT_L::address
                                            - Registers::ACCEL_XOUT_H::address;
         static_assert(N_OUT == 12);
         static uint8_t raw[N_OUT];
+        static auto prev = micros();
+
+        if (!Registers::INT_STATUS_1::read()) return;
+
+        auto now = micros();
         uint8_t n_read = Serif::read(Registers::ACCEL_XOUT_H::address, raw, N_OUT);
-        if (n_read != N_OUT) printf("only read %d out of %d\n", n_read, N_OUT);
-        outputs.accl_raw = { raw[0] << 8 | (raw[1] & 0xFF)
-                           , raw[2] << 8 | (raw[3] & 0xFF)
-                           , raw[4] << 8 | (raw[5] & 0xFF)
+        outputs.elapsed = now - prev;
+        prev = now;
+        printf("%ld\n", now);
+
+        outputs.accl_raw = {  raw[0] << 8 | ( raw[1] & 0xFF)
+                           ,  raw[2] << 8 | ( raw[3] & 0xFF)
+                           ,  raw[4] << 8 | ( raw[5] & 0xFF)
                            };
-        printf("%x %x %x\n", outputs.accl_raw.x(), outputs.accl_raw.y(), outputs.accl_raw.z());
+        outputs.gyro_raw = {  raw[6] << 8 | ( raw[7] & 0xFF)
+                           ,  raw[8] << 8 | ( raw[9] & 0xFF)
+                           , raw[10] << 8 | (raw[11] & 0xFF)
+                           };
     }
 };
 
