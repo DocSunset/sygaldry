@@ -24,7 +24,7 @@ uint8_t ICM20948TwoWireSerif::read(uint8_t i2c_address, uint8_t register_address
     Wire.beginTransmission(i2c_address);
     Wire.write(register_address);
     Wire.endTransmission(false); // repeated start
-    Wire.requestFrom(i2c_address, 1);
+    Wire.requestFrom(i2c_address, bytes);
     for (uint8_t i = 0; i < bytes; ++i)
     {
         if (Wire.available()) buffer[i] = Wire.read();

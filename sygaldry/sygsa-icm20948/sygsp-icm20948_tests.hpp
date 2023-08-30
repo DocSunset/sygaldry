@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_registers.hpp"
 #include "sygsp-delay.hpp"
 
-namespace sygaldry { namespace sygse {
+namespace sygaldry { namespace sygsp {
 
 template<typename Serif>
 struct ICM20948Tests
