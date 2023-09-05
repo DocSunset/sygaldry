@@ -173,7 +173,7 @@ void TwoWire::begin()
 
 void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
 {
-    if (frequency > 4000000) frequency = 4000000;
+    if (frequency > 400000) frequency = 400000;
     i2c_config_t config = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = sda_pin,
@@ -206,23 +206,28 @@ void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
 
 void TwoWire::beginTransmission(uint8_t address)
 {
+    //printf("beginTransmission %x\n", address);
     _tx_address = address;
 }
 
 void TwoWire::write(uint8_t b)
 {
+    //printf("write %x\n", b);
     _tx_buffer[_tx_idx++] = b;
 }
 
 void TwoWire::write(uint8_t * buffer, uint8_t length)
 {
+    //printf("write "); for (int i = 0; i < length; ++i) printf("%x ", buffer[i]); printf("\n");
     for (std::size_t i = 0; i < length; ++i) write(buffer[i]);
 }
 
 void TwoWire::endTransmission(bool sendStop)
 {
+    //printf("endTransmission %d\n", sendStop);
     if (sendStop)
     {
+        _repeated_start = false;
         esp_err_t err = i2c_master_write_to_device(_port, _tx_address, _tx_buffer, _tx_idx, _timeout);
         //printf("justwrite: tx - ");
         //for (int i = 0; i < _tx_idx; ++i)
@@ -255,12 +260,13 @@ void TwoWire::endTransmission(bool sendStop)
 
 uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
 {
+    //printf("requestFrom %x %d %d\n", address, length, _repeated_start);
     esp_err_t err;
     if (_repeated_start)
     {
+        _repeated_start = false;
         err = i2c_master_write_read_device(_port, address, _tx_buffer, _tx_idx, _rx_buffer, length, _timeout);
         _tx_idx = 0;
-        _repeated_start = false;
     }
     else
     {
@@ -276,7 +282,7 @@ uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
             printf("TwoWire::requestFrom: invalid argument\n");
             break;
         case ESP_FAIL:
-            printf("TwoWire::requestFrom: failure; no subnode NACK\n");
+            printf("TwoWire::requestFrom: failure; no subnode ACK\n");
             break;
         case ESP_ERR_INVALID_STATE:
             printf("TwoWire::requestFrom: invalid state; was TwoWire::begin() called successfully?\n");

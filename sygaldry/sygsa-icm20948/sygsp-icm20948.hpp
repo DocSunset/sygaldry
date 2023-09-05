@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-template<typename Serif>
+template<typename Serif, typename AK09916Serif>
 struct ICM20948
 : name_<"ICM20948 MIMU">
 {
@@ -53,16 +53,17 @@ struct ICM20948
     } outputs;
 
     using Registers = ICM20948Registers<Serif>;
+    using AK09916Registers = ICM20948Registers<AK09916Serif>;
 
     void init()
     {
         outputs.running = true;
-        if (!ICM20948Tests<Serif>::test()) outputs.running = false;
+        if (!ICM20948Tests<Serif, AK09916Serif>::test()) outputs.running = false;
         if (!outputs.running) return;
         Registers::PWR_MGMT_1::DEVICE_RESET::trigger();
-        delay(10);
+        delay(1);
         Registers::PWR_MGMT_1::SLEEP::disable();
-        delay(10);
+        delay(1);
     }
 
     void main()
@@ -80,7 +81,6 @@ struct ICM20948
         uint8_t n_read = Serif::read(Registers::ACCEL_XOUT_H::address, raw, N_OUT);
         outputs.elapsed = now - prev;
         prev = now;
-        printf("%ld\n", now);
 
         outputs.accl_raw = {  raw[0] << 8 | ( raw[1] & 0xFF)
                            ,  raw[2] << 8 | ( raw[3] & 0xFF)

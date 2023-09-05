@@ -35,7 +35,9 @@ struct TStick
             components::esp32::Button<GPIO_NUM_15> button;
             //sensors::esp32::OneshotAdc<33> adc;
             //components::arduino::TrillCraft touch;
-            sygsp::ICM20948<sygsa::ICM20948TwoWireSerif<0b1101001>> mimu;
+            sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                           , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
+                           > mimu;
         } sensors;
         //bindings::esp32::WiFi wifi;
         //bindings::LibloOsc<Sensors> osc;
