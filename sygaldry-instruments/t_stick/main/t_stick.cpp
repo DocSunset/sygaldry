@@ -39,11 +39,11 @@ struct TStick
                            , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                            > mimu;
         } sensors;
-        //bindings::esp32::WiFi wifi;
-        //bindings::LibloOsc<Sensors> osc;
+        bindings::esp32::WiFi wifi;
+        bindings::LibloOsc<Sensors> osc;
     };
 
-    //bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
+    bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
     //bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;

@@ -67,27 +67,27 @@ auto& magn_of(auto& mimu_data)
 }
 
 /// Access the first vector component of a presumed MIMU data vector
-auto& vecx_of(auto& mimu_data)
+auto& vecx_of(auto& mimu_vec)
 {
     try_spelling(x);
-    else if constexpr (requires {mimu_data[0];}) return mimu_data[0];
-    else return; // mimu_data is not MIMU data!
+    else if constexpr (requires {mimu_vec[0];}) return mimu_vec[0];
+    else return; // mimu_vec is not MIMU data!
 }
 
 /// Access the second vector component of a presumed MIMU data vector
-auto& vecy_of(auto& mimu_data)
+auto& vecy_of(auto& mimu_vec)
 {
     try_spelling(y);
-    else if constexpr (requires {mimu_data[1];}) return mimu_data[1];
-    else return; // mimu_data is not MIMU data!
+    else if constexpr (requires {mimu_vec[1];}) return mimu_vec[1];
+    else return; // mimu_vec is not MIMU data!
 }
 
 /// Access the third vector component of a presumed MIMU data vector
-auto& vecz_of(auto& mimu_data)
+auto& vecz_of(auto& mimu_vec)
 {
     try_spelling(z);
-    else if constexpr (requires {mimu_data[2];}) return mimu_data[2];
-    else return; // mimu_data is not MIMU data!
+    else if constexpr (requires {mimu_vec[2];}) return mimu_vec[2];
+    else return; // mimu_vec is not MIMU data!
 }
 
 #undef try_spelling

@@ -65,14 +65,14 @@ struct Register
     [[nodiscard]] static uint8_t read()
     {
         select_bank();
-        printf("sygsp-icm20948_registers: %s (%x) read\n", register_name(), address);
+        //printf("sygsp-icm20948_registers: %s (%x) read\n", register_name(), address);
         return Serif::read(address);
     }
 
     static void write(uint8_t value)
     {
         select_bank();
-        printf("sygsp-icm20948_registers: %s (%x) write %x\n", register_name(), address, value);
+        //printf("sygsp-icm20948_registers: %s (%x) write %x\n", register_name(), address, value);
         Serif::write(address, value);
     }
 };
@@ -81,12 +81,12 @@ struct Register
 template<typename RegisterField, uint8_t value>
 static void read_modify_write()
 {
-    printf("sygsp-icm20948_registers: %s::%s (%x::%x) rmw\n", RegisterField::register_name(), RegisterField::field_name(), RegisterField::address, RegisterField::mask);
+    //printf("sygsp-icm20948_registers: %s::%s (%x::%x) rmw\n", RegisterField::register_name(), RegisterField::field_name(), RegisterField::address, RegisterField::mask);
     static_assert(RegisterField::read && RegisterField::write);
     uint8_t read   = RegisterField::read();
     uint8_t modify = (read & ~RegisterField::mask) | (value & RegisterField::mask);
     /*      write */ RegisterField::write(modify);
-    printf("sygsp-icm20948_registers: %s::%s %#04x -> %#04x\n", RegisterField::register_name(), RegisterField::field_name(), read, modify);
+    //printf("sygsp-icm20948_registers: %s::%s %#04x -> %#04x\n", RegisterField::register_name(), RegisterField::field_name(), read, modify);
 }
 
 

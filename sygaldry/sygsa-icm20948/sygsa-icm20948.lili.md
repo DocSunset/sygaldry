@@ -451,14 +451,14 @@ struct Register
     [[nodiscard]] static uint8_t read()
     {
         select_bank();
-        printf("sygsp-icm20948_registers: %s (%x) read\n", register_name(), address);
+        //printf("sygsp-icm20948_registers: %s (%x) read\n", register_name(), address);
         return Serif::read(address);
     }
 
     static void write(uint8_t value)
     {
         select_bank();
-        printf("sygsp-icm20948_registers: %s (%x) write %x\n", register_name(), address, value);
+        //printf("sygsp-icm20948_registers: %s (%x) write %x\n", register_name(), address, value);
         Serif::write(address, value);
     }
 };
@@ -467,12 +467,12 @@ struct Register
 template<typename RegisterField, uint8_t value>
 static void read_modify_write()
 {
-    printf("sygsp-icm20948_registers: %s::%s (%x::%x) rmw\n", RegisterField::register_name(), RegisterField::field_name(), RegisterField::address, RegisterField::mask);
+    //printf("sygsp-icm20948_registers: %s::%s (%x::%x) rmw\n", RegisterField::register_name(), RegisterField::field_name(), RegisterField::address, RegisterField::mask);
     static_assert(RegisterField::read && RegisterField::write);
     uint8_t read   = RegisterField::read();
     uint8_t modify = (read & ~RegisterField::mask) | (value & RegisterField::mask);
     /*      write */ RegisterField::write(modify);
-    printf("sygsp-icm20948_registers: %s::%s %#04x -> %#04x\n", RegisterField::register_name(), RegisterField::field_name(), read, modify);
+    //printf("sygsp-icm20948_registers: %s::%s %#04x -> %#04x\n", RegisterField::register_name(), RegisterField::field_name(), read, modify);
 }
 
 
@@ -963,8 +963,16 @@ struct CNTL3 : AK09916Register<"CNTL3", 0x32, 0>
     struct SRST : BitTrigger<"Soft Reset", CNTL3, 1> {};
 };
 // @/
+```
 
-// @+'the only test'
+The test here sets up the ICM20948 so that the magnetometer can be accessed via
+the main I2C bus. Then the device ID is checked and a self-test measurement is
+performed. The test serves to demonstrate that the register definitions and
+bases are working, and that the magnetometer self-test is in the expected
+range.
+
+```cpp
+// @+'tests'
 {
     printf("icm20948-test: AK09916 test... \n");
     Registers::PWR_MGMT_1::DEVICE_RESET::trigger(); delay(10);
@@ -979,6 +987,7 @@ struct CNTL3 : AK09916Register<"CNTL3", 0x32, 0>
         return false;
     }
     else printf("AK09916 connected...\n");
+    AK09916Registers::CNTL3::SRST::trigger(); delay(1);
     AK09916Registers::CNTL2::MODE::PowerDown::set(); delay(1);
     AK09916Registers::CNTL2::MODE::SelfTest::set(); delay(1);
     int i = 0;
@@ -996,23 +1005,25 @@ struct CNTL3 : AK09916Register<"CNTL3", 0x32, 0>
     int16_t z = measurement_data[5] << 8 | (measurement_data[4] & 0xFF);
     if (!(-200 <= x && x <= 200))
     {
-        printf("x data %d outside self-test range?!\n", x);
+        printf("x data %d outside self-test range?! x: %d  y: %d  z: %d\n", x, x, y, z);
         return false;
     }
     if (!(-200 <= y && y <= 200))
     {
-        printf("y data %d outside self-test range?!\n", y);
+        printf("y data %d outside self-test range?! x: %d  y: %d  z: %d\n", y, x, y, z);
         return false;
     }
     if (!(-1000 <= z && z <= -200))
     {
-        printf("z data %d outside self-test range?!\n", z);
+        printf("z data %d outside self-test range?! x: %d  y: %d  z: %d\n", z, x, y, z);
         return false;
     }
-    printf("AK09916 self test pass!\n");
+    printf("AK09916 self test pass! x: %d  y: %d  z: %d\n", x, y, z);
 }
 // @/
 ```
+
+## Summary
 
 ```cpp
 // @#'sygsp-icm20948_registers.hpp'
@@ -1050,10 +1061,11 @@ uint8_t ICM20948Registers<Serif>::current_bank_ = 0xFF;
 
 } }
 // @/
-
 ```
 
 # Main API
+
+The main API then ties these resources together, along with the MIMU endpoints.
 
 ```cpp
 // @#'sygsp-icm20948.hpp'
@@ -1093,15 +1105,15 @@ struct ICM20948
 
     struct outputs_t {
         vec3_message<"accelerometer raw", int, -32768, 32767, "LSB"> accl_raw;
-        slider<"accelerometer sensitivity", "LSB/ms^2", float, 2048.0f * g_per_mss, 16384.0f * g_per_mss, 16384.0f * g_per_mss> accl_sensitivity;
-        vec3_message<"accelerometer", float, -16 * mss_per_g, 16 * mss_per_g, "ms^2"> accl;
+        slider<"accelerometer sensitivity", "g/LSB", float, 1/16384.0f, 1/2048.0f> accl_sensitivity;
+        vec3_message<"accelerometer", float, -16, 16, "g"> accl;
 
         vec3_message<"gyroscope raw", int, -32768, 32767, "LSB"> gyro_raw;
-        slider<"gyroscope sensitivity", "LSB/(rad/s)", float, 16.4f * deg_per_rad, 131.0f * deg_per_rad, 131.0f * deg_per_rad> gyro_sensitivity;
+        slider<"gyroscope sensitivity", "(rad/s)/LSB", float, 1/131.0f * rad_per_deg, 1/16.4f * rad_per_deg> gyro_sensitivity;
         vec3_message<"gyroscope", float, -2000.0f * rad_per_deg, 2000.0f * rad_per_deg, "rad/s"> gyro;
 
         vec3_message<"magnetometer raw", int, -32768, 32767, "LSB"> magn_raw;
-        slider<"magnetometer sensitivity", "LSB/uT", float, 0.15f, 0.15f, 0.15f> magn_sensitivity;
+        slider<"magnetometer sensitivity", "uT/LSB", float, 0.15f, 0.15f> magn_sensitivity;
         vec3_message<"magnetometer", float, -4900, 4900, "uT"> magn;
 
         slider_message<"elapsed", "time in microseconds elapsed since last measurement", unsigned long, 0, 1000000, 0> elapsed;
@@ -1114,45 +1126,163 @@ struct ICM20948
     using Registers = ICM20948Registers<Serif>;
     using AK09916Registers = ICM20948Registers<AK09916Serif>;
 
+    /// initialize the ICM20948 for continuous reading
     void init()
     {
-        outputs.running = true;
-        if (!ICM20948Tests<Serif, AK09916Serif>::test()) outputs.running = false;
-        if (!outputs.running) return;
-        Registers::PWR_MGMT_1::DEVICE_RESET::trigger();
-        delay(1);
-        Registers::PWR_MGMT_1::SLEEP::disable();
-        delay(1);
+        @{init}
     }
 
+    // poll the ICM20948 for new data and update endpoints
     void main()
     {
-        if (!outputs.running) return; // TODO: retry connecting every so often
-        static constexpr uint8_t N_OUT = 1 + Registers::GYRO_ZOUT_L::address
-                                           - Registers::ACCEL_XOUT_H::address;
-        static_assert(N_OUT == 12);
-        static uint8_t raw[N_OUT];
-        static auto prev = micros();
-
-        if (!Registers::INT_STATUS_1::read()) return;
-
-        auto now = micros();
-        uint8_t n_read = Serif::read(Registers::ACCEL_XOUT_H::address, raw, N_OUT);
-        outputs.elapsed = now - prev;
-        prev = now;
-
-        outputs.accl_raw = {  raw[0] << 8 | ( raw[1] & 0xFF)
-                           ,  raw[2] << 8 | ( raw[3] & 0xFF)
-                           ,  raw[4] << 8 | ( raw[5] & 0xFF)
-                           };
-        outputs.gyro_raw = {  raw[6] << 8 | ( raw[7] & 0xFF)
-                           ,  raw[8] << 8 | ( raw[9] & 0xFF)
-                           , raw[10] << 8 | (raw[11] & 0xFF)
-                           };
+        @{main}
     }
 };
 
 } }
+// @/
+```
+
+## Initialization
+
+We begin initialization by checking that all tests are passing. If this fails
+for some reason, the device is disabled via a flag that is checked in the main
+subroutine.
+
+```cpp
+// @='init'
+outputs.running = true;
+if (!ICM20948Tests<Serif, AK09916Serif>::test()) outputs.running = false;
+if (!outputs.running) return;
+// @/
+```
+
+Assuming all the tests pass, we set up the device.
+
+```cpp
+// @+'init'
+Registers::PWR_MGMT_1::DEVICE_RESET::trigger(); delay(10); // reset (establish known preconditions)
+Registers::PWR_MGMT_1::SLEEP::disable(); delay(10); // disable sleep
+Registers::INT_PIN_CFG::BYPASS_EN::enable(); delay(1); // bypass the I2C controller, connecting the aux bus to the main bus
+AK09916Registers::CNTL3::SRST::trigger(); delay(1); // soft-reset the magnetometer (establish known preconditions)
+AK09916Registers::CNTL2::MODE::ContinuousMode100Hz::set(); delay(1); // enable continuous reads
+// @/
+```
+
+Finally, we set the sensitivity output endpoints to their default values.
+
+```cpp
+// @+'init'
+outputs.accl_sensitivity = outputs.accl_sensitivity.init();
+outputs.gyro_sensitivity = outputs.gyro_sensitivity.init();
+outputs.magn_sensitivity = outputs.magn_sensitivity.init();
+// @/
+```
+
+## Main
+
+In the main subroutine, we read from the sensors.
+
+The number of bytes to read is fixed at compile time based on the addresses of
+the range of registers that should be read. We statically allocate a buffer on
+the stack for reading the data.
+
+```cpp
+// @='main'
+if (!outputs.running) return; // TODO: retry connecting every so often
+
+static constexpr uint8_t IMU_N_OUT = 1 + Registers::GYRO_ZOUT_L::address
+                                       - Registers::ACCEL_XOUT_H::address;
+static constexpr uint8_t MAG_N_OUT = 1 + AK09916Registers::ST2::address
+                                       - AK09916Registers::HXL::address;
+static_assert(IMU_N_OUT == 12);
+static_assert(MAG_N_OUT == 8);
+
+static uint8_t raw[IMU_N_OUT];
+// @/
+```
+
+The sensor fusion algorithm requires knowledge of the time between measurements.
+We statically record an initial timestamp, and in each loop note the time before
+attempting to read data. If a new measurement is read, then we update the time
+elapsed since the previous measurement and adjust the timestamp of the previous
+measurement.
+
+```cpp
+// @+'main'
+static auto prev = micros();
+auto now = micros();
+bool read = false;
+@{read data}
+if (read)
+{
+    outputs.elapsed = now - prev;
+    prev = now;
+}
+// @/
+```
+
+We poll the status registers of the two sensor modules (the ICM20948 and its
+built-in magnetometer). When data is available, we proceed to read it and update
+the relevant endpoints.
+
+```cpp
+// @='read data'
+if (Registers::INT_STATUS_1::read())
+{
+    read = true;
+    Serif::read(Registers::ACCEL_XOUT_H::address, raw, IMU_N_OUT);
+    @{update IMU endpoints}
+}
+if (AK09916Registers::ST1::DRDY::read_field())
+{
+    read = true;
+    AK09916Serif::read(AK09916Registers::HXL::address, raw, MAG_N_OUT);
+    @{update magnetometer endpoints}
+}
+// @/
+```
+
+Updating the endpoints proceeds according to the endianness of the data as read
+from the registers of the devices. We shuffle the upper and lower bytes
+appropriately, transiting from `uint8_t`s to `int16_t`s to `int`s. The explicit
+conversion ensure that the sign of the 16-bit values is preserved when
+converting them to `int`; a more elegant expression of this conversion may be
+possible, but this works for now. We then convert the raw data to more
+meaningful units according to the current sensitivity of the sensors.
+
+Note that the y and z axes of the magnetometer are flipped; this brings them
+into agreement with those of the accelerometer and gyroscope, so that all three
+coordinate systems are right-handed and (in principle) aligned.
+
+```cpp
+// @='update IMU endpoints'
+outputs.accl_raw = { (int)(int16_t)( raw[0] << 8 | ( raw[1] & 0xFF))
+                   , (int)(int16_t)( raw[2] << 8 | ( raw[3] & 0xFF))
+                   , (int)(int16_t)( raw[4] << 8 | ( raw[5] & 0xFF))
+                   };
+outputs.gyro_raw = { (int)(int16_t)( raw[6] << 8 | ( raw[7] & 0xFF))
+                   , (int)(int16_t)( raw[8] << 8 | ( raw[9] & 0xFF))
+                   , (int)(int16_t)(raw[10] << 8 | (raw[11] & 0xFF))
+                   };
+outputs.accl = { outputs.accl_raw.x() * outputs.accl_sensitivity
+               , outputs.accl_raw.y() * outputs.accl_sensitivity
+               , outputs.accl_raw.z() * outputs.accl_sensitivity
+               };
+outputs.gyro = { outputs.gyro_raw.x() * outputs.gyro_sensitivity
+               , outputs.gyro_raw.y() * outputs.gyro_sensitivity
+               , outputs.gyro_raw.z() * outputs.gyro_sensitivity
+               };
+// @/
+// @='update magnetometer endpoints'
+outputs.magn_raw = { (int)(int16_t)( raw[1] << 8 | ( raw[0] & 0xFF))
+                   , (int)(int16_t)( raw[3] << 8 | ( raw[2] & 0xFF))
+                   , (int)(int16_t)( raw[5] << 8 | ( raw[4] & 0xFF))
+                   };
+outputs.magn = { outputs.magn_raw.x() * outputs.magn_sensitivity
+               , -outputs.magn_raw.y() * outputs.magn_sensitivity
+               , -outputs.magn_raw.z() * outputs.magn_sensitivity
+               };
 // @/
 ```
 
@@ -1187,7 +1317,7 @@ struct ICM20948Tests
     using AK09916Registers = ICM20948Registers<AK09916Serif>;
     static bool test()
     {
-        @{the only test}
+        @{tests}
         return true;
     }
 };
