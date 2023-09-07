@@ -63,9 +63,7 @@ struct ICM20948
         if (!outputs.running) return;
         Registers::PWR_MGMT_1::DEVICE_RESET::trigger(); delay(10); // reset (establish known preconditions)
         Registers::PWR_MGMT_1::SLEEP::disable(); delay(10); // disable sleep
-        //Registers::PWR_MGMT_1::LP_EN::disable(); delay(1); // disable low power mode. This is the default state
-        Registers::INT_PIN_CFG::BYPASS_EN::enable(); delay(1); // bypass the I2C controller, connectin the aux bus to the main bus
-        //Registers::USER_CTRL::I2C_MST_EN::disable(); delay(1); // disable the I2C controller. This is the default state
+        Registers::INT_PIN_CFG::BYPASS_EN::enable(); delay(1); // bypass the I2C controller, connecting the aux bus to the main bus
         AK09916Registers::CNTL3::SRST::trigger(); delay(1); // soft-reset the magnetometer (establish known preconditions)
         AK09916Registers::CNTL2::MODE::ContinuousMode100Hz::set(); delay(1); // enable continuous reads
         outputs.accl_sensitivity = outputs.accl_sensitivity.init();
@@ -77,23 +75,22 @@ struct ICM20948
     void main()
     {
         if (!outputs.running) return; // TODO: retry connecting every so often
+
         static constexpr uint8_t IMU_N_OUT = 1 + Registers::GYRO_ZOUT_L::address
                                                - Registers::ACCEL_XOUT_H::address;
         static constexpr uint8_t MAG_N_OUT = 1 + AK09916Registers::ST2::address
                                                - AK09916Registers::HXL::address;
         static_assert(IMU_N_OUT == 12);
         static_assert(MAG_N_OUT == 8);
+
         static uint8_t raw[IMU_N_OUT];
         static auto prev = micros();
-
-        bool read = false;
         auto now = micros();
+        bool read = false;
         if (Registers::INT_STATUS_1::read())
         {
             read = true;
             Serif::read(Registers::ACCEL_XOUT_H::address, raw, IMU_N_OUT);
-            prev = now;
-
             outputs.accl_raw = { (int)(int16_t)( raw[0] << 8 | ( raw[1] & 0xFF))
                                , (int)(int16_t)( raw[2] << 8 | ( raw[3] & 0xFF))
                                , (int)(int16_t)( raw[4] << 8 | ( raw[5] & 0xFF))
