@@ -31,6 +31,7 @@ endif()
 
 add_subdirectory(dependencies/pfr)
 add_subdirectory(dependencies/mp11)
+add_subdirectory(dependencies/eigen)
 
 add_library(sygaldry INTERFACE)
 
@@ -72,6 +73,10 @@ add_library(sygsp INTERFACE)
     target_link_libraries(sygsp INTERFACE sygsp-delay)
                 add_subdirectory(sygaldry/sygsp-micros)
     target_link_libraries(sygsp INTERFACE sygsp-micros)
+                add_subdirectory(sygaldry/sygsp-mimu_units)
+    target_link_libraries(sygsp INTERFACE sygsp-mimu_units)
+                add_subdirectory(sygaldry/sygsp-complementary_mimu_fusion)
+    target_link_libraries(sygsp INTERFACE sygsp-complementary_mimu_fusion)
 target_link_libraries(sygaldry INTERFACE sygsp)
 
 if (ESP_PLATFORM)

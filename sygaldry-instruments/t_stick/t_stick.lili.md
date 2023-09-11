@@ -13,7 +13,6 @@ SPDX-License-Identifier: MIT
 
 ```cpp
 // @#'main/t_stick.cpp'
-
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -34,6 +33,7 @@ SPDX-License-Identifier: MIT
 #include "sygse-trill.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-icm20948-two_wire_serif.hpp"
+#include "sygsp-complementary_mimu_fusion.hpp"
 #include "sygbe-spiffs.hpp"
 #include "sygbe-wifi.hpp"
 #include "sygbp-liblo.hpp"
@@ -53,6 +53,7 @@ struct TStick
             sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                            , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                            > mimu;
+            sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
         } sensors;
         bindings::esp32::WiFi wifi;
         bindings::LibloOsc<Sensors> osc;

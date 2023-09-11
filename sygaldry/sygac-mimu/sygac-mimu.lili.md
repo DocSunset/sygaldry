@@ -42,7 +42,7 @@ auto& accl_of(auto& mimu_data)
     else try_spelling(accl);
     else try_spelling(acc);
     else try_spelling(a);
-    else return; // mimu_data is not MIMU data!
+    else return 0; // mimu_data is not MIMU data!
 }
 
 /// Access the gyroscope data of a presumed MIMU data structure
@@ -52,7 +52,7 @@ auto& gyro_of(auto& mimu_data)
     else try_spelling(angular_rate);
     else try_spelling(gyro);
     else try_spelling(g);
-    else return; // mimu_data is not MIMU data!
+    else return 0; // mimu_data is not MIMU data!
 }
 
 /// Access the magnetometer data of a presumed MIMU data structure
@@ -63,31 +63,31 @@ auto& magn_of(auto& mimu_data)
     else try_spelling(magn);
     else try_spelling(mag);
     else try_spelling(m);
-    else return; // mimu_data is not MIMU data!
+    else return 0; // mimu_data is not MIMU data!
 }
 
 /// Access the first vector component of a presumed MIMU data vector
-auto& vecx_of(auto& mimu_vec)
+auto& vecx_of(auto& mimu_data) // this arg has to be called `mimu_data` to work with the macro
 {
     try_spelling(x);
-    else if constexpr (requires {mimu_vec[0];}) return mimu_vec[0];
-    else return; // mimu_vec is not MIMU data!
+    else if constexpr (requires {mimu_data[0];}) return mimu_data[0];
+    else return 0; // mimu_data is not MIMU data!
 }
 
 /// Access the second vector component of a presumed MIMU data vector
-auto& vecy_of(auto& mimu_vec)
+auto& vecy_of(auto& mimu_data)
 {
     try_spelling(y);
-    else if constexpr (requires {mimu_vec[1];}) return mimu_vec[1];
-    else return; // mimu_vec is not MIMU data!
+    else if constexpr (requires {mimu_data[1];}) return mimu_data[1];
+    else return 0; // mimu_data is not MIMU data!
 }
 
 /// Access the third vector component of a presumed MIMU data vector
-auto& vecz_of(auto& mimu_vec)
+auto& vecz_of(auto& mimu_data)
 {
     try_spelling(z);
-    else if constexpr (requires {mimu_vec[2];}) return mimu_vec[2];
-    else return; // mimu_vec is not MIMU data!
+    else if constexpr (requires {mimu_data[2];}) return mimu_data[2];
+    else return 0; // mimu_data is not MIMU data!
 }
 
 #undef try_spelling

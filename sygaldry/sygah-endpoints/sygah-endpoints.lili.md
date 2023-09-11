@@ -361,7 +361,7 @@ struct occasional
     /// Copy assignment from the underlying type
     constexpr auto& operator=(const T& t) noexcept {state = t; updated = true; return *this;}
     /// Conversion to bool; reflects current `updated` flag
-    constexpr operator bool() noexcept {return updated;}
+    constexpr operator bool() const noexcept {return updated;}
     /// Mutable dereference operator; provides access to the underlying state
     constexpr T& operator *() noexcept {return state;}
     /// Constant dereference operator; provides access to the underlying state

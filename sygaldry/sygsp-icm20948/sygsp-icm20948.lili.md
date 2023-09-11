@@ -158,7 +158,7 @@ extern template struct ICM20948TwoWireSerif<0b1101001>;
 ```cmake
 # @+'cmake snippets'
 # arguably this should be a different library, even in a different document
-target_sources(${lib} PRIVATE ${lib}-two_wire_serif.cpp)
+target_sources(${lib} PRIVATE sygsa-icm20948-two_wire_serif.cpp)
 target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
 # @/
 ```
@@ -1086,6 +1086,7 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_tests.hpp"
 #include "sygsp-delay.hpp"
 #include "sygsp-micros.hpp"
+#include "sygsp-mimu_units.hpp"
 
 namespace sygaldry { namespace sygsp {
 
@@ -1093,12 +1094,6 @@ template<typename Serif, typename AK09916Serif>
 struct ICM20948
 : name_<"ICM20948 MIMU">
 {
-    // TODO: these constants probably don't belong here
-    static constexpr float mss_per_g = 9.80665; // standard gravity according to Wikipedia, citing the International Bureau of Weights and Measures
-    static constexpr float g_per_mss = 1.0/mss_per_g;
-    static constexpr float rad_per_deg = std::numbers::pi / 180.0;
-    static constexpr float deg_per_rad = 180.0 / std::numbers::pi;
-
     struct inputs_t {
         // TODO: sensitivity, digital low pass filter controls, measurement rate, etc.
     } inputs;
@@ -1332,10 +1327,10 @@ The various sub-components are collected together into one CMake library.
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygsa-icm20948)
+set(lib sygsp-icm20948)
 add_library(${lib} STATIC)
 target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib} PUBLIC sygsp-delay)
+target_link_libraries(${lib} PUBLIC sygsp-delay sygsp-mimu_units)
 @{cmake snippets}
 # @/
 ```

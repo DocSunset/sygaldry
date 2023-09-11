@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_tests.hpp"
 #include "sygsp-delay.hpp"
 #include "sygsp-micros.hpp"
+#include "sygsp-mimu_units.hpp"
 
 namespace sygaldry { namespace sygsp {
 
@@ -22,12 +23,6 @@ template<typename Serif, typename AK09916Serif>
 struct ICM20948
 : name_<"ICM20948 MIMU">
 {
-    // TODO: these constants probably don't belong here
-    static constexpr float mss_per_g = 9.80665; // standard gravity according to Wikipedia, citing the International Bureau of Weights and Measures
-    static constexpr float g_per_mss = 1.0/mss_per_g;
-    static constexpr float rad_per_deg = std::numbers::pi / 180.0;
-    static constexpr float deg_per_rad = 180.0 / std::numbers::pi;
-
     struct inputs_t {
         // TODO: sensitivity, digital low pass filter controls, measurement rate, etc.
     } inputs;
