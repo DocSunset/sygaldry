@@ -21,6 +21,6 @@
 }
 cmake --build "$dir" &&
 {
-    ctest --test-dir "$dir" ||
+    ctest --test-dir "$dir" -R '.*sygaldry.*' ||
         ctest --test-dir "$dir" --rerun-failed --output-on-failure
 }

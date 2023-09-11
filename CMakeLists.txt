@@ -31,6 +31,7 @@ endif()
 
 add_subdirectory(dependencies/pfr)
 add_subdirectory(dependencies/mp11)
+set(EIGEN_BUILD_TESTING FALSE)
 add_subdirectory(dependencies/eigen)
 
 add_library(sygaldry INTERFACE)
@@ -67,8 +68,6 @@ add_library(sygsp INTERFACE)
     # arduino-hack, alphabetically missing here, is added only where required by a platform
                 add_subdirectory(sygaldry/sygsp-button)
     target_link_libraries(sygsp INTERFACE sygsp-button)
-                add_subdirectory(sygaldry/sygsp-array_order_mapping)
-    target_link_libraries(sygsp INTERFACE sygsp-array_order_mapping)
                 add_subdirectory(sygaldry/sygsp-delay)
     target_link_libraries(sygsp INTERFACE sygsp-delay)
                 add_subdirectory(sygaldry/sygsp-micros)
