@@ -43,15 +43,17 @@ TEST_CASE("Persistent Value", "[endpoints][helpers][persistent]")
     static_assert(PersistentValue<persistent_struct>);
 }
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
+TEST_CASE("sygaldry sygah-endpoints Occasional Value")
 {
+    static_assert(occasional_struct{}.updated == false);
     auto s = occasional_struct{42};
-    REQUIRE(bool(s) == true);
-    REQUIRE(*s == 42);
+    CHECK(s.updated == true);
+    CHECK(*s == 42);
     *s = 88;
-    REQUIRE(*s == 88);
-    s = decltype(s){};
-    REQUIRE(bool(s) == false);
+    CHECK(*s == 88);
+    CHECK(s.updated == true);
+    s = occasional_struct{};
+    CHECK(s.updated == false);
     static_assert(OccasionalValue<occasional_struct>);
 }
 struct tag_foo {enum {foo};};
@@ -101,7 +103,7 @@ TEST_CASE("Basic Endpoints", "[endpoints][basic]")
     auto s2 = slider<"baz">{0.5f};
     s2 = 0.0f;
 }
-TEST_CASE("Bang", "[endpoints][bang]")
+TEST_CASE("sygaldry sygah-endpoints Bang", "[endpoints][bang]")
 {
     auto b = bng<"foo">{};
     REQUIRE(bool(b) == false);
@@ -114,6 +116,10 @@ TEST_CASE("Bang", "[endpoints][bang]")
     b = true;
     REQUIRE(bool(b) == true);
     b = {};
+    REQUIRE(bool(b) == false);
+    b = true;
+    REQUIRE(bool(b) == true);
+    b = decltype(b){};
     REQUIRE(bool(b) == false);
     static_assert(Bang<decltype(b)>);
     static_assert(sizeof(decltype(b)) == sizeof(bool));

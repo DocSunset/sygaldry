@@ -48,8 +48,8 @@ struct TStick
         components::arduino::TwoWire<21,22/*,1000000*/> i2c;
         struct Sensors {
             components::esp32::Button<GPIO_NUM_15> button;
-            //sensors::esp32::OneshotAdc<33> adc;
-            //components::arduino::TrillCraft touch;
+            sensors::esp32::OneshotAdc<33> adc;
+            components::arduino::TrillCraft touch;
             sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                            , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                            > mimu;
@@ -61,7 +61,6 @@ struct TStick
 
     bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
-    //bindings::CstdioOutputLogger<Instrument> log;
     bindings::CstdioCli<Instrument> cli;
 } tstick{};
 

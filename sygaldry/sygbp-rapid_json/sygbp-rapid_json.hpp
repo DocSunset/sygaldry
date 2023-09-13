@@ -125,7 +125,7 @@ struct RapidJsonSessionStorage
                 {
                     bool endpoint_updated = false;
                     if constexpr (OccasionalValue<T>)
-                        endpoint_updated = bool(endpoint);
+                        endpoint_updated = flag_state_of(endpoint);
                     else if constexpr (array_like<value_t<T>>)
                         apply_with_json_member_value<T>(json, [&](auto& arr, auto&& get)
                     {

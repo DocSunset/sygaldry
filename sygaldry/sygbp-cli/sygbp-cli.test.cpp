@@ -258,9 +258,9 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
 
     SECTION("set button")
     {
-        REQUIRE(not components.tc.inputs.button_in);
+        REQUIRE(not components.tc.inputs.button_in.updated);
         test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/button_in", "1");
-        REQUIRE(components.tc.inputs.button_in);
+        REQUIRE(components.tc.inputs.button_in.updated);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 

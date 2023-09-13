@@ -264,15 +264,35 @@ To support this kind of usage, in addition to the value of the endpoint, we
 store a boolean flag that reflects whether the value has been updated. We then
 implement `std::optional`-like semantics around these data members. So the
 interpretation is not that our occasional type "occasionally has a value", but
-that it "has a value that is occasionally updated." Given this, we also allow
-our occasional value type to be converted freely to the type of its underlying
-value, giving it value semantics. Although this makes it ill-formed to have
-an `occasional<bool>`, we consider it an acceptable tradeoff.
+that it "has a value that is occasionally updated."
+
+Given this, we might also allow our occasional value type to be converted
+freely to the type of its underlying value, giving it value semantics. Although
+this makes it ill-formed to have an `occasional<bool>`, we might consider it an
+acceptable tradeoff for the convenience of accessing the underlying value of
+the endpoint directly by its name. We initially chose to utilize this strategy.
+Unfortunately, after an update to GCC at some point, the conversion path to
+`bool` chosen by the compiler (for reasons that remain mysterious) changed from
+`occasional<T> -> operator bool() -> bool` to `occasional<T> -> operator T() ->
+built-in conversion to bool -> bool`, meaning for numeric types that have a
+built-in conversion to bool, the user-defined conversion to bool was being
+ignored leading to incorrect interpretation of whether the endpoint was
+recently updated. In hindsight it is clear that this ambiguity was present from
+the beginning.
+
+There were two options to resolve this ambiguity: either require the boolean
+state of the endpoint to be accessed explicitly, or require its underlying value
+to be accessed explicitly. Since the former is almost exclusively accessed by
+bindings, and thus the explicit access can be insulated by a concept/generic
+function, we chose to break from `std::optional`'s API and require the boolean
+state of our `occasional` type to be accessed via its boolean `updated` member.
+This allows us to keep value semantics (only used by component authors), which
+is much more convenient.
 
 Arguably the full `std::optional`-like interface is poorly matched to our
 intention here, since it implies "occasionally has a value". We retain it
-nevertheless with the assumption that doing so will improve the compatibility
-of our components with Avendish.
+nevertheless with the as-yet untested assumption that doing so will improve the
+compatibility of our components with Avendish.
 
 ```cpp
 // @+'endpoint bases'
@@ -331,6 +351,21 @@ struct occasional
         } else updated = false;
     }
 
+    /*! \brief Move assignment from another `occasional`.
+
+    \details Only changes this wrapper if the other one has been updated. `updated` flag
+    reflects whether the other `occasional` has been updated.
+    */
+    constexpr auto& operator=(occasional<T>&& other)
+    {
+        if (other.updated)
+        {
+            state = std::move(other.state);
+            updated = true;
+        } else updated = false;
+        return *this;
+    }
+
     /*! \brief Copy assignment from another `occasional`.
 
     \details Only changes this wrapper if the other one has been updated. `updated` flag
@@ -346,9 +381,10 @@ struct occasional
         return *this;
     }
 
-    /// Conversion to a mutable reference to the underlying state
+    // convenience access by conversion to underlying type; value semantics
+    /// Mutable value access
     constexpr operator T&() noexcept {return state;}
-    /// Conversion to a constant reference to the underlying state
+    /// Immutable value access
     constexpr operator const T&() const noexcept {return state;}
 
     // optional-like semantics
@@ -360,8 +396,6 @@ struct occasional
     constexpr auto& operator=(T&& t) noexcept {state = std::move(t); updated = true; return *this;}
     /// Copy assignment from the underlying type
     constexpr auto& operator=(const T& t) noexcept {state = t; updated = true; return *this;}
-    /// Conversion to bool; reflects current `updated` flag
-    constexpr operator bool() const noexcept {return updated;}
     /// Mutable dereference operator; provides access to the underlying state
     constexpr T& operator *() noexcept {return state;}
     /// Constant dereference operator; provides access to the underlying state
@@ -382,15 +416,17 @@ struct occasional
 
 // @+'tests'
 struct occasional_struct : occasional<int> { using occasional<int>::operator=; };
-TEST_CASE("Occasional Value", "[endpoints][helpers][occasional]")
+TEST_CASE("sygaldry sygah-endpoints Occasional Value")
 {
+    static_assert(occasional_struct{}.updated == false);
     auto s = occasional_struct{42};
-    REQUIRE(bool(s) == true);
-    REQUIRE(*s == 42);
+    CHECK(s.updated == true);
+    CHECK(*s == 42);
     *s = 88;
-    REQUIRE(*s == 88);
-    s = decltype(s){};
-    REQUIRE(bool(s) == false);
+    CHECK(*s == 88);
+    CHECK(s.updated == true);
+    s = occasional_struct{};
+    CHECK(s.updated == false);
     static_assert(OccasionalValue<occasional_struct>);
 }
 // @/
@@ -784,7 +820,7 @@ struct bng
 
 ```cpp
 // @+'tests'
-TEST_CASE("Bang", "[endpoints][bang]")
+TEST_CASE("sygaldry sygah-endpoints Bang", "[endpoints][bang]")
 {
     auto b = bng<"foo">{};
     REQUIRE(bool(b) == false);
@@ -797,6 +833,10 @@ TEST_CASE("Bang", "[endpoints][bang]")
     b = true;
     REQUIRE(bool(b) == true);
     b = {};
+    REQUIRE(bool(b) == false);
+    b = true;
+    REQUIRE(bool(b) == true);
+    b = decltype(b){};
     REQUIRE(bool(b) == false);
     static_assert(Bang<decltype(b)>);
     static_assert(sizeof(decltype(b)) == sizeof(bool));

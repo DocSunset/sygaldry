@@ -198,6 +198,9 @@ struct SpiffsSessionStorage
 // @/
 ```
 
+TODO: this implementation is currently vulnerable to power-cycling after the file is opened
+but before the data is written to it.
+
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygbe-spiffs)

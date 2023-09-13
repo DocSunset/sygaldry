@@ -119,7 +119,7 @@ TEST_CASE("Bang", "[components][concepts][Bang]")
     static_assert(Bang<bng<"foo">>);
     static_assert(has_value<bng<"foo">>);
 }
-TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
+TEST_CASE("sygaldry sygac-endpoints ClearableFlag")
 {
     static_assert(Flag<bool>);
     static_assert(Flag<float*>);
@@ -138,16 +138,16 @@ TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
         SECTION("Bang")
         {
             bng<"foo"> flag{true};
-            REQUIRE(bool(flag));
+            REQUIRE(flag_state_of(flag));
             clear_flag(flag);
-            REQUIRE(not bool(flag));
+            REQUIRE(not flag_state_of(flag));
         }
         SECTION("OccasionalValue")
         {
             occasional<float> flag = 100.0f;
-            REQUIRE(bool(flag));
+            REQUIRE(flag_state_of(flag));
             clear_flag(flag);
-            REQUIRE(not bool(flag));
+            REQUIRE(not flag_state_of(flag));
         }
     }
 }
@@ -217,9 +217,9 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         SECTION("OccasionalValue")
         {
             occasional<float> v = {};
-            REQUIRE(not v);
+            REQUIRE(not flag_state_of(v));
             set_value(v, 200.0f);
-            REQUIRE(v);
+            REQUIRE(flag_state_of(v));
             REQUIRE(value_of(v) == 200.0f);
         }
     }

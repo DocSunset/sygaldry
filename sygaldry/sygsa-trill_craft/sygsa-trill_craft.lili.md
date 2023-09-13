@@ -233,11 +233,11 @@ void TrillCraft::main()
     auto trill = static_cast<Trill*>(pimpl);
 
     // TODO: we should check and constrain boundary conditions
-    if (inputs.speed || inputs.resolution) trill->setScanSettings(inputs.speed, inputs.resolution);
-    if (inputs.noise_threshold)            trill->setNoiseThreshold(inputs.noise_threshold);
-    //if (inputs.autoscan_interval)          trill->setAutoScanInterval(inputs.autoscan_interval);
-    if (inputs.prescaler)                  trill->setPrescaler(inputs.prescaler);
-    if (inputs.resolution || inputs.prescaler || inputs.update_baseline)
+    if (inputs.speed.updated || inputs.resolution.updated) trill->setScanSettings(inputs.speed, inputs.resolution);
+    if (inputs.noise_threshold.updated)                    trill->setNoiseThreshold(inputs.noise_threshold);
+    //if (inputs.autoscan_interval.updated)                trill->setAutoScanInterval(inputs.autoscan_interval);
+    if (inputs.prescaler.updated)                          trill->setPrescaler(inputs.prescaler);
+    if (inputs.resolution.updated || inputs.prescaler.updated || inputs.update_baseline)
     {
         for (auto& max : outputs.max_seen.value) max = 0;
         trill->updateBaseline();

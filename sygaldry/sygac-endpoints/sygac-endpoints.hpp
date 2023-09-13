@@ -55,13 +55,20 @@ concept PersistentValue
     =  has_value_variable<T> || has_value_method<T>
     && std::default_initializable<std::remove_cvref_t<T>>;
 template<typename T>
-concept Flag = requires (T t)
+concept BoolishFlag = requires (T t)
 {
     bool(t);
-    requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
-    requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
-    t = T{};
+    t = T{}; // this is expected to be false when converted to bool
 };
+
+template<typename T>
+concept UpdatedFlag = requires (T t)
+{
+    t.updated;
+    requires std::same_as<bool, decltype(t.updated)>;
+};
+
+template<typename T> concept Flag = BoolishFlag<T> || UpdatedFlag<T>;
 
 template<typename T>
 concept _occasional_value = requires (T t)
@@ -84,7 +91,15 @@ concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
 template<ClearableFlag T>
 constexpr void clear_flag(T& t)
 {
-    t = T{};
+    if constexpr (BoolishFlag<T>) t = T{};
+    else if constexpr (UpdatedFlag<T>) t.updated = false;
+}
+
+template<ClearableFlag T>
+constexpr bool flag_state_of(T& t)
+{
+    if constexpr (BoolishFlag<T>) return bool(t);
+    else if constexpr (UpdatedFlag<T>) return t.updated;
 }
 template <typename T>
 concept has_value = OccasionalValue<T> || PersistentValue<T>;

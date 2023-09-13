@@ -31,7 +31,8 @@ concept SimpleAggregate
 template <typename T> struct main_subroutine_reflection {using exists = std::false_type;};
 
 template <typename T>
-    requires std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+    requires (std::same_as<void, typename function_reflection<&T::operator()>::return_type>
+          && !std::same_as<void, typename function_reflection<&T::main>::return_type>)
 struct main_subroutine_reflection<T> : function_reflection<&T::operator()> {};
 
 template <typename T>

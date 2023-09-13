@@ -317,7 +317,7 @@ document member is compared with the value of the endpoint.
 // @='external_destinations HasMember branch'
 bool endpoint_updated = false;
 if constexpr (OccasionalValue<T>)
-    endpoint_updated = bool(endpoint);
+    endpoint_updated = flag_state_of(endpoint);
 else if constexpr (array_like<value_t<T>>)
     apply_with_json_member_value<T>(json, [&](auto& arr, auto&& get)
 {
@@ -333,8 +333,6 @@ else apply_with_json_member_value<T>(json, [&](auto value)
 
 In case the value has changed, we update it appropriately depending on its type,
 once again handling strings seperately from other (numerical) data.
-
-Special handling for array-type data is left as future work.
 
 ```cpp
 // @+'external_destinations HasMember branch'

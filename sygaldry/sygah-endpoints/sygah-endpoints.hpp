@@ -164,6 +164,21 @@ struct occasional
         } else updated = false;
     }
 
+    /*! \brief Move assignment from another `occasional`.
+
+    \details Only changes this wrapper if the other one has been updated. `updated` flag
+    reflects whether the other `occasional` has been updated.
+    */
+    constexpr auto& operator=(occasional<T>&& other)
+    {
+        if (other.updated)
+        {
+            state = std::move(other.state);
+            updated = true;
+        } else updated = false;
+        return *this;
+    }
+
     /*! \brief Copy assignment from another `occasional`.
 
     \details Only changes this wrapper if the other one has been updated. `updated` flag
@@ -179,9 +194,10 @@ struct occasional
         return *this;
     }
 
-    /// Conversion to a mutable reference to the underlying state
+    // convenience access by conversion to underlying type; value semantics
+    /// Mutable value access
     constexpr operator T&() noexcept {return state;}
-    /// Conversion to a constant reference to the underlying state
+    /// Immutable value access
     constexpr operator const T&() const noexcept {return state;}
 
     // optional-like semantics
@@ -193,8 +209,6 @@ struct occasional
     constexpr auto& operator=(T&& t) noexcept {state = std::move(t); updated = true; return *this;}
     /// Copy assignment from the underlying type
     constexpr auto& operator=(const T& t) noexcept {state = t; updated = true; return *this;}
-    /// Conversion to bool; reflects current `updated` flag
-    constexpr operator bool() const noexcept {return updated;}
     /// Mutable dereference operator; provides access to the underlying state
     constexpr T& operator *() noexcept {return state;}
     /// Constant dereference operator; provides access to the underlying state

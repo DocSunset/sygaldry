@@ -523,7 +523,7 @@ the loop over output endpoints; they don't short circuit the overall
 // @+'populate output messages'
 if constexpr (OccasionalValue<T> || Bang<T>)
 {
-    if (not bool(output))
+    if (not flag_state_of(output))
         return;
 }
 

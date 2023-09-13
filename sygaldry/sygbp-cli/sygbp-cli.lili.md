@@ -1025,12 +1025,12 @@ void describe_entity_value(auto& log, T& entity)
 {
     if constexpr (Bang<T>)
     {
-        if (entity) log.println("(! bang !)");
+        if (flag_state_of(entity)) log.println("(! bang !)");
         else log.println("()");
     }
     else if constexpr (OccasionalValue<T>)
     {
-        if (entity) log.println("(! ", value_of(entity), " !)");
+        if (flag_state_of(entity)) log.println("(! ", value_of(entity), " !)");
         else log.println("(", value_of(entity), ")");
     }
     else if constexpr (PersistentValue<T>)
@@ -1151,9 +1151,9 @@ TEST_CASE("Set", "[bindings][cli][commands][set]")
 
     SECTION("set button")
     {
-        REQUIRE(not components.tc.inputs.button_in);
+        REQUIRE(not components.tc.inputs.button_in.updated);
         test_command(Set{}, components, 0, "", "/set", "/Test_Component_1/button_in", "1");
-        REQUIRE(components.tc.inputs.button_in);
+        REQUIRE(components.tc.inputs.button_in.updated);
         REQUIRE(components.tc.inputs.button_in.value() == 1);
     }
 

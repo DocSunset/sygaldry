@@ -16,14 +16,14 @@ using namespace sygaldry;
 TEST_CASE("MIMU endpoint helpers")
 {
     vec3_message<"testvec"> v{};
-    CHECK(not bool(v));
+    CHECK(not v.updated);
     CHECK(v.x() == 0.0f);
     CHECK(v.y() == 0.0f);
     CHECK(v.z() == 0.0f);
     v.x() = 1.0f;
-    CHECK(not bool(v)); // update through accessor doesn't set updated flag
+    CHECK(not v.updated); // update through accessor doesn't set updated flag
     v = {1.0f, 2.0f, 3.0f}; // update by operator= instead!
-    CHECK(bool(v));
+    CHECK(v.updated);
     CHECK(v.x() == 1.0f);
     CHECK(v.y() == 2.0f);
     CHECK(v.z() == 3.0f);

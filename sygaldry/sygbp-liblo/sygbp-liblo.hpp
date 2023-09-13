@@ -259,7 +259,7 @@ struct LibloOsc
             {
                 if constexpr (OccasionalValue<T> || Bang<T>)
                 {
-                    if (not bool(output))
+                    if (not flag_state_of(output))
                         return;
                 }
 

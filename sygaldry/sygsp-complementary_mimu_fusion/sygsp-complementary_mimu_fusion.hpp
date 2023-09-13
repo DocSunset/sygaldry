@@ -78,10 +78,10 @@ struct ComplementaryMimuFusion
     /// Update the filter
     void main(const Mimu& mimu)
     {
-        if (gyro_of(mimu))
+        if (gyro_of(mimu).updated)
             complementary_mimu_fusion( gyro_of(mimu)
-                                     , accl_of(mimu), accl_of(mimu)
-                                     , magn_of(mimu), magn_of(mimu)
+                                     , accl_of(mimu), accl_of(mimu).updated
+                                     , magn_of(mimu), magn_of(mimu).updated
                                      , mimu.outputs.elapsed
                                      , inputs, outputs);
     }

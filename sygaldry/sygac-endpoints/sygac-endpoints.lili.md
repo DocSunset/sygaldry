@@ -364,13 +364,20 @@ without having to know anything about it other than that it is a valid flag.
 ```cpp
 // @='flag'
 template<typename T>
-concept Flag = requires (T t)
+concept BoolishFlag = requires (T t)
 {
     bool(t);
-    requires std::is_same_v<std::integral_constant<bool, bool(T{})>, std::false_type>;
-    requires std::is_same_v<std::integral_constant<bool, bool(T{T{}})>, std::false_type>;
-    t = T{};
+    t = T{}; // this is expected to be false when converted to bool
 };
+
+template<typename T>
+concept UpdatedFlag = requires (T t)
+{
+    t.updated;
+    requires std::same_as<bool, decltype(t.updated)>;
+};
+
+template<typename T> concept Flag = BoolishFlag<T> || UpdatedFlag<T>;
 // @/
 
 // @+'concepts'
@@ -380,12 +387,20 @@ concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
 template<ClearableFlag T>
 constexpr void clear_flag(T& t)
 {
-    t = T{};
+    if constexpr (BoolishFlag<T>) t = T{};
+    else if constexpr (UpdatedFlag<T>) t.updated = false;
+}
+
+template<ClearableFlag T>
+constexpr bool flag_state_of(T& t)
+{
+    if constexpr (BoolishFlag<T>) return bool(t);
+    else if constexpr (UpdatedFlag<T>) return t.updated;
 }
 // @/
 
 // @+'tests'
-TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
+TEST_CASE("sygaldry sygac-endpoints ClearableFlag")
 {
     static_assert(Flag<bool>);
     static_assert(Flag<float*>);
@@ -404,16 +419,16 @@ TEST_CASE("ClearableFlag", "[components][concepts][ClearableFlag]")
         SECTION("Bang")
         {
             bng<"foo"> flag{true};
-            REQUIRE(bool(flag));
+            REQUIRE(flag_state_of(flag));
             clear_flag(flag);
-            REQUIRE(not bool(flag));
+            REQUIRE(not flag_state_of(flag));
         }
         SECTION("OccasionalValue")
         {
             occasional<float> flag = 100.0f;
-            REQUIRE(bool(flag));
+            REQUIRE(flag_state_of(flag));
             clear_flag(flag);
-            REQUIRE(not bool(flag));
+            REQUIRE(not flag_state_of(flag));
         }
     }
 }
@@ -498,9 +513,9 @@ TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
         SECTION("OccasionalValue")
         {
             occasional<float> v = {};
-            REQUIRE(not v);
+            REQUIRE(not flag_state_of(v));
             set_value(v, 200.0f);
-            REQUIRE(v);
+            REQUIRE(flag_state_of(v));
             REQUIRE(value_of(v) == 200.0f);
         }
     }
