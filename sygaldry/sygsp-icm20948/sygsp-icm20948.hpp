@@ -29,11 +29,11 @@ struct ICM20948
 
     struct outputs_t {
         vec3_message<"accelerometer raw", int, -32768, 32767, "LSB"> accl_raw;
-        slider<"accelerometer sensitivity", "g/LSB", float, 1/16384.0f, 1/2048.0f> accl_sensitivity;
+        slider<"accelerometer sensitivity", "g/LSB", float, 1/16384.0f, 1/2048.0f, 1/4096.0f> accl_sensitivity;
         vec3_message<"accelerometer", float, -16, 16, "g"> accl;
 
         vec3_message<"gyroscope raw", int, -32768, 32767, "LSB"> gyro_raw;
-        slider<"gyroscope sensitivity", "(rad/s)/LSB", float, 1/131.0f * rad_per_deg, 1/16.4f * rad_per_deg> gyro_sensitivity;
+        slider<"gyroscope sensitivity", "(rad/s)/LSB", float, 1/131.0f * rad_per_deg, 1/16.4f * rad_per_deg, 1/16.4f * rad_per_deg> gyro_sensitivity;
         vec3_message<"gyroscope", float, -2000.0f * rad_per_deg, 2000.0f * rad_per_deg, "rad/s"> gyro;
 
         vec3_message<"magnetometer raw", int, -32768, 32767, "LSB"> magn_raw;
@@ -59,6 +59,8 @@ struct ICM20948
         Registers::PWR_MGMT_1::DEVICE_RESET::trigger(); delay(10); // reset (establish known preconditions)
         Registers::PWR_MGMT_1::SLEEP::disable(); delay(10); // disable sleep
         Registers::INT_PIN_CFG::BYPASS_EN::enable(); delay(1); // bypass the I2C controller, connecting the aux bus to the main bus
+        Registers::GYRO_CONFIG_1::GYRO_FS_SEL::DPS_2000::set();
+        Registers::ACCEL_CONFIG::ACCEL_FS_SEL::G_8::set();
         AK09916Registers::CNTL3::SRST::trigger(); delay(1); // soft-reset the magnetometer (establish known preconditions)
         AK09916Registers::CNTL2::MODE::ContinuousMode100Hz::set(); delay(1); // enable continuous reads
         outputs.accl_sensitivity = outputs.accl_sensitivity.init();
