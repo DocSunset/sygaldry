@@ -24,8 +24,22 @@ If you encounter other prerequisites not described above, please open an issue.
 
 # Docker Environment
 
-For the convenience of users of non-linux operating systems, the following
-Dockerfile is provided. TODO: improve this documentation section.
+A Dockerfile is provided that enables Linux users to quickly set up a
+consistent development environment. This workflow is still a work in progress
+and may be removed in the future if it turns out no one is interested in using
+it.
+
+Unfortunately, USB forwarding is not supported by Docker on macOS and Windows,
+so this environment is limited on those platforms to compiling and running
+tests. Native tools specific to each platform must be used to e.g. upload
+firmware to devices.
+
+WARNING: Note that, as it is currently implemented, this container doesn't have
+any persistent data! So if you edit the repository within the container and
+don't commit and push those changes to a remote, then they will be lost should
+you shut down the container. You will also have to authenticate with Github
+every time you restart the container. We are open to suggestions for improving
+the Docker workflow.
 
 ```dockerfile
 # @#'Dockerfile'
@@ -36,7 +50,8 @@ RUN git clone https://github.com/DocSunset/lili.git
 RUN cd lili && make && sudo make install
 RUN rm -rf lili
 # docker image build -t sygaldry .
-# docker run --interactive --tty sygaldry
+# # change the argument to the `--device` flag to your serial port
+# docker run --interactive --tty --device=/dev/ttyUSB0 sygaldry 
 # gh auth login
 # gh repo clone DocSunset/sygaldry -- --recurse-submodules
 # @/
