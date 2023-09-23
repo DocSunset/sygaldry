@@ -29,11 +29,15 @@ adopted throughout the project.
 - \subpage page-sygsp-arduino_hack
 - \subpage page-sygsp-button
 - \subpage page-sygsp-debug_printer
-- \subpage page-sygsp-array_order_mapping
+- \subpage page-sygsp-delay
+- \subpage page-sygsp-micros
+- \subpage page-sygsp-mimu_units
+- \subpage page-sygsa-icm20948
+- \subpage page-sygsp-mimu_fusion
 
 ### Arduino
 
-- \subpage page-sygsa-icm20948
+- \subpage page-sygsa-delay
 - \subpage page-sygsa-trill_craft
 - \subpage page-sygsa-two_wire
 
@@ -41,16 +45,15 @@ adopted throughout the project.
 
 - \subpage page-sygse-adc
 - \subpage page-sygse-arduino_hack
+- \subpage page-sygse-micros
 - \subpage page-sygse-button
 - \subpage page-sygse-gpio
-- \subpage page-sygse-icm20948
 - \subpage page-sygse-trill
 
 ## Utility Components
 
 - \subpage page-sygup-basic_logger
 - \subpage page-sygup-cstdio_logger
-- \subpage page-sygup-test_logger
 
 ## Bindings
 
@@ -67,17 +70,16 @@ adopted throughout the project.
 - \subpage page-sygbp-output_logger
 - \subpage page-sygbp-basic_reader
 - \subpage page-sygbp-cstdio_reader
-- \subpage page-sygbp-test_reader
 
 ### ESP32
 
 - \subpage page-sygbe-libmapper_arduino
 - \subpage page-sygbe-spiffs
 - \subpage page-sygbe-wifi
-- \subpage page-sygbe-rapidjson
 
 ## Helpers
 
+- \subpage page-sygah-string_literal
 - \subpage page-sygah-metadata
 - \subpage page-sygah-endpoints
 - \subpage page-sygah-mimu
@@ -91,6 +93,3 @@ adopted throughout the project.
 - \subpage page-sygac-metadata
 - \subpage page-sygac-mimu
 - \subpage page-sygac-functions
-
-## Other
-

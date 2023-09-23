@@ -9,18 +9,33 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-# Build Requirements
+# Getting Started
+
+## Operating System
+
+In order to compile instrument firmwares and develop new components, you need
+to have a compatible toolchain and development environment set up. This is
+most easily accomplished on Linux, and other operating systems are not officially
+supported at this time. Users of these operating systems are encouraged to set up
+a virtual machine running the Linux distro of their choice, e.g. using VirtualBox.
+This should be a reasonable straightforward process for most developers. Once
+the VM is set up, the USB device node for your microcontroller will need to
+be forwarded to the VM.
+
+## Build Requirements
 
 A full build requires the following executables:
 
 - lili (the literate programming tool used for the project)
-- posix utilities (used in convenience shell scripts)
-- gnu parallel (ditto)
 - cmake
-- doxygen (optional)
-- the compiler toolchain for the platform the build targets
+- the compiler toolchain for the platform the build targets you wish to use
+- posix utilities (optional, used in convenience shell scripts)
+- gnu parallel (ditto)
+- doxygen (optional, for generating documentation)
 
 If you encounter other prerequisites not described above, please open an issue.
+
+Lili is easily installed from source using the makefile.
 
 # Docker Environment
 
@@ -121,12 +136,16 @@ this issue, and generally speed up build times.
 In addition to the literate sources, which are intended to document the
 implementation and design rationale of the project, public API's are also
 documented using Doxygen special comment blocks, and pretty documentation is
-generated with Doxygen and Doxygen Awesome CSS. The order in which files are
-presented in the generated documentation is controlled by manually specifying
-each file as a subpage in [the implementation guide](\ref docs-implementation).
+generated with Doxygen and Doxygen Awesome CSS.
+
+The order in which files are presented in the generated documentation is
+controlled by manually specifying each file as a subpage in [the implementation
+guide](\ref docs-implementation), as well as some pages being ordered depending
+on their order in the `doxyfile` `INPUT` option.
+
 Documentation can be generated e.g. by running `doxygen` in the root of the
-repository, or using the `run.sh _build_doxygen` script, which will build both
-the html and pdf documentation.
+repository (remember to run `lili.sh` first!), or using the `run.sh
+_build_doxygen`.
 
 ## Building
 
@@ -151,7 +170,7 @@ accounted for and included in `.gitignore`.
 
 ./sh/lili.sh || exit 1
 [ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
-[ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen && cd _build_doxygen/latex && make pdf'
+[ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen' # && cd _build_doxygen/latex && make pdf'
 [ -d "$dir" ] || {
     [ "$dir" == "_build_release" ] && mode=RelWithDebInfo ||
     [ "$dir" == "_build_debug" ]   && mode=Debug ||
@@ -339,34 +358,34 @@ just described:
 
 ```
 sygaldry
-├── bindings
-│   ├── esp32
-│   │   ├── libmapper-arduino
-│   │   ├── spiffs
-│   │   └── etc.
-│   └── portable
-│       ├── cli
-│       ├── output_logger
-│       └── etc.
-├── concepts
-│   ├── components
-│   ├── endpoints
-│   └── etc.
-├── helpers
-│   ├── endpoints
-│   ├── metadata
-│   └── etc.
-└── sensors
-    ├── arduino
-    │   ├── icm20948
-    │   ├── trill_craft
-    │   └── etc.
-    ├── esp32
-    │   ├── adc
-    │   ├── arduino-hack
-    │   └── etc.
-    └── portable
-        └── etc.
+*-- bindings
+|   *-- esp32
+|   |   *-- libmapper-arduino
+|   |   *-- spiffs
+|   |   *-- etc.
+|   *-- portable
+|       *-- cli
+|       *-- output_logger
+|       *-- etc.
+*-- concepts
+|   *-- components
+|   *-- endpoints
+|   *-- etc.
+*-- helpers
+|   *-- endpoints
+|   *-- metadata
+|   *-- etc.
+*-- sensors
+    *-- arduino
+    |   *-- icm20948
+    |   *-- trill_craft
+    |   *-- etc.
+    *-- esp32
+    |   *-- adc
+    |   *-- arduino-hack
+    |   *-- etc.
+    *-- portable
+        *-- etc.
 ```
 
 Components were correspondingly named e.g. `sygse-adc`.

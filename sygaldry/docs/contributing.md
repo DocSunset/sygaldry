@@ -158,7 +158,7 @@ When referring to the project in prose, use preformatted text, as in `sygaldry`.
 Same when referring to the name of any software component, C++ entity, shell
 command, directory, file, etc.
 
-# Components and Physical Design Conventions
+# Software Components and Physical Design Conventions
 
 Components are identifiable functional modules that group together a
 characteristic functionality or group of functionalities that the component

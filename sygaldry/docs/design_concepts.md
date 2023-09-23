@@ -1,11 +1,22 @@
-\page docs-design_concepts Design Concepts
+\page page-docs-design_concepts Design Concepts
+
+[TOC]
+
+Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
+(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
+This
+document provides an overview of the conceptual framework that guides the
+concepts library, and `sygaldry` as a whole by extension.
 
 The concepts library defines the expected conventions for components and
 bindings. As such, it is the root of the `sygaldry` framework, and used
 extensively by components and bindings alike, but especially by bindings and
-other components with *throughpoints* and *plugins* (described later). This
-document provides an overview of the conceptual framework that guides the
-concepts library, and `sygaldry` as a whole by extension.
+other components with *throughpoints* and *plugins* (described later).
 
 # Components
 
@@ -13,11 +24,11 @@ A digital musical instrument (DMI) is an assemblage of components that
 generate, process, and output various forms of information with numerous
 different structures and temporal characteristics, with the purpose of creating
 musically meaningful signals (for some interpretation of what constitutes
-meaning). We define a *component* as a part of a DMI assemblage that implements
-a specific characteristic functionality or meaningfully associated group of
-functionalities. Components themselves may contain subcomponents that are used
-to implement their functionality, or their whole functionality may directly
-derive from their subcomponents.
+meaning etc.). We define a *component* as a part of a DMI assemblage that
+implements a specific characteristic functionality or meaningfully associated
+group of functionalities. Components themselves may contain subcomponents that
+are used to implement their functionality, or their whole functionality may
+directly derive from their subcomponents.
 
 # Ports
 
@@ -29,7 +40,7 @@ a *throughpoint* as a port that inherits its semantic interpretation from
 the source or destination of the data flowing through it.
 
 C++ concepts for differentiating different kinds of ports (especially endpoints)
-are provided in [the endpoints concepts document](concepts/endpoints.lili.md)
+are provided in [the endpoints concepts document](\ref page-sygah-endpoints)
 
 ## Endpoints
 
@@ -95,7 +106,7 @@ subassembly is solely responsible for managing the subcomponent. A subcomponent
 that the assmebly uses but is not solely responsible for is called a *plugin*.
 
 Component concepts are provided in
-[the related document](concepts/components.lili.md)
+[the related document](\ref page-sygac-components)
 
 ## Parts
 
@@ -130,13 +141,19 @@ main subroutine as a mutable reference. This pattern is termed a *plugin*.
 
 The design of many useful DMIs can be fully expressed by a declarative list of
 their subcomponents and the throughpoint, part parameter, and plugin
-dependencies between them, e.g. [the
-T-Stick](/instruments/t_stick/t_stick.lili.md). This kind of declarative
-assemblage, realized as a simple aggregate structure of components, can be
-decomposed into a tree-like structure called *the component tree*, which
-enables various forms of filtering and searching. Using type reflection to
-recognize throughpoint and plugin types, these dependencies can be
-automatically propagated to components that need them by extracting references
-to the required dependencies from the component tree. Template metaprogramming
-machinery that implements this technique is described in
-[the runtime document](concepts/runtime.lili.md).
+dependencies between them, e.g. [the T-Stick](\ref page-sygin-t_stick).
+This kind of declarative assemblage, realized as a simple aggregate structure
+of components, can be decomposed into a tree-like structure called *the
+component tree*, which enables various forms of filtering and searching. Using
+type reflection to recognize throughpoint and plugin types, these dependencies
+can be automatically propagated to components that need them by extracting
+references to the required dependencies from the component tree. Template
+metaprogramming machinery that implements this technique is described in
+[the runtime document](\ref page-sygac-runtime).
+
+# Software Components
+
+Not to be conflated with a component as described above, the term "software
+component" refers to a collection of files that implement a component. For
+more information, see [the Contributors Guide](\ref page-docs-contributing),
+especially the section on software components.

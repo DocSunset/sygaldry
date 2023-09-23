@@ -16,23 +16,43 @@ SPDX-License-Identifier: MIT
 
 # Licenses
 
-Sygaldry incorporates numerous software (and eventually also hardware)
-components developed by many individual authors and organizations. Each file in
-this repository should be marked with a copyright statement and SPDX license
-identifier that establish the legal status of that file, and that file only.
-Any file lacking a copyright notice and license identifier should be assumed to
-be copyright the author, all rights reserved.
+Sygaldry incorporates numerous software (and perhaps eventually also hardware)
+components developed by many individual authors affiliated with various
+organizations. Each file in this repository should be marked with a copyright
+statement and SPDX license identifier that establish the legal status of that
+file, and that file only. Any file lacking a copyright notice and license
+identifier should be assumed to be copyright the author, all rights reserved.
+
+# Documentation
+
+The Doxygen-generated documentation is now available online
+[here](splendid-macaron-d3f49c.netlify.app). It is recommended to read the
+documentation there, or to read the markdown literate sources directly. Reading
+on Github is not recommended, since some doxygen-specific annotations in the
+markdown documentation will not render correctly on Github. If you are
+currently reading on Github, consider following the link above before
+continuing with the next section.
 
 # Quick Start
 
-The Doxygen-generated documentation is not yet available online. In the
-meantime, the reader is invited to clone this repository and run `sh/run.sh
-_build_doxygen` in the root directory of the project (or an equivalent script
-for your platform, or just `doxygen`), and then open the index file generated
-by Doxygen at `_build_doxygen/html/index.html` before continuing. Github and
-Doxygen have incompatible conventions for relative linking, and some
-Doxygen-specific markup commands are used that will not render correctly on
-Github, so reading the Doxygen-generated documentation is strongly advised.
+Depending on your goals, consider starting with one of the following documents
+(work in progress):
+
+- For an overview of the motivation and overarching design goals of Sygaldry,
+  continue reading this document.
+- [Design concepts](\ref page-docs-design_concepts). This document
+  describes the conceptual framework of the project and serves as a glossary of
+  important terms used throughout.
+- Setting up the development environment. This is necessary for compiling firmware
+  and contributing new components and instruments to the project. All users should
+  eventually start here. TODO.
+- Making a new instrument from existing components. TODO.
+- Making new components. TODO.
+- Making new bindings. TODO.
+- [Reference documentation](/topics.html). An overview of the user documentation
+  for all the software components in the project.
+- [Literate source listing](\ref page-sygaldry-docs-implementation). An overview
+  of the literate source code of all the software components in the project.
 
 # Project Motivation
 
@@ -101,7 +121,7 @@ with a general lack of consensus about how to evaluate DMIs
 generalisable insight from evaluations of DMIs, and poses severe challenges for
 the scientific study and advancement of DMI design.
 
-# Proposed Solution
+## Proposed Solution
 
 Sygaldry aims to explore a framework that addresses the replicability,
 portability, and generalisable study of DMIs by employing three interlocking
@@ -183,25 +203,25 @@ is a bug.
 The components library contains a collection of `sygaldry` components useful
 for building digital musical instruments, implemented using the utilities,
 concepts, and helpers libraries, and without any other dependencies (except for
-its tests). The components library provides platform independent logical
-components in the `sylgadry::components` namespace, including especially
-cross-modal mapping, sensor conditioning, and gesture modelling components. In
-addition, platform-specific components also are provided, each in their own
-subdirectory and namespace, e.g. `sygaldry::components::esp32`, including
-hardware-dependent components such as GPIO, ADC, serial interface, and other
-peripheral drivers. A platform-independent component is allowed to directly
-physically depend on other platform-independent components. A platform-specific
-component is allowed to directly physically depend on other components for the
-same platform, and on platform-independent components.
+its tests). Careful attention is given the the portability of these components.
+A platform-independent component is allowed to directly physically depend only
+on other platform-independent components. A platform-specific component is
+allowed to directly physically depend on other components for the same
+platform, and on platform-independent components. We have so far implemented
+drivers for numerous different sensors in the namespaces `sygaldry::sygsX`,
+where `X` is a platform-specific alphanumeric code or `p` for portable
+components. In the future, we hope to implement other useful components for
+making mappings and sound synthesis signal chains.
 
 ## bindings
 
 The bindings library contains components that mainly reflect over other
 components generically, providing functionality such as control protocol
-bindings. It is defined in the namespace `sygaldry::bindings`. Binding
+bindings. It is defined in the namespace `sygaldry::sygbX` where `X` is
+a platform-specific alphanumeric code or `p` for portable components. Binding
 components are allowed to directly utilize the interface of other binding
-components, but must generically other components, such as those in the
-`sygaldry::components` library, using the generic methods defined in the
+components, but must generically access other components, such as those in the
+Sygaldry components library, using the generic methods defined in the
 concepts library. The bindings library depends on the utilities, concepts, and
 helpers library, and is not allowed to access the components library directly.
 Like the component library, the bindings library provides both
@@ -211,7 +231,7 @@ namespaces.
 ## The Sygaldry Instruments
 
 Taken together, the utilities, concepts, helpers, components, and bindings
-libraries make up the `sygladry` library. The instruments library contains a
+libraries make up the `sygaldry` library. The instruments library contains a
 collection of digital musical instruments implemented using the `sygaldry`
 library, and completing the `sygaldry` project.
 
@@ -230,3 +250,14 @@ For more detail, refer to [the build system document](build-system.lili.md).
 This directory contains 3rd party submodules used by other components,
 including the `boost` libraries required for reflection and metaprogramming,
 and libraries meeting other platform- or component-specific requirements.
+
+### doxygen
+
+This directory contains resources used when generating the documentation
+website.
+
+---
+
+Related documents:
+
+- TODO

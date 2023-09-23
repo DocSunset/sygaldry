@@ -1,4 +1,4 @@
-\page page-sygse-micros Portable Timestamp API
+\page page-sygse-micros Portable Timestamp API for ESP32
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -26,6 +26,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// Get the number of microseconds elapsed since boot.
 unsigned long micros()
 {
     return ::micros();

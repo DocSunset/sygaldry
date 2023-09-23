@@ -10,6 +10,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// Get the number of microseconds elapsed since boot.
 unsigned long micros()
 {
     return ::micros();
