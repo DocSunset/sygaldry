@@ -26,7 +26,7 @@ identifier should be assumed to be copyright the author, all rights reserved.
 # Documentation
 
 The Doxygen-generated documentation is now available online
-[here](splendid-macaron-d3f49c.netlify.app). It is recommended to read the
+[here](https://splendid-macaron-d3f49c.netlify.app). It is recommended to read the
 documentation there, or to read the markdown literate sources directly. Reading
 on Github is not recommended, since some doxygen-specific annotations in the
 markdown documentation will not render correctly on Github. If you are

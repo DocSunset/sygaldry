@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 #include <string_view>
 #include <string>
 #include <type_traits>
+#include <optional>
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 #include "sygac-endpoints.hpp"

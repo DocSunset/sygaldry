@@ -14,30 +14,164 @@ SPDX-License-Identifier: MIT
 ## Operating System
 
 In order to compile instrument firmwares and develop new components, you need
-to have a compatible toolchain and development environment set up. This is
-most easily accomplished on Linux, and other operating systems are not officially
-supported at this time. Users of these operating systems are encouraged to set up
-a virtual machine running the Linux distro of their choice, e.g. using VirtualBox.
-This should be a reasonable straightforward process for most developers. Once
-the VM is set up, the USB device node for your microcontroller will need to
-be forwarded to the VM.
+to have a compatible toolchain and development environment set up. This is most
+easily accomplished on Linux, and other operating systems are not officially
+supported at this time. Users of Windows, especially, if you encounter
+difficulty setting up the development environment, you are encouraged to set up
+a virtual machine running the Linux distro of your choice, e.g. using
+VirtualBox. Once the VM is set up, the USB device node for your microcontroller
+will need to be forwarded to the VM. Then you can follow along with the
+instructions for Linux users.
 
-## Build Requirements
+There are three options for setting up the development environment:
+
+- Option 1: `nix` shell
+- Option 2: Manual install
+- Option 3: `docker` shell
+
+## Option 1: Nix (recommended for non-Windows)
+
+Nix is a pure functional DSL for package management and allows consistent
+development environments to be rapidly deployed wherever the `nix` package
+manager can be installed. This is currently limited to Linux and macOS, and
+recent version of WSL2 that support `systemd`. Users of other environments
+should continue to option 2.
+
+This setup method is still a work in progress.
+
+The nix expressions below are provided and allow to use the `nix-shell` command
+from the Nix package manager to quickly set up an isolated and replicable
+development environement. After installing `nix` according to the instructions
+at https://nixos.org/download you can run `nix-shell --pure` in the root of the
+Sygaldry repository, after which you should be able to make use of the
+convenience scripts
+
+If all you want to do is get your development environment working, once you
+have installed `nix` you're basically done. Open your terminal to the root
+of this repository and run `nix-shell --pure` and you are ready to go. Skip
+to the section below for information about the convenience scripts provided
+to make it easier to compile for various platforms.
+
+## Nix shell implementation details
+
+We have three nix expressions. The first one packages `lili` so that you don't
+have to manually install it. This is fairly trivial using the standard builder
+from `nixpkgs.stdenv`:
+
+```nix
+# @#'nix/lili.nix'
+# derivation for lili
+{ pkgs }: pkgs.stdenv.mkDerivation {
+    name = "lili";
+    src = pkgs.fetchFromGitHub {
+        owner = "DocSunset";
+        repo = "lili";
+        rev = "main";
+        sha256 = "sha256-2AeLHCwtUK/SZMhhlRcDvtJdKtkouUfofm7Bg6+FcAc=";
+    };
+    installPhase = ''
+        make prefix="$out" install
+    '';
+}
+# @/
+```
+
+We then provide an overlay that allows us to make our `lili` package available
+as an extension of `nixpkgs`.
+
+```nix
+# @#'nix/overlay.nix'
+final: prev: {
+    lili = prev.callPackage ./lili.nix {}; # paths are relative to the dir the file is in
+}
+# @/
+```
+
+Finally, we can define our shell by importing a pinned version of `nixpkgs`,
+overlaying our `lili` package, and declaring our dependencies.
+
+```nix
+# @#'shell.nix'
+let pkgs = import (fetchTarball {
+        url = https://github.com/NixOS/nixpkgs/archive/refs/tags/23.05.tar.gz;
+        sha256 = sha256:10wn0l08j9lgqcw8177nh2ljrnxdrpri7bp0g7nvrsn9rkawvlbf;
+    }) { overlays = [ (import ./nix/overlay.nix) ]; }; # apply overlay to make lili available
+in pkgs.mkShell {
+        name = "sygaldry";
+        packages = [
+            pkgs.git # required so cmake can fetch git repos like catch2
+            pkgs.cacert # required so cmake can fetch git repos like catch2
+            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
+            pkgs.pkg-config # so cmake can find liblo
+            pkgs.cmake
+            pkgs.doxygen
+            pkgs.parallel
+            pkgs.lili
+        ];
+}
+# @/
+```
+
+## Option 2: Install Build Requirements Manually
 
 A full build requires the following executables:
 
 - lili (the literate programming tool used for the project)
 - cmake
-- the compiler toolchain for the platform the build targets you wish to use
+- the compiler toolchain for the platform the build targets you wish to use (e.g. esp-idf)
 - posix utilities (optional, used in convenience shell scripts)
-- gnu parallel (ditto)
+- gnu parallel (ditto) (Tange, O. (2023, April 22). GNU Parallel 20230422 ('Grand Jury'). Zenodo. https://doi.org/10.5281/zenodo.7855617)
 - doxygen (optional, for generating documentation)
 
 If you encounter other prerequisites not described above, please open an issue.
 
-Lili is easily installed from source using the makefile.
+Guides in this subsection are a work in progress. If you are currently manually
+setting up a development environment, please consider contributing to this
+document.
 
-# Docker Environment
+### Arch Linux
+
+```sh
+# from the root of the sygaldry repository
+
+# base requirements
+pacman -S base-devel cmake parallel doxygen
+git clone https://github.com/DocSunset/lili.git
+cd lili
+make && sudo make install
+cd ..
+rm -rf lili # optional
+
+# ESP-IDF
+mkdir dependencies/esp-idf-tools
+git clone https://github.com/espressif/esp-idf.git dependencies/esp-idf
+pushd dependencies/esp-idf
+    git fetch -a
+    git checkout v5.1
+popd
+export IDF_TOOLS_PATH="$(realpath dependencies/esp-idf-tools)"
+./dependencies/esp-idf/install.sh
+source dependencies/esp-idf/export.sh
+# then each time before using idf.py, run:
+    # export IDF_TOOLS_PATH="$(realpath dependencies/esp-idf-tools)"
+    # source dependencies/esp-idf/export.sh
+```
+
+### macOS
+
+TODO
+
+### Windows
+
+It is recommended to install a virtual machine and follow the instructions
+for Linux users to be able to benefit from the convenience scripts.
+
+TODO
+
+## Option 3: Docker Environment (Linux only)
+
+This method is not recommended or supported and is retained only in case
+someone prefers to use Docker and wishes to improve the method.
 
 A Dockerfile is provided that enables Linux users to quickly set up a
 consistent development environment. This workflow is still a work in progress
@@ -54,7 +188,7 @@ any persistent data! So if you edit the repository within the container and
 don't commit and push those changes to a remote, then they will be lost should
 you shut down the container. You will also have to authenticate with Github
 every time you restart the container. We are open to suggestions for improving
-the Docker workflow.
+the Docker workflow, e.g. by mounting the already cloned repo as a volume.
 
 ```dockerfile
 # @#'Dockerfile'
@@ -130,6 +264,8 @@ impacts incremental builds, sometimes causing unnecessary recompilation of
 machine sources that have not actually changed due to their updated access
 times. It is recommended to use [`ccache`](https://ccache.dev/) to work around
 this issue, and generally speed up build times.
+
+TODO: add ccache to the nix setup.
 
 ## Doxygen
 
