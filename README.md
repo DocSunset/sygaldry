@@ -38,17 +38,18 @@ continuing with the next section.
 Depending on your goals, consider starting with one of the following documents
 (work in progress):
 
-- For an overview of the motivation and overarching design goals of Sygaldry,
-  continue reading this document.
+- For an overview of the motivation and overarching design goals of Sygaldry, and
+  a high level description of the repository, continue reading this document.
 - [Design concepts](\ref page-docs-design_concepts). This document
   describes the conceptual framework of the project and serves as a glossary of
   important terms used throughout.
-- Setting up the development environment. This is necessary for compiling firmware
+- [Setting up the development environment](\ref page-docs-build_system). This is necessary for compiling firmware
   and contributing new components and instruments to the project. All users should
-  eventually start here. TODO.
-- Making a new instrument from existing components. TODO.
-- Making new components. TODO.
+  eventually start here.
+- \ref page-sygin-making_a_new_instrument.
+- \ref page-docs-making_a_new_component.
 - Making new bindings. TODO.
+- \ref page-docs-contributing. Tips for those interested in contributing to the project.
 - [Reference documentation](/topics.html). An overview of the user documentation
   for all the software components in the project.
 - [Literate source listing](\ref page-sygaldry-docs-implementation). An overview

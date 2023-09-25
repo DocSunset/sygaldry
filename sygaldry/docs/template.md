@@ -1,23 +1,4 @@
-\page page-docs-writing_a_new_component Writing a New Component
-
-Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
-
-SPDX-License-Identifier: MIT
-
-Work in progress!
-
-Remember to add your new component to the top level CMakeLists.txt!
-
-I repeat: Remember to add your new component to the top level CMakeLists.txt!
-
-\subpage page-sygXY-newcomponent New Component
-
-# New Component Template
-
-\page page-sygXY-newcomponent New Component
+\page page-sygXX-new_component New Component
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -28,7 +9,11 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-Literate explication of the design and implementation goes here.
+Introductory prose goes here.
+
+Remember to add your new component to the top level CMakeLists.txt!
+
+I repeat: Remember to add your new component to the top level CMakeLists.txt!
 
 ```cpp
 // @#'sygXY-newcomponent.hpp'
@@ -128,16 +113,12 @@ using namespace sygaldry::sygXY;
 # @#'CMakeLists.txt'
 set(lib sygXY-newcomponent)
 add_library(${lib} STATIC)
-    target_sources(${lib}
-            PRIVATE ${lib}.cpp
-            )
-    target_include_directories(${lib}
-            PUBLIC .
-            )
-    target_link_libraries(${lib}
-            PUBLIC sygah-endpoints
-            PUBLIC sygaldry-helpers-metadata
-            )
+target_sources(${lib} PRIVATE ${lib}.cpp)
+target_include_directories(${lib} PUBLIC .)
+target_link_libraries(${lib}
+        PUBLIC sygah-endpoints
+        PUBLIC sygaldry-helpers-metadata
+        )
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
@@ -146,6 +127,5 @@ target_link_libraries(${lib}-test PRIVATE ${lib})
 #target_link_libraries(${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
 catch_discover_tests(${lib}-test)
 endif()
-
 # @/
 ```

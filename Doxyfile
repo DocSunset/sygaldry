@@ -945,7 +945,9 @@ WARN_LOGFILE           =
 
 INPUT                  = ./README.md\
                          ./sygaldry/docs/design_concepts.md\
-                         ./sygaldry/docs/user_reference.md\
+                         ./build-system.lili.md\
+                         ./sygaldry/docs/making_a_new_instrument.md\
+                         ./sygaldry/docs/making_a_new_component.md\
                          ./sygaldry/docs/contributing.md\
                          ./sygaldry/docs/implementation.md\
                          ./sygaldry\
@@ -984,7 +986,7 @@ EXCLUDE_SYMLINKS       = NO
 # Note that the wildcards are matched against the file with absolute path, so to
 # exclude all test directories for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = */dependencies/* *_build*/* */*test*/* *tests*.cpp *.test.cpp
+EXCLUDE_PATTERNS       = */dependencies/* */nixenv/* *_build*/* */*test*/* *tests*.cpp *.test.cpp
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
