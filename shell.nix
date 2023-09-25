@@ -5,7 +5,7 @@ let pkgs = import (fetchTarball {
 in pkgs.mkShell {
         name = "sygaldry";
         packages = [
-            pkgs.git # required so cmake can fetch git repos like catch2
+            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
             pkgs.cacert # required so cmake can fetch git repos like catch2
             pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.pkg-config # so cmake can find liblo
@@ -13,5 +13,30 @@ in pkgs.mkShell {
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
+
+            # additional packages required for esp-idf
+            pkgs.wget
+            pkgs.gnumake
+            pkgs.flex
+            pkgs.bison
+            pkgs.gperf
+            pkgs.python3
+            pkgs.ninja
+            pkgs.ccache
+            pkgs.dfu-util
         ];
+        shellHook = ''
+            mkdir -p ./nixenv/esp-idf-tools/
+            export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
+            IDF_PATH='nixenv/esp-idf'
+            [ -d "$IDF_PATH" ] || {
+                git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+                pushd "$IDF_PATH"
+                    git fetch -a
+                    git checkout v5.1
+                popd
+                "./$IDF_PATH/install.sh"
+            }
+            source "$IDF_PATH/export.sh"
+        '';
 }

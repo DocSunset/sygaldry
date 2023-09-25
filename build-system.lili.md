@@ -1,4 +1,4 @@
-\page page-build_system The Build System
+\page page-docs-build_system The Build System
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -9,6 +9,9 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
+This document describes how to set up the development environment for Sygaldry,
+as well as the convenience scripts provided to facilitate development.
+
 # Getting Started
 
 ## Operating System
@@ -16,12 +19,15 @@ SPDX-License-Identifier: MIT
 In order to compile instrument firmwares and develop new components, you need
 to have a compatible toolchain and development environment set up. This is most
 easily accomplished on Linux, and other operating systems are not officially
-supported at this time. Users of Windows, especially, if you encounter
-difficulty setting up the development environment, you are encouraged to set up
-a virtual machine running the Linux distro of your choice, e.g. using
-VirtualBox. Once the VM is set up, the USB device node for your microcontroller
-will need to be forwarded to the VM. Then you can follow along with the
-instructions for Linux users.
+supported at this time.
+
+Users of Windows, especially, if you encounter difficulty setting up the
+development environment, you are encouraged to set up a virtual machine running
+the Linux distro of your choice, e.g. using VirtualBox. Once the VM is set up,
+the USB device node for your microcontroller will need to be forwarded to the
+VM. Then you can follow along with the instructions for Linux users.
+Unfortunately, WSL2 doesn't allow access to USB devices, so a VirtualBox VM
+remains probably the best option.
 
 There are three options for setting up the development environment:
 
@@ -29,13 +35,14 @@ There are three options for setting up the development environment:
 - Option 2: Manual install
 - Option 3: `docker` shell
 
-## Option 1: Nix (recommended for non-Windows)
+## Option 1: Nix (recommended method)
 
-Nix is a pure functional DSL for package management and allows consistent
-development environments to be rapidly deployed wherever the `nix` package
-manager can be installed. This is currently limited to Linux and macOS, and
-recent version of WSL2 that support `systemd`. Users of other environments
-should continue to option 2.
+Nix is a pure functional DSL and ecosystem for package management and allows
+consistent development environments to be rapidly deployed wherever the `nix`
+package manager can be installed. This is currently limited to Linux and macOS,
+and recent version of WSL2 that support `systemd`. However, WSL doesn't allow
+direct access to USB devices, so may be of limited use. Users of other
+environments should continue to option 2.
 
 This setup method is still a work in progress.
 
@@ -47,12 +54,37 @@ Sygaldry repository, after which you should be able to make use of the
 convenience scripts
 
 If all you want to do is get your development environment working, once you
-have installed `nix` you're basically done. Open your terminal to the root
-of this repository and run `nix-shell --pure` and you are ready to go. Skip
-to the section below for information about the convenience scripts provided
-to make it easier to compile for various platforms.
+have installed `nix` you're basically done (you may also need `git` to be able
+to clone the repository, please let me know if this is the case).
 
-## Nix shell implementation details
+### Step by step
+
+Install `nix` according to the documentation for your system, or the nixos.org
+upstream documentation if your platform doesn't have any specific installation
+advice for `nix`.
+
+If you want to contribute to the project, make a fork on github.
+
+If you use git, install `git` and/or `gh-cli` using your system's package
+manager.
+
+If you use git, clone the repository using the method of your choice.
+
+Alternatively, if you don't use git, you can also download the compressed
+archive of the repository from https://github.com/DocSunset/sygaldry and extract
+it to a local directory.
+
+Open your terminal to the root of the cloned repository or extracted directory
+and run `nix-shell --pure`. This may take a little while the first time, while
+`nix` sets up the development environment and the `esp-idf` is installed.
+
+You are now ready to go! Run `./sh/run.sh` to compile and run the tests,
+`doxygen` to generate local documentation, and so on. Skip to the section below
+for information about the convenience scripts provided to make it easier to
+compile for various platforms, or read on for information on how the
+`nix-shell` environment is specified.
+
+### Nix shell implementation details
 
 We have three nix expressions. The first one packages `lili` so that you don't
 have to manually install it. This is fairly trivial using the standard builder
@@ -88,7 +120,10 @@ final: prev: {
 ```
 
 Finally, we can define our shell by importing a pinned version of `nixpkgs`,
-overlaying our `lili` package, and declaring our dependencies.
+overlaying our `lili` package, and declaring our dependencies. The shell hook
+is used to additionally install `esp-idf` using the upstream manual install
+method, i.e. by cloning the `esp-idf` repository and running its included
+`install.sh`.
 
 ```nix
 # @#'shell.nix'
@@ -99,7 +134,7 @@ let pkgs = import (fetchTarball {
 in pkgs.mkShell {
         name = "sygaldry";
         packages = [
-            pkgs.git # required so cmake can fetch git repos like catch2
+            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
             pkgs.cacert # required so cmake can fetch git repos like catch2
             pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.pkg-config # so cmake can find liblo
@@ -107,7 +142,32 @@ in pkgs.mkShell {
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
+
+            # additional packages required for esp-idf
+            pkgs.wget
+            pkgs.gnumake
+            pkgs.flex
+            pkgs.bison
+            pkgs.gperf
+            pkgs.python3
+            pkgs.ninja
+            pkgs.ccache
+            pkgs.dfu-util
         ];
+        shellHook = ''
+            mkdir -p ./nixenv/esp-idf-tools/
+            export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
+            IDF_PATH='nixenv/esp-idf'
+            [ -d "$IDF_PATH" ] || {
+                git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+                pushd "$IDF_PATH"
+                    git fetch -a
+                    git checkout v5.1
+                popd
+                "./$IDF_PATH/install.sh"
+            }
+            source "$IDF_PATH/export.sh"
+        '';
 }
 # @/
 ```

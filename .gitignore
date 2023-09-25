@@ -1,4 +1,6 @@
 build
+nixenv
 _build*/*
+.gdb_history
 *.o
 *.pd_linux
