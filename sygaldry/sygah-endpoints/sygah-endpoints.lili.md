@@ -278,7 +278,9 @@ built-in conversion to bool -> bool`, meaning for numeric types that have a
 built-in conversion to bool, the user-defined conversion to bool was being
 ignored leading to incorrect interpretation of whether the endpoint was
 recently updated. In hindsight it is clear that this ambiguity was present from
-the beginning.
+the beginning. Indeed, if our `occasional` type has value semantics and wraps
+any underlying `T` that can be implicitly converted to bool, then treating it
+directly as a boolean is ambiguous.
 
 There were two options to resolve this ambiguity: either require the boolean
 state of the endpoint to be accessed explicitly, or require its underlying value
@@ -428,6 +430,7 @@ TEST_CASE("sygaldry sygah-endpoints Occasional Value")
     s = occasional_struct{};
     CHECK(s.updated == false);
     static_assert(OccasionalValue<occasional_struct>);
+    static_assert(ClearableFlag<occasional_struct>);
 }
 // @/
 ```

@@ -55,6 +55,7 @@ TEST_CASE("sygaldry sygah-endpoints Occasional Value")
     s = occasional_struct{};
     CHECK(s.updated == false);
     static_assert(OccasionalValue<occasional_struct>);
+    static_assert(ClearableFlag<occasional_struct>);
 }
 struct tag_foo {enum {foo};};
 struct tag_bar {enum {bar};};

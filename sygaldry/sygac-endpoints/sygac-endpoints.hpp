@@ -91,15 +91,15 @@ concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
 template<ClearableFlag T>
 constexpr void clear_flag(T& t)
 {
-    if constexpr (BoolishFlag<T>) t = T{};
-    else if constexpr (UpdatedFlag<T>) t.updated = false;
+    if constexpr (UpdatedFlag<T>) t.updated = false;
+    else if constexpr (BoolishFlag<T>) t = T{};
 }
 
 template<ClearableFlag T>
 constexpr bool flag_state_of(T& t)
 {
-    if constexpr (BoolishFlag<T>) return bool(t);
-    else if constexpr (UpdatedFlag<T>) return t.updated;
+    if constexpr (UpdatedFlag<T>) return t.updated;
+    else if constexpr (BoolishFlag<T>) return bool(t);
 }
 template <typename T>
 concept has_value = OccasionalValue<T> || PersistentValue<T>;

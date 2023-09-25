@@ -345,21 +345,24 @@ TEST_CASE("sygaldry Bang", "[components][concepts][Bang]")
 
 # Flags
 
-The `Flag` concept requires that we can convert a type to bool, and that the
+The `Flag` concept represents a value that is only occasionally updated and
+needs to signal that it has been updated. Components that expect such values
+can act depending on whether they have been updated in a given runtime tick,
+and the runtime is expected to clear the flags at the end of each tick.
+
+We initially required that we could convert a flag type to bool, and that the
 boolean interpretation of a default constructed value of the type is `false`.
-This is true of `std::optional`, `bool`, and also pointer types. We assume that
-by assigning a value of this type to a default-constructed value that we can
-set its boolean interpretation to `false`, and check at least that constructing
-the type in this way has the expected effect. This allows us to define a
-generic method for clearing values that meet the requirements of `Flag`. For a
-flag to be considered `Clearable`, we require that it model `OccasionalValue`
-or `Bang`; these are presently the only supported types with event-like
-semantics, and that should therefore be cleared by the platform. The
-`ClearableFlag` mechanism support binding authors in detecting and serving this
-requirement. A client using e.g. the `bng` class defined in `endpoints.lili`
-may prefer to use a different, perhaps more expressive, method of clearing its
-state. But for a binding author, it's useful to have a way to clear a flag
-without having to know anything about it other than that it is a valid flag.
+This is true of `std::optional`, `bool`, and also pointer types. We assumed that
+by assigning a value of this type to a default-constructed value that we could
+set its boolean interpretation to `false`.
+
+This turned out to be overly simple, as detailed in the design of the `occasional`
+template in \ref page-sygah-endpoints. It becomes a burden for the design of the
+endpoint helpers to have to propagate behavior through constructors, and
+conversion to bool also becomes ambiguous in cases where an endpoint should have
+value semantics with an underlying value type that can be implicitly converted
+to bool. We added a concept `UpdatedFlag` that reflects the API of our current `occasional`
+endpoint helper.
 
 ```cpp
 // @='flag'
@@ -379,7 +382,25 @@ concept UpdatedFlag = requires (T t)
 
 template<typename T> concept Flag = BoolishFlag<T> || UpdatedFlag<T>;
 // @/
+```
 
+For a flag to be considered `Clearable`, we require that it model
+`OccasionalValue` or `Bang`; these are presently the only supported types with
+event-like semantics, and that should therefore be cleared by the platform. The
+`ClearableFlag` mechanism support binding authors in detecting and serving this
+requirement. A client using e.g. the `bng` endpoint helper may prefer to use a
+different, perhaps more expressive, method of clearing its state. But for a
+binding author, it's useful to have a way to clear a flag without having to
+know anything about it other than that it is a valid flag.
+
+When generically clearing a flag, we first check if it is an `UpdatedFlag`;
+this is important, since the `UpdatedFlag` concept is not mutually exclusive
+with the `BoolishFlag` concept (an `UpdatedFlag` may also be a `BoolishFlag`
+e.g. if the type has value semantics with an underlying value type that can be
+converted to bool), but has a very different API for being cleared. Similarly
+for checking the state of the flag.
+
+```cpp
 // @+'concepts'
 template<typename T>
 concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
@@ -387,15 +408,15 @@ concept ClearableFlag = Flag<T> && (OccasionalValue<T> || Bang<T>);
 template<ClearableFlag T>
 constexpr void clear_flag(T& t)
 {
-    if constexpr (BoolishFlag<T>) t = T{};
-    else if constexpr (UpdatedFlag<T>) t.updated = false;
+    if constexpr (UpdatedFlag<T>) t.updated = false;
+    else if constexpr (BoolishFlag<T>) t = T{};
 }
 
 template<ClearableFlag T>
 constexpr bool flag_state_of(T& t)
 {
-    if constexpr (BoolishFlag<T>) return bool(t);
-    else if constexpr (UpdatedFlag<T>) return t.updated;
+    if constexpr (UpdatedFlag<T>) return t.updated;
+    else if constexpr (BoolishFlag<T>) return bool(t);
 }
 // @/
 
