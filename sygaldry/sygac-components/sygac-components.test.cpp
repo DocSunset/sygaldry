@@ -243,7 +243,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
             >
 >);
 
-TEST_CASE("component_to_tree")
+TEST_CASE("sygaldry component_to_tree")
 {
     constexpr auto tree = component_to_tree(accessor_test_container);
     auto& in1 = std::get<0>(std::get<1>(std::get<1>(std::get<1>(tree)))).ref;
@@ -252,7 +252,7 @@ TEST_CASE("component_to_tree")
     in1.extra_value = 3.14f;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
 }
-TEST_CASE("tuple head and tail")
+TEST_CASE("sygaldry tuple head and tail")
 {
     struct {
         int a;
@@ -268,7 +268,7 @@ TEST_CASE("tuple head and tail")
     auto empty_tuple = std::tuple<>{};
     auto empty = tuple_head(empty_tuple);
 }
-TEST_CASE("component_tree_to_node_list")
+TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
     static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
@@ -279,7 +279,7 @@ TEST_CASE("component_tree_to_node_list")
     in1.extra_value = 3.14f;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
 }
-TEST_CASE("node_list_filter")
+TEST_CASE("sygaldry node_list_filter")
 {
     constexpr auto& in1 = find<in11>(component_tree_to_node_list(component_to_tree(accessor_test_container)));
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
@@ -332,7 +332,7 @@ static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
 static_assert(std::same_as<decltype(outputs), output_endpoints_t<accessor_test_container_t>>);
 static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_component>>);
 // TODO: test the other ones as needed
-TEST_CASE("for each X")
+TEST_CASE("sygaldry for each X")
 {
     string allnames{};
     auto add_names = [&](auto& entity)
@@ -424,7 +424,7 @@ TEST_CASE("for each X")
     }
 }
 
-TEST_CASE("for each benchmarks", "[!benchmark]")
+TEST_CASE("sygaldry for each benchmarks", "[!benchmark]")
 {
     string allnames{};
     auto add_names = [&](auto& entity)

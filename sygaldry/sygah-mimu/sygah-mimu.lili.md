@@ -78,7 +78,7 @@ a manual call to `set_updated()`.
 
 ```cpp
 // @+'tests'
-TEST_CASE("MIMU endpoint helpers")
+TEST_CASE("sygaldry MIMU endpoint helpers")
 {
     vec3_message<"testvec"> v{};
     CHECK(not v.updated);

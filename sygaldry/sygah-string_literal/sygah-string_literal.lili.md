@@ -78,7 +78,7 @@ using std::string_view;
 template<string_literal str>
 _consteval auto name() {return string_view{str.value};}
 
-TEST_CASE("String literal", "[endpoints][string_literal]")
+TEST_CASE("sygaldry String literal", "[endpoints][string_literal]")
 {
     REQUIRE(string_view(string_literal{"Hello world"}.value) == "Hello world");
     REQUIRE(name<"test">() == "test");

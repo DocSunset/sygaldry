@@ -70,7 +70,7 @@ using namespace sygaldry::utility_components;
 
 @{tests}
 
-TEST_CASE("BasicLogger print") {
+TEST_CASE("sygaldry BasicLogger print") {
     TestLogger logger;
     logger.put.ss.str("");
 

@@ -73,7 +73,7 @@ and use this representation to derive the path string.
 
 ```cpp
 // @+'tests'
-TEST_CASE("osc path")
+TEST_CASE("sygaldry osc path")
 {
     struct root_t { static _consteval const char * name() {return "Root";} };
     struct leaf_t { static _consteval const char * name() {return "leaf";} };
@@ -153,7 +153,7 @@ types, for simplicity and in hopes of improving compatibility.
 
 ```cpp
 // @+'tests'
-TEST_CASE("osc type tag string")
+TEST_CASE("sygaldry osc type tag string")
 {
     CHECK(string_view(osc_type_string_v<button<"test button">>)             == string_view(",i"));
     CHECK(string_view(osc_type_string_v<toggle<"test toggle">>)             == string_view(",i"));

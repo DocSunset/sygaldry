@@ -10,13 +10,13 @@ SPDX-License-Identifier: MIT
 #include <catch2/catch_test_macros.hpp>
 #include "sygbp-osc_match_pattern.hpp"
 
-TEST_CASE("OSC match wildcards")
+TEST_CASE("sygaldry OSC match wildcards")
 {
     CHECK(osc_match_pattern("/???", "/123"));
     CHECK(osc_match_pattern("/foo.?", "/foo.8"));
     CHECK(not osc_match_pattern("/foo.?", "/foo.42"));
 }
-TEST_CASE("OSC match globs")
+TEST_CASE("sygaldry OSC match globs")
 {
     CHECK(osc_match_pattern("/*", "/123"));
     CHECK(not osc_match_pattern("/*", "/123/456"));
@@ -31,7 +31,7 @@ TEST_CASE("OSC match globs")
     CHECK(not osc_match_pattern("/*/*", "/banana"));
     CHECK(not osc_match_pattern("/banana/*", "/apple/pie"));
 }
-TEST_CASE("OSC match sets")
+TEST_CASE("sygaldry OSC match sets")
 {
     CHECK(osc_match_pattern("/[123]23", "/123"));
     CHECK(osc_match_pattern("/[123]23", "/223"));
@@ -43,7 +43,7 @@ TEST_CASE("OSC match sets")
     CHECK(not osc_match_pattern("/[12323", "/323"));
     CHECK(not osc_match_pattern("/123]23", "/323"));
 }
-TEST_CASE("OSC match ranges")
+TEST_CASE("sygaldry OSC match ranges")
 {
     CHECK(osc_match_pattern("/[1-9]", "/1"));
     CHECK(osc_match_pattern("/[1-9]", "/5"));
@@ -57,7 +57,7 @@ TEST_CASE("OSC match ranges")
     CHECK(not osc_match_pattern("/[-1]", "/2"));
     CHECK(not osc_match_pattern("/[1-]", "/2"));
 }
-TEST_CASE("OSC match inverted sets")
+TEST_CASE("sygaldry OSC match inverted sets")
 {
     CHECK(not osc_match_pattern("/[!123]23", "/123"));
     CHECK(not osc_match_pattern("/[!123]23", "/223"));
@@ -75,7 +75,7 @@ TEST_CASE("OSC match inverted sets")
     CHECK(osc_match_pattern("/[!1-]", "/2"));
     CHECK(osc_match_pattern("/[whatever!]", "/!"));
 }
-TEST_CASE("OSC match substrings")
+TEST_CASE("sygaldry OSC match substrings")
 {
     CHECK(osc_match_pattern("/{apple,banana,blueberry}/pie", "/apple/pie"));
     CHECK(osc_match_pattern("/{apple,banana,blueberry}/pie", "/banana/pie"));
@@ -87,12 +87,12 @@ TEST_CASE("OSC match substrings")
     CHECK(not osc_match_pattern("/{apple,banana,blueberry}}/pie", "/banana/pie"));
     CHECK(not osc_match_pattern("/{apple,banana,blueberry/pie", "/banana/pie"));
 }
-TEST_CASE("OSC match regular")
+TEST_CASE("sygaldry OSC match regular")
 {
     CHECK(osc_match_pattern("/sugar/pie", "/sugar/pie"));
     CHECK(not osc_match_pattern("/sugar/pie", "/apple/pie"));
 }
-TEST_CASE("OSC match descendant-or-self wildcard")
+TEST_CASE("sygaldry OSC match descendant-or-self wildcard")
 {
     CHECK(osc_match_pattern("//foo", "/foo"));
     CHECK(osc_match_pattern("//foo", "/123/foo"));

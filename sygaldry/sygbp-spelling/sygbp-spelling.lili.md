@@ -286,7 +286,7 @@ using std::string_view;
 using namespace sygaldry;
 using namespace sygaldry::bindings;
 
-TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
+TEST_CASE("sygaldry Snake case", "[utilities][metadata][names][snake]")
 {
     SECTION("Snake Case Function-like Access")
     {
@@ -309,7 +309,7 @@ TEST_CASE("Snake case", "[utilities][metadata][names][snake]")
     }
 }
 
-TEST_CASE("Kebab Case")
+TEST_CASE("sygaldry Kebab Case")
 {
     struct example_t
     {
@@ -320,7 +320,7 @@ TEST_CASE("Kebab Case")
     CHECK(string_view(kebab_case_v<example_t>) == string_view("kebab-case-example"));
 }
 
-TEST_CASE("Upper/lower")
+TEST_CASE("sygaldry Upper/lower")
 {
     struct example_t
     {
@@ -330,7 +330,7 @@ TEST_CASE("Upper/lower")
     CHECK(string_view(lower_kebab_case(x)) == string_view("a-basic-example"));
 }
 
-TEST_CASE("Spelling with helpers")
+TEST_CASE("sygaldry Spelling with helpers")
 {
     struct example_t : name_<"Helper Example"> {} x;
     CHECK(string_view(upper_snake_case(x)) == string_view("HELPER_EXAMPLE"));
@@ -339,7 +339,7 @@ TEST_CASE("Spelling with helpers")
     CHECK(string_view(lower_snake_case(x)) == string_view("helper_example"));
 }
 
-TEST_CASE("Passthrough spelling")
+TEST_CASE("sygaldry Passthrough spelling")
 {
     struct example_t
     {

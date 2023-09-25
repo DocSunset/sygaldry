@@ -382,7 +382,7 @@ struct CliCommands
     HelloWorld hello;
 };
 
-TEST_CASE("CLI", "[bindings][cli]")
+TEST_CASE("sygaldry CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
     auto cli = CustomCli<TestReader, utility_components::TestLogger, TestComponents, CliCommands>{};
@@ -705,7 +705,7 @@ struct TestCommands
 // @/
 
 // @+'tests'
-TEST_CASE("Help command", "[cli][commands][help]")
+TEST_CASE("sygaldry Help command", "[cli][commands][help]")
 {
     Help command;
 
@@ -781,7 +781,7 @@ The list command should output a new-line separated list of component names:
 
 ```cpp
 // @+'tests'
-TEST_CASE("List command outputs", "[cli][commands][list]")
+TEST_CASE("sygaldry List command outputs", "[cli][commands][list]")
 {
     test_command(List{}, TestComponents{},
                  0, "/Test_Component_A\n/Test_Component_B\n/Test_Component_1\n",
@@ -865,7 +865,7 @@ The second optional argument narrows the examination to a single endpoint.
 
 ```cpp
 // @+'tests'
-TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
+TEST_CASE("sygaldry Descibe", "[bindings][cli][commands][describe]")
 {
     auto components = TestComponents{};
     components.tc.inputs.button_in = 1;
@@ -1133,7 +1133,7 @@ done by the following command.
 
 ```cpp
 // @+'tests'
-TEST_CASE("Set", "[bindings][cli][commands][set]")
+TEST_CASE("sygaldry Set", "[bindings][cli][commands][set]")
 {
     auto components = TestComponents{};
     SECTION("set slider")

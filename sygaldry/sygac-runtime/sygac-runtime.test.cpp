@@ -71,7 +71,7 @@ struct components1_t
 };
 constinit components1_t components{};
 constexpr auto runtime = Runtime{components};
-TEST_CASE("runtime calls")
+TEST_CASE("sygaldry runtime calls")
 {
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
@@ -86,7 +86,7 @@ TEST_CASE("runtime calls")
 }
 components1_t constinit main_runtime_components{};
 component_runtime<testcomponent2_t, components1_t> constinit main_component_runtime{main_runtime_components.tc2, main_runtime_components};
-TEST_CASE("component runtime main")
+TEST_CASE("sygaldry component runtime main")
 {
     main_runtime_components.tc1.outputs.out1.value = 0;
     main_runtime_components.tc1.outputs.bang_out();
@@ -96,7 +96,7 @@ TEST_CASE("component runtime main")
 }
 components1_t constinit init_runtime_components{};
 component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
-TEST_CASE("component runtime init")
+TEST_CASE("sygaldry component runtime init")
 {
     init_runtime_components.tc1.inputs.in1.value = 0;
     init_component_runtime.init();
@@ -104,7 +104,7 @@ TEST_CASE("component runtime init")
 }
 components1_t constinit runtime_tuple_components{};
 constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
-TEST_CASE("runtime tuple")
+TEST_CASE("sygaldry runtime tuple")
 {
     std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called

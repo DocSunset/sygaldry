@@ -22,7 +22,7 @@ using std::string;
 
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
-TEST_CASE("has_range", "[components][concepts][has_range]")
+TEST_CASE("sygaldry has_range", "[components][concepts][has_range]")
 {
     static_assert(has_range<struct_with_range>);
     static_assert(has_range<struct_with_init>);
@@ -63,7 +63,7 @@ TEST_CASE("has_range", "[components][concepts][has_range]")
         auto r6 = get_range<const struct_with_range&>();
     }
 }
-TEST_CASE("PersistentValue", "[components][concepts][PersistentValue]")
+TEST_CASE("sygaldry PersistentValue", "[components][concepts][PersistentValue]")
 {
     SECTION("similar_to")
     {
@@ -110,12 +110,12 @@ TEST_CASE("PersistentValue", "[components][concepts][PersistentValue]")
         static_assert(similar_to<persistent<float>&&, float>);
     }
 }
-TEST_CASE("OccasionalValue", "[components][concepts][OccasionalValue]")
+TEST_CASE("sygaldry OccasionalValue", "[components][concepts][OccasionalValue]")
 {
     static_assert(OccasionalValue<std::optional<float>>);
     static_assert(OccasionalValue<occasional<float>>);
 }
-TEST_CASE("Bang", "[components][concepts][Bang]")
+TEST_CASE("sygaldry Bang", "[components][concepts][Bang]")
 {
     static_assert(Bang<bng<"foo">>);
     static_assert(has_value<bng<"foo">>);
@@ -152,7 +152,7 @@ TEST_CASE("sygaldry sygac-endpoints ClearableFlag")
         }
     }
 }
-TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
+TEST_CASE("sygaldry Value Access", "[components][concepts][value_of][clear_flag]")
 {
     SECTION("value_of")
     {

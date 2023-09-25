@@ -98,7 +98,7 @@ struct components1_t
 // @+'tests'
 constinit components1_t components{};
 constexpr auto runtime = Runtime{components};
-TEST_CASE("runtime calls")
+TEST_CASE("sygaldry runtime calls")
 {
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
@@ -124,7 +124,7 @@ apply them to the subroutine. We would like to ensure that this happens efficien
 meaning without runtime traversal of the component tree derived from the assemblage.
 
 ```cpp
-TEST_CASE("example test")
+TEST_CASE("sygaldry example test")
 {
     components1_t components;
     components.tc1.inputs.in1.value = 0;
@@ -202,7 +202,7 @@ to declare the impl struct `constinit`).
 // @+'tests'
 components1_t constinit main_runtime_components{};
 component_runtime<testcomponent2_t, components1_t> constinit main_component_runtime{main_runtime_components.tc2, main_runtime_components};
-TEST_CASE("component runtime main")
+TEST_CASE("sygaldry component runtime main")
 {
     main_runtime_components.tc1.outputs.out1.value = 0;
     main_runtime_components.tc1.outputs.bang_out();
@@ -296,7 +296,7 @@ now test the runtime's ability to run the init method.
 // @+'tests'
 components1_t constinit init_runtime_components{};
 component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
-TEST_CASE("component runtime init")
+TEST_CASE("sygaldry component runtime init")
 {
     init_runtime_components.tc1.inputs.in1.value = 0;
     init_component_runtime.init();
@@ -523,7 +523,7 @@ constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
 // @+'tests'
 components1_t constinit runtime_tuple_components{};
 constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
-TEST_CASE("runtime tuple")
+TEST_CASE("sygaldry runtime tuple")
 {
     std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called

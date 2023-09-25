@@ -34,7 +34,7 @@ struct TestMimuComponent {
 
 static_assert(MimuComponent<TestMimuComponent>);
 
-TEST_CASE("mimu endpoints accessors")
+TEST_CASE("sygaldry mimu endpoints accessors")
 {
     CHECK(accl_of(mimuish.outputs).x == 0);
     CHECK(gyro_of(mimuish.outputs).x == 1);

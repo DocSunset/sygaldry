@@ -108,7 +108,7 @@ _consteval auto get_range() { return std::decay_t<T>::range(); }
 // @+'tests'
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
-TEST_CASE("has_range", "[components][concepts][has_range]")
+TEST_CASE("sygaldry has_range", "[components][concepts][has_range]")
 {
     static_assert(has_range<struct_with_range>);
     static_assert(has_range<struct_with_init>);
@@ -244,7 +244,7 @@ concept PersistentValue
 // @/
 
 // @+'tests'
-TEST_CASE("PersistentValue", "[components][concepts][PersistentValue]")
+TEST_CASE("sygaldry PersistentValue", "[components][concepts][PersistentValue]")
 {
     @{persistent value tests}
 
@@ -311,7 +311,7 @@ concept OccasionalValue = _occasional_value<T> || _occasional_value<std::decay_t
 // @/
 
 // @+'tests'
-TEST_CASE("OccasionalValue", "[components][concepts][OccasionalValue]")
+TEST_CASE("sygaldry OccasionalValue", "[components][concepts][OccasionalValue]")
 {
     static_assert(OccasionalValue<std::optional<float>>);
     static_assert(OccasionalValue<occasional<float>>);
@@ -335,7 +335,7 @@ concept Bang = requires (T t)
 // @/
 
 // @+'tests'
-TEST_CASE("Bang", "[components][concepts][Bang]")
+TEST_CASE("sygaldry Bang", "[components][concepts][Bang]")
 {
     static_assert(Bang<bng<"foo">>);
     static_assert(has_value<bng<"foo">>);
@@ -447,7 +447,7 @@ is also usable with `PersistentValue`s.
 
 ```cpp
 // @+'tests'
-TEST_CASE("Value Access", "[components][concepts][value_of][clear_flag]")
+TEST_CASE("sygaldry Value Access", "[components][concepts][value_of][clear_flag]")
 {
     SECTION("value_of")
     {

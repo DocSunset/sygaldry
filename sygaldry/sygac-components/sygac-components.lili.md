@@ -647,7 +647,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
             >
 >);
 
-TEST_CASE("component_to_tree")
+TEST_CASE("sygaldry component_to_tree")
 {
     constexpr auto tree = component_to_tree(accessor_test_container);
     auto& in1 = std::get<0>(std::get<1>(std::get<1>(std::get<1>(tree)))).ref;
@@ -827,7 +827,7 @@ respectively of the tree's tuples.
 // @/
 
 // @+'tests'
-TEST_CASE("tuple head and tail")
+TEST_CASE("sygaldry tuple head and tail")
 {
     struct {
         int a;
@@ -894,7 +894,7 @@ constexpr auto component_tree_to_node_list(T tree)
 // @/
 
 // @+'tests'
-TEST_CASE("component_tree_to_node_list")
+TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
     static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
@@ -999,7 +999,7 @@ constexpr auto& find(auto& component)
 // @/
 
 // @+'tests'
-TEST_CASE("node_list_filter")
+TEST_CASE("sygaldry node_list_filter")
 {
     constexpr auto& in1 = find<in11>(component_tree_to_node_list(component_to_tree(accessor_test_container)));
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
@@ -1217,7 +1217,7 @@ latter case is generated at compile time, i.e. declared constexpr.
 
 ```cpp
 // @+'tests'
-TEST_CASE("for each X")
+TEST_CASE("sygaldry for each X")
 {
     string allnames{};
     auto add_names = [&](auto& entity)
@@ -1309,7 +1309,7 @@ TEST_CASE("for each X")
     }
 }
 
-TEST_CASE("for each benchmarks", "[!benchmark]")
+TEST_CASE("sygaldry for each benchmarks", "[!benchmark]")
 {
     string allnames{};
     auto add_names = [&](auto& entity)

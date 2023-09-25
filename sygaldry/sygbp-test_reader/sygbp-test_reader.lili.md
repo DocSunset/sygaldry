@@ -61,7 +61,7 @@ SPDX-License-Identifier: MIT
 
 using namespace sygaldry::bindings;
 
-TEST_CASE("TestReader")
+TEST_CASE("sygaldry TestReader")
 {
     TestReader reader{};
     reader.ss.str("Hello world!\n");

@@ -114,7 +114,7 @@ struct CliCommands
     HelloWorld hello;
 };
 
-TEST_CASE("CLI", "[bindings][cli]")
+TEST_CASE("sygaldry CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
     auto cli = CustomCli<TestReader, utility_components::TestLogger, TestComponents, CliCommands>{};
@@ -130,7 +130,7 @@ TEST_CASE("CLI", "[bindings][cli]")
         test_cli(cli, components, "/echo foo bar baz\n", "foo bar baz\n> ");
     }
 }
-TEST_CASE("Help command", "[cli][commands][help]")
+TEST_CASE("sygaldry Help command", "[cli][commands][help]")
 {
     Help command;
 
@@ -142,13 +142,13 @@ TEST_CASE("Help command", "[cli][commands][help]")
     REQUIRE(logger.put.ss.str() == string("/test-command-1 foo bar\n    Description 1\n/test-command-2\n    Description 2\n/help\n    Describe the available commands and their usage\n"));
     REQUIRE(retcode == 0);
 }
-TEST_CASE("List command outputs", "[cli][commands][list]")
+TEST_CASE("sygaldry List command outputs", "[cli][commands][list]")
 {
     test_command(List{}, TestComponents{},
                  0, "/Test_Component_A\n/Test_Component_B\n/Test_Component_1\n",
                  "list");
 }
-TEST_CASE("Descibe", "[bindings][cli][commands][describe]")
+TEST_CASE("sygaldry Descibe", "[bindings][cli][commands][describe]")
 {
     auto components = TestComponents{};
     components.tc.inputs.button_in = 1;
@@ -240,7 +240,7 @@ R"DESCRIBEENDPOINT(entity: /Test_Component_1/text_in
   value: "hello"
 )DESCRIBEENDPOINT", "describe", "/Test_Component_1/text_in");
 }
-TEST_CASE("Set", "[bindings][cli][commands][set]")
+TEST_CASE("sygaldry Set", "[bindings][cli][commands][set]")
 {
     auto components = TestComponents{};
     SECTION("set slider")

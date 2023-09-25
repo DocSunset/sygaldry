@@ -47,7 +47,7 @@ if the pattern and address are the same.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match wildcards")
+TEST_CASE("sygaldry OSC match wildcards")
 {
     CHECK(osc_match_pattern("/???", "/123"));
     CHECK(osc_match_pattern("/foo.?", "/foo.8"));
@@ -73,7 +73,7 @@ its null terminator, or a character that matches the next in the pattern.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match globs")
+TEST_CASE("sygaldry OSC match globs")
 {
     CHECK(osc_match_pattern("/*", "/123"));
     CHECK(not osc_match_pattern("/*", "/123/456"));
@@ -130,7 +130,7 @@ located.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match sets")
+TEST_CASE("sygaldry OSC match sets")
 {
     CHECK(osc_match_pattern("/[123]23", "/123"));
     CHECK(osc_match_pattern("/[123]23", "/223"));
@@ -172,7 +172,7 @@ almost never come up anyways.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match ranges")
+TEST_CASE("sygaldry OSC match ranges")
 {
     CHECK(osc_match_pattern("/[1-9]", "/1"));
     CHECK(osc_match_pattern("/[1-9]", "/5"));
@@ -195,7 +195,7 @@ expression inside the brackets.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match inverted sets")
+TEST_CASE("sygaldry OSC match inverted sets")
 {
     CHECK(not osc_match_pattern("/[!123]23", "/123"));
     CHECK(not osc_match_pattern("/[!123]23", "/223"));
@@ -309,7 +309,7 @@ adopted.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match substrings")
+TEST_CASE("sygaldry OSC match substrings")
 {
     CHECK(osc_match_pattern("/{apple,banana,blueberry}/pie", "/apple/pie"));
     CHECK(osc_match_pattern("/{apple,banana,blueberry}/pie", "/banana/pie"));
@@ -391,7 +391,7 @@ above, which also handles wildcards.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match regular")
+TEST_CASE("sygaldry OSC match regular")
 {
     CHECK(osc_match_pattern("/sugar/pie", "/sugar/pie"));
     CHECK(not osc_match_pattern("/sugar/pie", "/apple/pie"));
@@ -410,7 +410,7 @@ readily explained by demonstration.
 
 ```cpp
 // @+'tests'
-TEST_CASE("OSC match descendant-or-self wildcard")
+TEST_CASE("sygaldry OSC match descendant-or-self wildcard")
 {
     CHECK(osc_match_pattern("//foo", "/foo"));
     CHECK(osc_match_pattern("//foo", "/123/foo"));

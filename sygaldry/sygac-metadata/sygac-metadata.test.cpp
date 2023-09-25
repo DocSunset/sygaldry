@@ -15,7 +15,7 @@ using namespace sygaldry;
 using std::string_view;
 
 struct base_struct_with_name {static constexpr auto name() {return "yup";}};
-TEST_CASE("name_of", "[components][concepts][name_of]")
+TEST_CASE("sygaldry name_of", "[components][concepts][name_of]")
 {
     static_assert(has_name<base_struct_with_name>);
     base_struct_with_name yup{};

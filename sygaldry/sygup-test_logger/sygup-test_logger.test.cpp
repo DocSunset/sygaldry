@@ -18,7 +18,7 @@ SPDX-License-Identifier: MIT
 using namespace sygaldry::utility_components;
 
 
-TEST_CASE("BasicLogger print") {
+TEST_CASE("sygaldry BasicLogger print") {
     TestLogger logger;
     logger.put.ss.str("");
 

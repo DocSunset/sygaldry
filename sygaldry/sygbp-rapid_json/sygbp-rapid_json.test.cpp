@@ -36,7 +36,7 @@ struct OStream{
     OStream() : writer{obuffer} {}
 };
 using TestStorage = RapidJsonSessionStorage<rapidjson::StringStream, OStream, decltype(test_component)>;
-TEST_CASE("RapidJSON creates object given empty input stream")
+TEST_CASE("sygaldry RapidJSON creates object given empty input stream")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};
@@ -45,7 +45,7 @@ TEST_CASE("RapidJSON creates object given empty input stream")
     CHECK(storage.json.IsObject());
     REQUIRE(storage.json.ObjectEmpty());
 }
-TEST_CASE("RapidJSON sets endpoints based on input stream")
+TEST_CASE("sygaldry RapidJSON sets endpoints based on input stream")
 {
     string ibuffer{
 R"JSON(
@@ -61,7 +61,7 @@ R"JSON(
     CHECK(tc.inputs.my_slider.value == 42.0f);
     CHECK(tc.inputs.my_array.value == std::array{1.0f,2.0f,3.0f});
 }
-TEST_CASE("RapidJSON external_destinations")
+TEST_CASE("sygaldry RapidJSON external_destinations")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};

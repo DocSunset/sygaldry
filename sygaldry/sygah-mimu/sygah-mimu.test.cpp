@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 using namespace sygaldry;
 
-TEST_CASE("MIMU endpoint helpers")
+TEST_CASE("sygaldry MIMU endpoint helpers")
 {
     vec3_message<"testvec"> v{};
     CHECK(not v.updated);

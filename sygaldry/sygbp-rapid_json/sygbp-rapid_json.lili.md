@@ -173,7 +173,7 @@ if (not json.IsObject())
 // @/
 
 // @+'tests'
-TEST_CASE("RapidJSON creates object given empty input stream")
+TEST_CASE("sygaldry RapidJSON creates object given empty input stream")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};
@@ -212,7 +212,7 @@ for_each_session_datum(components, [&]<typename T>(T& endpoint)
 // @/
 
 // @+'tests'
-TEST_CASE("RapidJSON sets endpoints based on input stream")
+TEST_CASE("sygaldry RapidJSON sets endpoints based on input stream")
 {
     string ibuffer{
 R"JSON(
@@ -379,7 +379,7 @@ if (updated)
 // @/
 
 // @+'tests'
-TEST_CASE("RapidJSON external_destinations")
+TEST_CASE("sygaldry RapidJSON external_destinations")
 {
     string ibuffer{""};
     rapidjson::StringStream istream{ibuffer.c_str()};

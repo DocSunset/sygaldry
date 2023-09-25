@@ -33,7 +33,7 @@ struct TestComponents
     sygaldry::components::TestComponent tc;
 };
 
-TEST_CASE("Output Logger", "[bindings][output_logger]")
+TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
 {
     auto components = TestComponents{};
     auto& tc = components.tc;

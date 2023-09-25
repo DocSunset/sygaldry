@@ -17,7 +17,7 @@ using namespace sygaldry;
 using std::string_view;
 
 struct struct_with_name : name_<"foo"> {};
-TEST_CASE("name_", "[endpoints][bases][name_]")
+TEST_CASE("sygaldry name_", "[endpoints][bases][name_]")
 {
     REQUIRE(string_view(struct_with_name::name()) == string_view("foo"));
 }

@@ -20,7 +20,7 @@ using namespace sygaldry;
 using namespace sygaldry::bindings;
 using namespace sygaldry::components;
 
-TEST_CASE("liblo osc port is valid")
+TEST_CASE("sygaldry liblo osc port is valid")
 {
     LibloOsc<TestComponent> osc;
     text_message<"s1"> s1{};

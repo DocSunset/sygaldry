@@ -131,7 +131,7 @@ struct range_
 struct struct_with_range : range_<0, 127> {};
 struct struct_with_init : range_<0.0f, 100.0f, 42.0f> {};
 
-TEST_CASE("Range", "[endpoints][bases][range]")
+TEST_CASE("sygaldry Range", "[endpoints][bases][range]")
 {
     SECTION("With range")
     {
@@ -221,7 +221,7 @@ struct persistent
 
 // @+'tests'
 struct persistent_struct : persistent<int> {using persistent<int>::operator=;};
-TEST_CASE("Persistent Value", "[endpoints][helpers][persistent]")
+TEST_CASE("sygaldry Persistent Value", "[endpoints][helpers][persistent]")
 {
     auto s = persistent_struct{42};
     REQUIRE(s == 42);
@@ -735,7 +735,7 @@ endpoints have the expected sizes, equivalent to their value types.
 
 ```cpp
 // @+'tests'
-TEST_CASE("Basic Endpoints", "[endpoints][basic]")
+TEST_CASE("sygaldry Basic Endpoints", "[endpoints][basic]")
 {
     static_assert(OccasionalValue<button<"foo">>);
     static_assert(PersistentValue<toggle<"baz">>);

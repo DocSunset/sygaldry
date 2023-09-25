@@ -96,7 +96,7 @@ bool port_is_valid(auto& port)
 // @/
 
 // @+'tests'
-TEST_CASE("liblo osc port is valid")
+TEST_CASE("sygaldry liblo osc port is valid")
 {
     LibloOsc<TestComponent> osc;
     text_message<"s1"> s1{};

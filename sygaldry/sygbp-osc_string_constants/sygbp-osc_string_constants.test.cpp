@@ -18,14 +18,14 @@ using std::string_view;
 using namespace sygaldry;
 using namespace sygaldry::bindings;
 
-TEST_CASE("osc path")
+TEST_CASE("sygaldry osc path")
 {
     struct root_t { static _consteval const char * name() {return "Root";} };
     struct leaf_t { static _consteval const char * name() {return "leaf";} };
     using Path = std::tuple<root_t, leaf_t>;
     CHECK(string_view(osc_path<Path>::value.data()) == string_view("/Root/leaf"));
 }
-TEST_CASE("osc type tag string")
+TEST_CASE("sygaldry osc type tag string")
 {
     CHECK(string_view(osc_type_string_v<button<"test button">>)             == string_view(",i"));
     CHECK(string_view(osc_type_string_v<toggle<"test toggle">>)             == string_view(",i"));
