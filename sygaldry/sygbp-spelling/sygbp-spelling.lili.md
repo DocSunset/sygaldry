@@ -284,7 +284,7 @@ template<typename NamedType> constexpr const char * lower_kebab_case_v = lower_k
 
 using std::string_view;
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 TEST_CASE("sygaldry Snake case", "[utilities][metadata][names][snake]")
 {
@@ -370,7 +370,7 @@ become necessary.
 #include <array>
 #include "sygah-consteval.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 @{string length function}
 @{compose}

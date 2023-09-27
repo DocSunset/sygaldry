@@ -419,7 +419,7 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 #include "sygbp-session_data.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename IStream, typename OStream, typename Components>
 struct RapidJsonSessionStorage
@@ -462,7 +462,7 @@ SPDX-License-Identifier: MIT
 
 using std::string;
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 @{tests}
 // @/

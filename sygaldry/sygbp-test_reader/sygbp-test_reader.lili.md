@@ -33,7 +33,7 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <sstream>
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 struct TestReader
 {
@@ -59,7 +59,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygbp-test_reader.hpp"
 
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 TEST_CASE("sygaldry TestReader")
 {

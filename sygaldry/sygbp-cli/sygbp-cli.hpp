@@ -23,7 +23,7 @@ SPDX-License-Identifier: MIT
 #include "commands/describe.hpp"
 #include "commands/set.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -57,7 +57,7 @@ struct CustomCli : name_<"CLI">
         {
             if (not osc_match_pattern(argv[0], command.name())) return;
             int retcode;
-            if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
+            if constexpr (std::is_same_v<decltype(command), Help&>)
             {
                 retcode = command.main(log, commands);
             }
@@ -135,10 +135,10 @@ struct CustomCli : name_<"CLI">
 
 struct DefaultCommands
 {
-    clicommands::Help help;
-    clicommands::List list;
-    clicommands::Describe describe;
-    clicommands::Set set;
+    Help help;
+    List list;
+    Describe describe;
+    Set set;
 };
 
 template<typename Reader, typename Logger, typename Components>

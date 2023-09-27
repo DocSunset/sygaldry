@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 
 using std::string;
 
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 using namespace sygaldry;
 
 void test_logger(auto& logger, auto& components, string expected_output, auto input_callback)
@@ -37,7 +37,7 @@ TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
 {
     auto components = TestComponents{};
     auto& tc = components.tc;
-    auto logger = sygaldry::bindings::OutputLogger<utility_components::TestLogger, decltype(components)>{};
+    auto logger = sygaldry::sygbp::OutputLogger<utility_components::TestLogger, decltype(components)>{};
 
     static_assert(Component<decltype(logger)>);
 

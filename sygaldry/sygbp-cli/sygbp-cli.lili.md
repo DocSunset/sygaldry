@@ -499,7 +499,7 @@ void _try_to_match_and_execute(Components& components)
     {
         if (not osc_match_pattern(argv[0], command.name())) return;
         int retcode;
-        if constexpr (std::is_same_v<decltype(command), clicommands::Help&>)
+        if constexpr (std::is_same_v<decltype(command), Help&>)
         {
             retcode = command.main(log, commands);
         }
@@ -604,7 +604,7 @@ SPDX-License-Identifier: MIT
 
 @{commands headers}
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -735,7 +735,7 @@ SPDX-License-Identifier: MIT
 #include <boost/pfr.hpp>
 #include "sygah-consteval.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 struct Help
 {
     static _consteval auto name() { return "/help"; }
@@ -763,7 +763,7 @@ struct Help
     }
 };
 
-} } }
+} }
 // @/
 
 // @+'commands headers'
@@ -771,7 +771,7 @@ struct Help
 // @/
 
 // @+'default commands'
-clicommands::Help help;
+Help help;
 // @/
 ```
 
@@ -820,7 +820,7 @@ SPDX-License-Identifier: MIT
 #include "sygac-components.hpp"
 #include "sygbp-osc_string_constants.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 
 struct List
 {
@@ -840,7 +840,7 @@ struct List
     }
 };
 
-} } }
+} }
 // @/
 
 // @+'commands headers'
@@ -848,7 +848,7 @@ struct List
 // @/
 
 // @+'default commands'
-clicommands::List list;
+List list;
 // @/
 ```
 
@@ -1098,7 +1098,7 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 #include "sygbp-osc_match_pattern.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 
 struct Describe
 {
@@ -1112,11 +1112,11 @@ struct Describe
 
 };
 
-} } } // namespaces
+} } // namespaces
 // @/
 
 // @+'default commands'
-clicommands::Describe describe;
+Describe describe;
 // @/
 
 // @+'commands headers'
@@ -1375,7 +1375,7 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 #include "sygbp-osc_match_pattern.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 
 struct Set
 {
@@ -1389,7 +1389,7 @@ struct Set
 
 };
 
-} } }
+} }
 // @/
 
 // @+'commands headers'
@@ -1397,7 +1397,7 @@ struct Set
 // @/
 
 // @+'default commands'
-clicommands::Set set;
+Set set;
 // @/
 ```
 
@@ -1428,8 +1428,8 @@ SPDX-License-Identifier: MIT
 
 using std::string;
 
-using namespace sygaldry::bindings::clicommands;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
+using namespace sygaldry::sygbp;
 using namespace sygaldry;
 
 @{cli tests logger}

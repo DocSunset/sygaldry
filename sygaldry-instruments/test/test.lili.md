@@ -49,7 +49,7 @@ struct Test
         Button1 button1;
         Button2 button2;
     } instrument;
-    bindings::CstdioCli<Instrument> cli;
+    sygbp::CstdioCli<Instrument> cli;
 } test;
 
 constexpr auto runtime = Runtime{test};

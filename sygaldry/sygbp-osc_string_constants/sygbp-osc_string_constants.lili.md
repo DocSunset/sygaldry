@@ -262,7 +262,7 @@ SPDX-License-Identifier: MIT
 #include "sygac-endpoints.hpp"
 #include "sygbp-spelling.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 @{string length functions}
 
@@ -294,7 +294,7 @@ SPDX-License-Identifier: MIT
 
 using std::string_view;
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 @{tests}
 // @/

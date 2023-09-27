@@ -24,7 +24,7 @@ SPDX-License-Identifier: MIT
 #include <sygah-endpoints.hpp>
 #include <sygup-cstdio_logger.hpp>
 
-namespace sygaldry { namespace bindings { namespace esp32 {
+namespace sygaldry { namespace sygbe
 
 struct WiFi
 : name_<"WiFi Manager">
@@ -315,4 +315,4 @@ struct WiFi
     void main() { return; }
 };
 
-} } }
+} }

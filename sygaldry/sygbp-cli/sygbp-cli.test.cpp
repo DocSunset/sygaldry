@@ -19,8 +19,8 @@ SPDX-License-Identifier: MIT
 
 using std::string;
 
-using namespace sygaldry::bindings::clicommands;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
+using namespace sygaldry::sygbp;
 using namespace sygaldry;
 
 

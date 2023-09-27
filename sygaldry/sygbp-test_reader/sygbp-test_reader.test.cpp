@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygbp-test_reader.hpp"
 
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 TEST_CASE("sygaldry TestReader")
 {

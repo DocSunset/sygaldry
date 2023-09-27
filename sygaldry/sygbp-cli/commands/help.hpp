@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include <boost/pfr.hpp>
 #include "sygah-consteval.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 struct Help
 {
     static _consteval auto name() { return "/help"; }
@@ -39,4 +39,4 @@ struct Help
     }
 };
 
-} } }
+} }

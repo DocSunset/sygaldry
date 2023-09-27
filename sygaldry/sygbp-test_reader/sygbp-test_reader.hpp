@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <sstream>
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 struct TestReader
 {

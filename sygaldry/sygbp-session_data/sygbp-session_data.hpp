@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygac-components.hpp"
 #include "sygac-endpoints.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename C>
 constexpr void for_each_session_datum(C& components, auto fn)

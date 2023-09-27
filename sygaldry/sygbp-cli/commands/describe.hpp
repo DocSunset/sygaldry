@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 #include "sygbp-osc_match_pattern.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 
 struct Describe
 {
@@ -124,4 +124,4 @@ struct Describe
 
 };
 
-} } } // namespaces
+} } // namespaces

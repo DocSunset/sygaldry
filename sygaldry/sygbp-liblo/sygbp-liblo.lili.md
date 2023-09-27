@@ -603,7 +603,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include "sygah-endpoints.hpp"
 #include "sygbp-osc_string_constants.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename Components>
 struct LibloOsc
@@ -665,7 +665,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 using std::string;
 
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 using namespace sygaldry::components;
 
 @{tests}

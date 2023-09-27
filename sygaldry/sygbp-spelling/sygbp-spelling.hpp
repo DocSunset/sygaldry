@@ -2,7 +2,7 @@
 #include <array>
 #include "sygah-consteval.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename Device>
 _consteval auto name_length()

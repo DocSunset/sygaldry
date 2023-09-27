@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 #include "sygac-components.hpp"
 #include "sygbp-osc_string_constants.hpp"
 
-namespace sygaldry { namespace bindings { namespace clicommands {
+namespace sygaldry { namespace sygbp {
 
 struct List
 {
@@ -33,4 +33,4 @@ struct List
     }
 };
 
-} } }
+} }

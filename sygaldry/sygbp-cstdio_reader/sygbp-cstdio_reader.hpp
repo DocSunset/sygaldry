@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 struct CstdioReader
 {

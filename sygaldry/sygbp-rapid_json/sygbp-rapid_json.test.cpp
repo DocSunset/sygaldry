@@ -17,7 +17,7 @@ SPDX-License-Identifier: MIT
 
 using std::string;
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 struct test_component_t
 : name_<"Test">

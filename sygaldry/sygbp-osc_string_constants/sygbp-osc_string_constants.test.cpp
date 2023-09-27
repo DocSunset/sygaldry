@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 
 using std::string_view;
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 
 TEST_CASE("sygaldry osc path")
 {

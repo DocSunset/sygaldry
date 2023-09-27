@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 #include "sygac-endpoints.hpp"
 #include "sygbp-spelling.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename> struct osc_path_length : std::integral_constant<std::size_t, 0> {};
 template<template<typename...>typename L, typename ... Path>

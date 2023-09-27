@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 #include "sygup-cstdio_logger.hpp"
 
-namespace sygaldry { namespace bindings {
+namespace sygaldry { namespace sygbp {
 
 template<typename Logger, typename Components>
 struct OutputLogger : name_<"Output Logger">

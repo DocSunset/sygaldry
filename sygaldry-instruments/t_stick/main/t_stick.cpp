@@ -40,13 +40,13 @@ struct TStick
                            > mimu;
             sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
         } sensors;
-        bindings::esp32::WiFi wifi;
-        bindings::LibloOsc<Sensors> osc;
+        sygbe::WiFi wifi;
+        sygbp::LibloOsc<Sensors> osc;
     };
 
-    bindings::esp32::SpiffsSessionStorage<Instrument> session_storage;
+    sygbe::SpiffsSessionStorage<Instrument> session_storage;
     Instrument instrument;
-    bindings::CstdioCli<Instrument> cli;
+    sygbp::CstdioCli<Instrument> cli;
 } tstick{};
 
 constexpr auto runtime = Runtime{tstick};

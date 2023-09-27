@@ -17,7 +17,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 using std::string;
 
 using namespace sygaldry;
-using namespace sygaldry::bindings;
+using namespace sygaldry::sygbp;
 using namespace sygaldry::components;
 
 TEST_CASE("sygaldry liblo osc port is valid")
