@@ -173,7 +173,7 @@ namespace sygaldry { namespace sygbe {
 @{SpiffsJsonOStream}
 
 template<typename Components>
-using Storage = RapidJsonSessionStorage<rapidjson::FileReadStream, SpiffsJsonOStream, Components>;
+using Storage = sygbp::RapidJsonSessionStorage<rapidjson::FileReadStream, SpiffsJsonOStream, Components>;
 
 template<typename Components>
 struct SpiffsSessionStorage

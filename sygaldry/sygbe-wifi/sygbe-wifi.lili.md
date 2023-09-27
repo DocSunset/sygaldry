@@ -463,7 +463,7 @@ SPDX-License-Identifier: MIT
 #include <sygah-endpoints.hpp>
 #include <sygup-cstdio_logger.hpp>
 
-namespace sygaldry { namespace sygbe
+namespace sygaldry { namespace sygbe {
 
 struct WiFi
 : name_<"WiFi Manager">
