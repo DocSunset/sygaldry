@@ -12,79 +12,152 @@ SPDX-License-Identifier: MIT
 This document describes how to set up the development environment for Sygaldry,
 as well as the convenience scripts provided to facilitate development.
 
-# Getting Started
+# Important Note
 
-## Operating System
+If you have any trouble setting up your development environment, please create
+an issue on the github repository.
 
-In order to compile instrument firmwares and develop new components, you need
-to have a compatible toolchain and development environment set up. This is most
-easily accomplished on Linux, and other operating systems are not officially
-supported at this time.
+Don't clone the repo yet unless you're sure you know how to recursively clone
+all its submodules. Otherwise, we'll get to that step in a minute.
 
-Users of Windows, especially, if you encounter difficulty setting up the
-development environment, you are encouraged to set up a virtual machine running
-the Linux distro of your choice, e.g. using VirtualBox. Once the VM is set up,
-the USB device node for your microcontroller will need to be forwarded to the
-VM. Then you can follow along with the instructions for Linux users.
-Unfortunately, WSL2 doesn't allow access to USB devices, so a VirtualBox VM
-remains probably the best option.
+# Overview
 
-There are three options for setting up the development environment:
+The process, in brief, is as follows:
 
-- Option 1: `nix` shell
-- Option 2: Manual install
-- Option 3: `docker` shell
+1) Install `nix` according to the upstream documentation
+[here](https://nixos.org/download), or that of your operating system
+distribution.
+2) Obtain a copy of the Sygaldry source code repository *and its submodules, recursively*,
+using `git`.
+3) Use `nix-shell` to automatically install all dependencies, run the test-suite,
+and compile instrument firmware.
 
-## Option 1: Nix (recommended method)
+# Basic Development Environment
 
-Nix is a pure functional DSL and ecosystem for package management and allows
-consistent development environments to be rapidly deployed wherever the `nix`
-package manager can be installed. This is currently limited to Linux and macOS,
-and recent version of WSL2 that support `systemd`. However, WSL doesn't allow
-direct access to USB devices, so may be of limited use. Users of other
-environments should continue to option 2.
+## macOS
 
-This setup method is still a work in progress.
+Run the `terminal` app and try to run `git --version`. If you have not already
+installed developer tools, follow the instructions to do so.
 
-The nix expressions below are provided and allow to use the `nix-shell` command
-from the Nix package manager to quickly set up an isolated and replicable
-development environement. After installing `nix` according to the instructions
-at https://nixos.org/download you can run `nix-shell --pure` in the root of the
-Sygaldry repository, after which you should be able to make use of the
-convenience scripts
+## Linux
 
-If all you want to do is get your development environment working, once you
-have installed `nix` you're basically done (you may also need `git` to be able
-to clone the repository, please let me know if this is the case).
+Most likely there is nothing required for you to do here.
 
-### Step by step
+## Windows
 
-Install `nix` according to the documentation for your system, or the nixos.org
-upstream documentation if your platform doesn't have any specific installation
-advice for `nix`.
+Windows support is still a work in progress. Please try installing a VirtualBox
+VM with your preferred Linux distribution.
 
-If you want to contribute to the project, make a fork on github.
+# Installing Nix
 
-If you use git, install `git` and/or `gh-cli` using your system's package
-manager.
+## Linux
 
-If you use git, clone the repository using the method of your choice.
+Your distribution may have specific instructions for installing `nix`. Check the
+documentation.
 
-Alternatively, if you don't use git, you can also download the compressed
-archive of the repository from https://github.com/DocSunset/sygaldry and extract
-it to a local directory.
+## Otherwise
 
-Open your terminal to the root of the cloned repository or extracted directory
-and run `nix-shell --pure`. This may take a little while the first time, while
-`nix` sets up the development environment and the `esp-idf` is installed.
+Navigate to https://nixos.org/download and follow the upstream install instructions.
+
+### What's Nix?
+
+We use `nix` in this project because it is a convenient way of allowing all
+users to quickly set up an identical development environment. Don't worry too
+much about how this works, as the use of `nix` in this project is very limited
+and simple to achieve. But if you're curious anyways...
+
+Nix is a package manager, like `homebrew`, `apt`, `pacman`, or `pip`, but
+rather than installing everything directly in your system directories, `nix`
+installs things in "the Nix store", with every package in its own
+content-hashed isolated directory. Commands like `nix-shell` can then be used
+to draw these isolated directories together into a highly controlled
+development environment that can be easily replicated across different
+machines. You may think of it as a cross between a package manager and python
+`venv`. Alternatively, if a container system like `docker` is a more
+lightweight version of a virtual machine, you could think of `nix` as providing
+a more lightweight version of a container system.
+
+# Cloning Sygaldry
+
+While Sygaldry is still a private repository, this step can be somewhat
+involved, especially for less experienced developers. You will require a github
+user account and permission to access the repository (ask Travis).
+
+Once you have access to the repository open your terminal and run `nix-shell -p
+github-cli`. Nix will install the github command line interface and drop you
+into a `nix` virtual environment in which it is accessible.
+
+You now have a few options:
+
+- use the github command line interface (aka `gh`) with https
+- use the github command line interface with ssh
+- use `git` with ssh
+
+## Using the github command line interface with https
+
+Run `gh auth login` from the `nix-shell` you enabled in the previous section.
+Choose `HTTPS` as your preferred protocol for git operations, and then follow
+the instructions to log in.
+
+Once you are logged in, run `gh repo clone DocSunset/sygaldry -- --recurse-submodules`
+to clone the repository and its submodules.
+
+Continue with the convenience scripts.
+
+## Using the github command line interface with ssh authentication
+
+In the `nix-shell` that you enabled in the previous section, run `ssh-keygen -t
+ed25519` and follow the onscreen instructions to create an ssh key pair. This
+will create a private key and a public key. You should never share your private
+key, but it is normal to upload your public key to someone else's server.
+
+Run `gh auth login` from the `nix-shell` you enabled in the previous section.
+Choose `SSH` as your preferred protocol for git operations, and then follow
+the instructions to log in.
+
+Once you are logged in, run `gh repo clone DocSunset/sygaldry -- --recurse-submodules`
+to clone the repository and its submodules.
+
+## Using git with ssh authentication
+
+In the `nix-shell` that you enabled in the previous section, run `ssh-keygen -t
+ed25519` and follow the onscreen instructions to create an ssh key pair. Use the
+default name and path for the new keys, unless you know what you are doing. This
+will create a private key and a public key. You should never share your private
+key, but it is normal to upload your public key to someone else's server.
+
+Use `cat` to display the public key, e.g. `cat /home/myuser/.ssh/id_ed25519.pub`.
+Copy the public key to your clipboard.
+
+Log in to github in a web browser and navigate to Settings, then "SSH and GPG Keys".
+Click the green button to add a "New SSH key". Give it a title such as the hostname
+of your computer. Select "Authentication Key" as the key type. In the "Key" text field,
+paste the public key. Click "Add SSH key".
+
+In the terminal, run `git clone --recurse-submodules git@github.com:DocSunset/Sygaldry.git`
+to clone the repository and its submodules.
+
+# Ready to go!
+
+`cd` your terminal to the root of the cloned repository and run `nix-shell
+--pure`. This may take a little while the first time, while `nix` sets up the
+development environment and the `esp-idf` is installed.
 
 You are now ready to go! Run `./sh/run.sh` to compile and run the tests,
-`doxygen` to generate local documentation, and so on. Skip to the section below
-for information about the convenience scripts provided to make it easier to
-compile for various platforms, or read on for information on how the
-`nix-shell` environment is specified.
+`doxygen` to generate local documentation, `./sh/idf.sh t_stick app` to
+compile the T-Stick firmware, and so on.
 
-### Nix shell implementation details
+Alternatively, rather than running `nix-shell --pure` to drop into the sygaldry
+development environment, you may also run `nix-shell --pure --run "..."` with a
+command such as `sh/run.sh` as the argument to the `--run` flag. This allows
+you to run a single command from the sygaldry development environment without
+fully switching your terminal to it.
+
+The remainder of this document provides supplementary information on the
+convenience scripts. The curious may read on. Otherwise, you may continue
+with another guide.
+
+# Nix shell implementation details
 
 We have three nix expressions. The first one packages `lili` so that you don't
 have to manually install it. This is fairly trivial using the standard builder
@@ -170,100 +243,6 @@ in pkgs.stdenvNoCC.mkDerivation {
             source "$IDF_PATH/export.sh"
         '';
 }
-# @/
-```
-
-## Option 2: Install Build Requirements Manually
-
-A full build requires the following executables:
-
-- lili (the literate programming tool used for the project)
-- cmake
-- the compiler toolchain for the platform the build targets you wish to use (e.g. esp-idf)
-- posix utilities (optional, used in convenience shell scripts)
-- gnu parallel (ditto) (Tange, O. (2023, April 22). GNU Parallel 20230422 ('Grand Jury'). Zenodo. https://doi.org/10.5281/zenodo.7855617)
-- doxygen (optional, for generating documentation)
-
-If you encounter other prerequisites not described above, please open an issue.
-
-Guides in this subsection are a work in progress. If you are currently manually
-setting up a development environment, please consider contributing to this
-document.
-
-### Arch Linux
-
-```sh
-# from the root of the sygaldry repository
-
-# base requirements
-pacman -S base-devel cmake parallel doxygen
-git clone https://github.com/DocSunset/lili.git
-cd lili
-make && sudo make install
-cd ..
-rm -rf lili # optional
-
-# ESP-IDF
-mkdir dependencies/esp-idf-tools
-git clone https://github.com/espressif/esp-idf.git dependencies/esp-idf
-pushd dependencies/esp-idf
-    git fetch -a
-    git checkout v5.1
-popd
-export IDF_TOOLS_PATH="$(realpath dependencies/esp-idf-tools)"
-./dependencies/esp-idf/install.sh
-source dependencies/esp-idf/export.sh
-# then each time before using idf.py, run:
-    # export IDF_TOOLS_PATH="$(realpath dependencies/esp-idf-tools)"
-    # source dependencies/esp-idf/export.sh
-```
-
-### macOS
-
-TODO
-
-### Windows
-
-It is recommended to install a virtual machine and follow the instructions
-for Linux users to be able to benefit from the convenience scripts.
-
-TODO
-
-## Option 3: Docker Environment (Linux only)
-
-This method is not recommended or supported and is retained only in case
-someone prefers to use Docker and wishes to improve the method.
-
-A Dockerfile is provided that enables Linux users to quickly set up a
-consistent development environment. This workflow is still a work in progress
-and may be removed in the future if it turns out no one is interested in using
-it.
-
-Unfortunately, USB forwarding is not supported by Docker on macOS and Windows,
-so this environment is limited on those platforms to compiling and running
-tests. Native tools specific to each platform must be used to e.g. upload
-firmware to devices.
-
-WARNING: Note that, as it is currently implemented, this container doesn't have
-any persistent data! So if you edit the repository within the container and
-don't commit and push those changes to a remote, then they will be lost should
-you shut down the container. You will also have to authenticate with Github
-every time you restart the container. We are open to suggestions for improving
-the Docker workflow, e.g. by mounting the already cloned repo as a volume.
-
-```dockerfile
-# @#'Dockerfile'
-FROM archlinux:base-devel
-RUN pacman -Syu --noconfirm
-RUN pacman -S parallel git github-cli cmake vi vim kakoune emacs nano --noconfirm
-RUN git clone https://github.com/DocSunset/lili.git
-RUN cd lili && make && sudo make install
-RUN rm -rf lili
-# docker image build -t sygaldry .
-# # change the argument to the `--device` flag to your serial port
-# docker run --interactive --tty --device=/dev/ttyUSB0 sygaldry 
-# gh auth login
-# gh repo clone DocSunset/sygaldry -- --recurse-submodules
 # @/
 ```
 
