@@ -24,12 +24,12 @@ all its submodules. Otherwise, we'll get to that step in a minute.
 
 The process, in brief, is as follows:
 
-1) Install `nix` according to the upstream documentation
+1. Install `nix` according to the upstream documentation
 [here](https://nixos.org/download), or that of your operating system
 distribution.
-2) Obtain a copy of the Sygaldry source code repository *and its submodules, recursively*,
+2. Obtain a copy of the Sygaldry source code repository *and its submodules, recursively*,
 using `git`.
-3) Use `nix-shell` to automatically install all dependencies, run the test-suite,
+3. Use `nix-shell` to automatically install all dependencies, run the test-suite,
 and compile instrument firmware.
 
 # Basic Development Environment
@@ -83,9 +83,16 @@ While Sygaldry is still a private repository, this step can be somewhat
 involved, especially for less experienced developers. You will require a github
 user account and permission to access the repository (ask Travis).
 
-Once you have access to the repository open your terminal and run `nix-shell -p
-github-cli`. Nix will install the github command line interface and drop you
-into a `nix` virtual environment in which it is accessible.
+Once you have access to the repository, you can clone it.
+
+If you are familiar with the use of git, make sure to clone the repository
+*with all its submodules*, e.g. `git clone --recurse-submodules
+https://github.com/DocSunset/sygaldry.git`. Once the repo is cloned, continue with
+the next step.
+
+If you are unfamiliar with the use of git, open your terminal and run
+`nix-shell -p github-cli`. Nix will install the github command line interface
+and drop you into a `nix` virtual environment in which it is accessible.
 
 You now have a few options:
 
@@ -134,7 +141,8 @@ Click the green button to add a "New SSH key". Give it a title such as the hostn
 of your computer. Select "Authentication Key" as the key type. In the "Key" text field,
 paste the public key. Click "Add SSH key".
 
-In the terminal, run `git clone --recurse-submodules git@github.com:DocSunset/Sygaldry.git`
+In the terminal, run `git clone --recurse-submodules
+git<AT>github.com:DocSunset/Sygaldry.git`, with an at-sign where it says `<AT>`
 to clone the repository and its submodules.
 
 # Ready to go!
@@ -315,13 +323,44 @@ documented using Doxygen special comment blocks, and pretty documentation is
 generated with Doxygen and Doxygen Awesome CSS.
 
 The order in which files are presented in the generated documentation is
-controlled by manually specifying each file as a subpage in [the implementation
-guide](\ref docs-implementation), as well as some pages being ordered depending
+controlled by manually specifying each file as a subpage in
+[the implementation guide](\ref docs-implementation),
+as well as some pages being ordered depending
 on their order in the `doxyfile` `INPUT` option.
 
 Documentation can be generated e.g. by running `doxygen` in the root of the
 repository (remember to run `lili.sh` first!), or using the `run.sh
 _build_doxygen`.
+
+The documentation website is served from a seperate repository. You can update
+the documentation website repository with the following script which takes the
+sygladry documentation repo's directory as argument, defaulting to
+`../sygaldry-docs`.
+
+```sh
+# @#'sh/update_docs.sh'
+#!/bin/sh -e
+
+# Update the documentation repo at $1
+
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
+# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
+# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
+# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+sh/run.sh "_build_doxygen"
+docs="_build_doxygen/html"
+[ -d "$1" ] && repo="$1" || repo="../sygaldry-docs"
+[ -d "$repo" ] || { echo "could not find documentation repository $repo" ; exit 1 ; }
+hash="$(git rev-parse HEAD)"
+rm -r "$repo/html"
+cp -r "$docs" "$repo"
+cd "$repo"
+git commit --all -m "Update to sygaldry commit $hash (modulo working tree changes)"
+git push
+# @/
+```
 
 ## Building
 
@@ -415,17 +454,8 @@ were not being tested. The current approach requires more manual intervention
 from the developer, but is hoped to save time overall.
 
 At the time of writing, Sygaldry also requires a fairly recent version of the
-ESP-IDF; an appropriate version of the framework is included as a submodule,
-and should be used when installing and exporting the IDF, before running the
-above script or its equivalent on your machine.
-
-ESP-IDF projects should add Sygaldry with e.g. the following lines:
-
-```cmake
-# idf_component_register( ... ) etc.
-add_subdirectory(${SYGALDRY_ROOT} sygbuild)
-target_link_libraries(${COMPONENT_LIB} PRIVATE sygaldry)
-```
+ESP-IDF; an appropriate version of the framework is installed when setting up
+the development environment.
 
 # The CMakeLists.txt
 
@@ -448,19 +478,11 @@ We require C++20 without extensions.
 
 ```cmake
 # @='set language standard'
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED On)
-set(CMAKE_CXX_EXTENSIONS Off)
+set_property(TARGET sygaldry PROPERTY CMAKE_CXX_STANDARD 20)
+set_property(TARGET sygaldry PROPERTY CMAKE_CXX_STANDARD_REQUIRED On)
+set_property(TARGET sygaldry PROPERTY CMAKE_CXX_EXTENSIONS Off)
 # @/
 ```
-
-Each of the project's main package groups is declared as a cmake interface
-library. The top level package group then links to each of the package
-interface libraries so that clients can link to the whole project if that
-is convenient. The list file is structured so that the components included
-in a given package group are added with `add_subdirectory` in an indented
-block that begins when the library is declared, and ends when it is linked
-into its parent package group.
 
 ## Testing Framework
 
@@ -526,11 +548,12 @@ add_subdirectory(dependencies/eigen)
 The project is physically structured as self-contained software components, in
 the sense described by John Lakos \cite lakos2019large-scale-cpp. Each
 component lives in its own directory, with its own CMakeLists.txt file. The
-main list file's main job is to include these components as subdirectories.
+main CMakeLists.txt file's principal job is to include these components as
+subdirectories.
 
-In an earlier version of the project, there was a directory structure resembing
-the following, where each leaf node was a directory containing a component as
-just described:
+In an earlier version of the project, there was a directory structure
+resembling the following, where each leaf node was a directory containing a
+component as just described:
 
 ```
 sygaldry
@@ -564,7 +587,7 @@ sygaldry
         *-- etc.
 ```
 
-Components were correspondingly named e.g. `sygse-adc`.
+Components were correspondingly named e.g. `sygaldry-sensors-esp32-adc`.
 
 As well as being troublingly verbose when editing, this proved problematic when
 building on Windows, which at the time in the year 2023 enforced a limit of 260
@@ -579,13 +602,13 @@ was decided to adopt an organizational scheme with better characteristics in
 terms of brevity.
 
 The repository now contains two main content directories: `sygaldry` and
-`instruments`. The `sygaldry` directory contains all of the software components
-in the library, except for the instruments, which are unsurprisingly found in
-the other directory. Rather than being named verbosely, in keeping with \cite
-lakos2019large-scale-cpp, packages and their components are given identifiers
-of the form `sygXY` where `XY` is the package identifier, with `X` typically
-(currently always) referring to the broad type of components and `Y` to the
-platform.
+`sygaldry-instruments`. The `sygaldry` directory contains all of the software
+components in the library, except for the instruments, which are unsurprisingly
+found in the other directory. Rather than being named verbosely, in keeping
+with \cite lakos2019large-scale-cpp, packages and their components are given
+identifiers of the form `sygXY` where `XY` is the package identifier, with `X`
+typically (currently always) referring to the broad type of components and `Y`
+to the platform.
 
 ```cmake
 # @='add subdirectories'
@@ -734,12 +757,13 @@ cmake_minimum_required(VERSION 3.24)
 project(Sygaldry)
 
 @{set SYGALDRY_ROOT}
-@{set language standard}
 
 @{prepare for tests}
 
 @{include cmake libraries}
 
 @{add subdirectories}
+
+@{set language standard}
 # @/
 ```
