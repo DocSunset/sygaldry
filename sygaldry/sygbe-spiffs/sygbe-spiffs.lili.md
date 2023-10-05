@@ -59,7 +59,7 @@ if (ret != ESP_OK) {
     esp_spiffs_format(conf.partition_label);
     return;
 }
-printf("spiffs: Partition size: total: %d, used: %d", total, used);
+printf("spiffs: Partition size: total: %d, used: %d\n", total, used);
 
 // Check consistency of reported partiton size info.
 if (used > total) {

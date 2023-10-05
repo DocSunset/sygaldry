@@ -13,7 +13,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace components { namespace arduino {
 
-template<int sda_pin, int scl_pin, uint32_t frequency = 400000>
+template<int sda_pin, int scl_pin, uint32_t frequency = 100000>
 struct TwoWire
 : name_<"Two Wire Bus">
 , description_<"the Arduino I2C bus driver">

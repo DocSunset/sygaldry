@@ -126,7 +126,6 @@ uint8_t ICM20948TwoWireSerif::read(uint8_t i2c_address, uint8_t register_address
 
 uint8_t ICM20948TwoWireSerif::read(uint8_t i2c_address, uint8_t register_address, uint8_t * buffer, uint8_t bytes)
 {
-    @{two wire serif read many}
     Wire.beginTransmission(i2c_address);
     Wire.write(register_address);
     Wire.endTransmission(false); // repeated start
@@ -184,7 +183,7 @@ to be implemented correctly.
     if (ret == who_am_i_value) printf("passed!\n");
     else
     {
-        printf("unexpected who am I value?!\n");
+        printf("unexpected who am I value %d?!\n", ret);
         return false;
     }
 }

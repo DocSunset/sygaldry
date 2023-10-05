@@ -29,7 +29,7 @@ struct ICM20948Tests
             if (ret == who_am_i_value) printf("passed!\n");
             else
             {
-                printf("unexpected who am I value?!\n");
+                printf("unexpected who am I value %d?!\n", ret);
                 return false;
             }
         }

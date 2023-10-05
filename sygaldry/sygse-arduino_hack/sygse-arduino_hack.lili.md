@@ -99,7 +99,7 @@ namespace
     static uint8_t _rx_buffer[BUFFER_LENGTH] = {0};
     static bool _repeated_start = false;
 //    static i2c_cmd_handle_t _cmd = nullptr;
-    static constexpr TickType_t _timeout = pdMS_TO_TICKS(100);
+    static constexpr TickType_t _timeout = pdMS_TO_TICKS(2000);
 
 //    bool cmd_link_error_check(esp_err_t err, const char * context)
 //    {
@@ -173,6 +173,7 @@ void TwoWire::begin()
 
 void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
 {
+    printf("Wire: begin(%d, %d, %ld)\n", sda_pin, scl_pin, frequency);
     if (frequency > 400000) frequency = 400000;
     i2c_config_t config = {
         .mode = I2C_MODE_MASTER,
@@ -181,7 +182,7 @@ void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master = { .clk_speed = frequency, },
-        .clk_flags = 0,
+        .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
     };
 
     esp_err_t err = i2c_param_config(_port, &config);
@@ -192,8 +193,7 @@ void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
     }
 
     err = i2c_driver_install(_port, config.mode, 0, 0, 0);
-    if (err == ESP_OK) return;
-    switch (err)
+    if (err != ESP_OK) switch (err)
     {
         case ESP_ERR_INVALID_ARG:
             printf("Wire error: i2c_driver_install invalid argument\n");
@@ -202,6 +202,7 @@ void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
             printf("Wire error: i2c_driver_install failure\n");
             return;
     }
+
 }
 
 void TwoWire::beginTransmission(uint8_t address)
