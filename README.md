@@ -20,41 +20,32 @@ SPDX-License-Identifier: MIT
 
 ## Declarative Digital Musical Instrument Firmwares:
 
-The whole firmware for the T-Stick as of 2023-10-02 consists of a simple and
-readable list of its components in 30 lines of code:
+The whole firmware for the T-Stick as of 2023-10-05 consists of a simple and
+readable list of its components in about 15 lines of code, of which 2/3rds are
+unavoidable boilerplate:
 
 ```cpp
+// includes
+
 using namespace sygaldry;
 
-struct TStick {
-    struct Instrument {
-        sygsa::TwoWire<21,22> i2c;
-        struct Sensors {
-            sygse::Button<GPIO_NUM_15> button;
-            sygse::OneshotAdc<33> adc;
-            sygsa::TrillCraft touch;
-            sygsp::DefaultICM20948 mimu;
-            sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
-        } sensors;
-        sygbe::WiFi wifi;
-        sygbp::LibloOsc<Sensors> osc;
-    };
+struct TStick
+{
+    sygse::Button<GPIO_NUM_15> button;
+    sygse::OneshotAdc<33> adc;
+    sygsa::TrillCraft touch;
+    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                   , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
+                   > mimu;
+    sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
+};
 
-    sygbe::SpiffsSessionStorage<Instrument> session_storage;
-    Instrument instrument;
-    sygbp::CstdioCli<Instrument> cli;
-} tstick{};
-
-constexpr auto runtime = Runtime{tstick};
-
-extern "C" void app_main(void) {
-    runtime.init();
-    while (true) {
-        runtime.tick();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
+sygbe::ESP32Instrument<TStick> tstick{};
+extern "C" void app_main(void) { tstick.app_main(); }
 ```
+
+The substantive code in this implementation requires fewer lines than the binding
+code for *a single signal* in the previous version of the firmware.
 
 ## Automatic Protocol Bindings
 
@@ -108,6 +99,8 @@ of a T-Stick, and took about 20 minutes to write:
 
 ```cpp
 // mubone.hpp
+// includes
+
 using namespace sygaldry;
 
 struct Orientor {
@@ -122,44 +115,18 @@ struct Controller {
     sygse::Button<GPIO_NUM_17> button2;
 };
 
-template<typename Sensors> struct Mubone {
-    struct Instrument {
-        sygsa::TwoWire<21,22> i2c;
-        Sensors sensors;
-        sygbe::WiFi wifi;
-        sygbp::LibloOsc<Sensors> osc;
-    };
-
-    sygbe::SpiffsSessionStorage<Instrument> session_storage;
-    Instrument instrument;
-    sygbp::CstdioCli<Instrument> cli;
-};
-
 // orientor.cpp
 #include "mubone.hpp"
+// includes
 
-Mubone<Orientor> orientor;
-constexpr auto runtime = Runtime{orientor};
-extern "C" void app_main(void) {
-    runtime.init();
-    while (true) {
-        runtime.tick();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
+sygbe::ESP32Instrument<Orientor> orientor;
+extern "C" void app_main(void) { orientor.app_main(); }
 
 // controller.cpp
 #include "mubone.hpp"
 
-Mubone<Controller> controller;
-constexpr auto runtime = Runtime{controller};
-extern "C" void app_main(void) {
-    runtime.init();
-    while (true) {
-        runtime.tick();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
+sygbe::ESP32Instrument<Controller> controller;
+extern "C" void app_main(void) { controller.app_main(); }
 ```
 
 ## Improved Testability

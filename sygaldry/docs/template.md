@@ -29,7 +29,7 @@ SPDX-License-Identifier: MIT
 
 // include statements
 
-namespace sygaldry { namespace sensors { namespace esp32 {
+namespace sygaldry { namespace sygXY {
 
 /*! \addtogroup sygXY
 */
@@ -67,7 +67,7 @@ struct NewComponent
 /// \}
 /// \}
 
-} } }
+} }
 // @/
 ```
 
@@ -93,7 +93,7 @@ void NewComponent::main()
 {
 }
 
-} } }
+} }
 // @/
 ```
 

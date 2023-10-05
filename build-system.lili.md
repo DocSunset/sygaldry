@@ -715,6 +715,8 @@ target_link_libraries(sygaldry INTERFACE sygbp)
 if (ESP_PLATFORM)
 add_library(sygbe INTERFACE)
 
+                add_subdirectory(sygaldry/sygbe-runtime)
+    target_link_libraries(sygbe INTERFACE sygbe-runtime)
                 add_subdirectory(sygaldry/sygbe-libmapper_arduino)
     target_link_libraries(sygbe INTERFACE sygbe-libmapper_arduino)
                 add_subdirectory(sygaldry/sygbe-spiffs)
