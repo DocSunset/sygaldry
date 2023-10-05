@@ -86,7 +86,7 @@ struct WiFi
     struct handler_state_t {
         EventGroupHandle_t event_group;
         char connection_attempts;
-        utility_components::CstdioLogger* log;
+        sygup::CstdioLogger* log;
         static constexpr int connected_bit = BIT0;
         static constexpr int fail_bit = BIT1;
         static constexpr int maximum_connection_attempts = 2;
@@ -119,7 +119,7 @@ struct WiFi
         }
     }
 
-    [[no_unique_address]] utility_components::CstdioLogger log;
+    [[no_unique_address]] sygup::CstdioLogger log;
 
     void init()
     {

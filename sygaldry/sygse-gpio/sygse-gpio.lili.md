@@ -287,7 +287,7 @@ SPDX-License-Identifier: MIT
 #include <sygah-metadata.hpp>
 #include <sygah-endpoints.hpp>
 
-namespace sygaldry { namespace components { namespace esp32 {
+namespace sygaldry { namespace sygse {
 
 template<gpio_num_t pin_number>
 struct GPIO
@@ -303,7 +303,7 @@ struct GPIO
     @{init function with assertions}
 };
 
-} } }
+} }
 // @/
 ```
 

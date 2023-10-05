@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
 #include <limits>
 #include <charconv>
 
-namespace sygaldry { namespace utility_components {
+namespace sygaldry { namespace sygup {
 
 template<typename putter>
 struct BasicLogger

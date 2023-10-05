@@ -19,7 +19,7 @@
     echo "Using default build mode: Debug" && mode=Debug
     CMAKE_BUILD_TYPE="$mode" cmake -B "$dir" -S .
 }
-cmake --build "$dir" &&
+cmake --build "$dir" -j 4 &&
 {
     ctest --test-dir "$dir" -R '.*sygaldry.*' ||
         ctest --test-dir "$dir" --rerun-failed --output-on-failure

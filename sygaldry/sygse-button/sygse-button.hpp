@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygsp-button.hpp"
 #include "sygse-gpio.hpp"
 
-namespace sygaldry { namespace components { namespace esp32 {
+namespace sygaldry { namespace sygse {
 
 enum class ButtonActive {High, Low};
 
@@ -21,7 +21,7 @@ struct Button
 , author_<"Travis J. West">
 , copyright_<"Travis J. West (C) 2023">
 , description_<"A single button attached to a GPIO">
-, portable::ButtonGestureModel
+, sygsp::ButtonGestureModel
 {
     using gpio = GPIO<pin_number>;
 
@@ -40,4 +40,4 @@ struct Button
     }
 };
     
-} } }
+} }

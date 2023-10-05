@@ -393,7 +393,7 @@ accounted for and included in `.gitignore`.
     echo "Using default build mode: Debug" && mode=Debug
     CMAKE_BUILD_TYPE="$mode" cmake -B "$dir" -S .
 }
-cmake --build "$dir" &&
+cmake --build "$dir" -j 4 &&
 {
     ctest --test-dir "$dir" -R '.*sygaldry.*' ||
         ctest --test-dir "$dir" --rerun-failed --output-on-failure
@@ -478,9 +478,9 @@ We require C++20 without extensions.
 
 ```cmake
 # @='set language standard'
-set_property(TARGET sygaldry PROPERTY CMAKE_CXX_STANDARD 20)
-set_property(TARGET sygaldry PROPERTY CMAKE_CXX_STANDARD_REQUIRED On)
-set_property(TARGET sygaldry PROPERTY CMAKE_CXX_EXTENSIONS Off)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+set(CMAKE_CXX_EXTENSIONS Off)
 # @/
 ```
 
@@ -757,13 +757,12 @@ cmake_minimum_required(VERSION 3.24)
 project(Sygaldry)
 
 @{set SYGALDRY_ROOT}
+@{set language standard}
 
 @{prepare for tests}
 
 @{include cmake libraries}
 
 @{add subdirectories}
-
-@{set language standard}
 # @/
 ```

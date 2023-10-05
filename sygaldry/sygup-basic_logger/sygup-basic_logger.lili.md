@@ -200,7 +200,7 @@ SPDX-License-Identifier: MIT
 
 @{basic logger includes}
 
-namespace sygaldry { namespace utility_components {
+namespace sygaldry { namespace sygup {
 
 @{basic logger plan}
 

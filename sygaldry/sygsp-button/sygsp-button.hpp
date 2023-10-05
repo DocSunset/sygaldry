@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 #include "sygah-endpoints.hpp"
 
-namespace sygaldry { namespace components { namespace portable {
+namespace sygaldry { namespace sygsp {
 
 struct ButtonGestureModel
 {
@@ -31,4 +31,4 @@ struct ButtonGestureModel
     void operator()();
 };
 
-} } }
+} }

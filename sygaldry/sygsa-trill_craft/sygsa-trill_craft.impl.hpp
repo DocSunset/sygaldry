@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 #include <algorithm>
 #include <Trill.h>
 
-namespace sygaldry { namespace components { namespace arduino {
+namespace sygaldry { namespace sygsa {
 
 void TrillCraft::init()
 {
@@ -115,4 +115,4 @@ void TrillCraft::main()
     }
 }
 
-} } }
+} }

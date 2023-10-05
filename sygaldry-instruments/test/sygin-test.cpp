@@ -14,19 +14,19 @@ SPDX-License-Identifier: MIT
 
 using namespace sygaldry;
 
-struct Button1 : name_<"button1">, components::portable::ButtonGestureModel
+struct Button1 : name_<"button1">, sygsp::ButtonGestureModel
 {
     void main()
     {
-        components::portable::ButtonGestureModel();
+        sygsp::ButtonGestureModel();
     }
 };
 
-struct Button2 : name_<"button2">, components::portable::ButtonGestureModel
+struct Button2 : name_<"button2">, sygsp::ButtonGestureModel
 {
     void main()
     {
-        components::portable::ButtonGestureModel();
+        sygsp::ButtonGestureModel();
     }
 };
 

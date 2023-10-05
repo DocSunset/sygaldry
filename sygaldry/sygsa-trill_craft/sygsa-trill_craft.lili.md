@@ -47,7 +47,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
-namespace sygaldry { namespace components { namespace arduino {
+namespace sygaldry { namespace sygsa {
 
 struct TrillCraft
 : name_<"Trill Craft">
@@ -152,7 +152,7 @@ struct TrillCraft
     void main();
 };
 
-} } }
+} }
 // @/
 
 // @#'sygsa-trill_craft.impl.hpp'
@@ -173,7 +173,7 @@ SPDX-License-Identifier: MIT
 #include <algorithm>
 #include <Trill.h>
 
-namespace sygaldry { namespace components { namespace arduino {
+namespace sygaldry { namespace sygsa {
 
 void TrillCraft::init()
 {
@@ -273,7 +273,7 @@ void TrillCraft::main()
     }
 }
 
-} } }
+} }
 // @/
 ```
 

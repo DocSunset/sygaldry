@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 #include "sygah-metadata.hpp"
 
-namespace sygaldry { namespace sensors { namespace esp32 {
+namespace sygaldry { namespace sygse {
 
 /*! \addtogroup sygse ESP32 Sensors */
 /// \{
@@ -89,4 +89,4 @@ extern template struct OneshotAdc<ADC1_CHANNEL_7>;
 /// \}
 /// \}
 
-} } }
+} }

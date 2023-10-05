@@ -145,6 +145,6 @@ template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 
 template<typename Components>
-using CstdioCli = Cli<CstdioReader, utility_components::CstdioLogger, Components>;
+using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
 
 } }

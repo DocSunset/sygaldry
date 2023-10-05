@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include <sstream>
 #include "sygup-basic_logger.hpp"
 
-namespace sygaldry { namespace utility_components {
+namespace sygaldry { namespace sygup {
 
 struct TestPutter
 {

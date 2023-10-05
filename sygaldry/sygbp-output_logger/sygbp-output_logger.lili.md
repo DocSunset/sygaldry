@@ -55,7 +55,7 @@ TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
 {
     auto components = TestComponents{};
     auto& tc = components.tc;
-    auto logger = sygaldry::sygbp::OutputLogger<utility_components::TestLogger, decltype(components)>{};
+    auto logger = sygaldry::sygbp::OutputLogger<sygup::TestLogger, decltype(components)>{};
 
     static_assert(Component<decltype(logger)>);
 
@@ -177,7 +177,7 @@ struct OutputLogger : name_<"Output Logger">
     }
 };
 
-template<typename Components> using CstdioOutputLogger = OutputLogger<utility_components::CstdioLogger, Components>;
+template<typename Components> using CstdioOutputLogger = OutputLogger<sygup::CstdioLogger, Components>;
 
 } }
 // @/

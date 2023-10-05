@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygsp-button.hpp"
 
-namespace sygaldry { namespace components { namespace portable {
+namespace sygaldry { namespace sygsp {
 
 void ButtonGestureModel::operator()()
 {
@@ -22,4 +22,4 @@ void ButtonGestureModel::operator()()
     }
 }
 
-} } }
+} }

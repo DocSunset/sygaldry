@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 #include <string>
 #include <array>
 
-using namespace sygaldry::utility_components;
+using namespace sygaldry::sygup;
 
 
 TEST_CASE("sygaldry BasicLogger print") {

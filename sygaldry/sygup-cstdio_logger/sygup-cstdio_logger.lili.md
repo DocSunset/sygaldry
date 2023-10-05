@@ -29,7 +29,7 @@ SPDX-License-Identifier: MIT
 #include <cstdlib>
 #include "sygup-basic_logger.hpp"
 
-namespace sygaldry { namespace utility_components {
+namespace sygaldry { namespace sygup {
 
 struct CstdioPutter
 {

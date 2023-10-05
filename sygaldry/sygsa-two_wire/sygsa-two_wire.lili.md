@@ -25,7 +25,7 @@ SPDX-License-Identifier: MIT
 #include "Wire.h"
 #include "sygah-metadata.hpp"
 
-namespace sygaldry { namespace components { namespace arduino {
+namespace sygaldry { namespace sygsa {
 
 template<int sda_pin, int scl_pin, uint32_t frequency = 100000>
 struct TwoWire
@@ -42,7 +42,7 @@ struct TwoWire
     }
 };
 
-} } }
+} }
 // @/
 ```
 

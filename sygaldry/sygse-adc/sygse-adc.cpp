@@ -17,7 +17,7 @@ namespace {
     };
 }
 
-namespace sygaldry { namespace sensors { namespace esp32 {
+namespace sygaldry { namespace sygse {
 
 template<int gpio_num>
 void OneshotAdc<gpio_num>::init()
@@ -52,4 +52,4 @@ template struct OneshotAdc<ADC1_CHANNEL_5>;
 template struct OneshotAdc<ADC1_CHANNEL_6>;
 template struct OneshotAdc<ADC1_CHANNEL_7>;
 
-} } }
+} }

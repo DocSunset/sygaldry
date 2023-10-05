@@ -52,6 +52,6 @@ struct OutputLogger : name_<"Output Logger">
     }
 };
 
-template<typename Components> using CstdioOutputLogger = OutputLogger<utility_components::CstdioLogger, Components>;
+template<typename Components> using CstdioOutputLogger = OutputLogger<sygup::CstdioLogger, Components>;
 
 } }

@@ -385,7 +385,7 @@ struct CliCommands
 TEST_CASE("sygaldry CLI", "[bindings][cli]")
 {
     auto components = TestComponents{};
-    auto cli = CustomCli<TestReader, utility_components::TestLogger, TestComponents, CliCommands>{};
+    auto cli = CustomCli<TestReader, sygup::TestLogger, TestComponents, CliCommands>{};
     static_assert(Component<decltype(cli)>);
 
     SECTION("Hello world")
@@ -537,7 +537,7 @@ template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 
 template<typename Components>
-using CstdioCli = Cli<CstdioReader, utility_components::CstdioLogger, Components>;
+using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
 // @/
 ```
 
@@ -655,7 +655,7 @@ void test_command(auto&& command, auto&& components, int expected_retcode, strin
     auto set_arg = [&](auto arg) {argv[argc++] = (char *)arg;};
     ( set_arg(args), ... );
 
-    utility_components::TestLogger logger{};
+    sygup::TestLogger logger{};
     logger.put.ss.str("");
     int retcode = command.main(argc, argv, logger, components);
     REQUIRE(retcode == expected_retcode);
@@ -709,7 +709,7 @@ TEST_CASE("sygaldry Help command", "[cli][commands][help]")
 {
     Help command;
 
-    utility_components::TestLogger logger{};
+    sygup::TestLogger logger{};
     logger.put.ss.str("");
     auto commands = TestCommands{};
     auto retcode = command.main(logger, commands);

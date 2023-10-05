@@ -37,7 +37,7 @@ TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
 {
     auto components = TestComponents{};
     auto& tc = components.tc;
-    auto logger = sygaldry::sygbp::OutputLogger<utility_components::TestLogger, decltype(components)>{};
+    auto logger = sygaldry::sygbp::OutputLogger<sygup::TestLogger, decltype(components)>{};
 
     static_assert(Component<decltype(logger)>);
 
