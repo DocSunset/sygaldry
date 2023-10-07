@@ -1,2 +1,2 @@
 #pragma once
-#include "sygsa-trill_craft.hpp"
+#include "sygsa-max17055.hpp"
