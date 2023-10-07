@@ -15,108 +15,16 @@ This library will be structured using a helpers file that has functions for read
 
 # Helpers
 
-## I2C Interface
-
-We define three functions for reading data from the I2C interface: readReg16Bit, writeReg16Bit, and writeverifyReg16Bit.
-
-
+Registers and values for the Least Significant Bit (LSB) are stored in a .hpp file. 
 ```cpp
 // @#'sygsa-max17055-helpers.hpp'
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Copyright 2023 Albert-Ngabo Niyonsenga Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Media and Technology (CIRMMT), McGill University, Montréal, Canada
 
 SPDX-License-Identifier: MIT
 */
-#pragma once
-#include <cstdint>
-#include <iostream>
-
-namespace sygaldry { namespace sygsa {
-/// Read 16 bit register
-static uint8_t readReg16Bit(uint8_t i2c_address, uint8_t reg);
-/// Write to 16 bit register
-static void writeReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t valu);
-/// Write and verify to 16 bit register
-static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value);
-}
-}
-// @/
-```
-The functions simply read/write from the provided registers
-```cpp
-// @#'sygsa-max17055-helpers.cpp'
-/*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
-
-SPDX-License-Identifier: MIT
-*/
-#include "sygsa-max17055-helpers.hpp"
-#include "sygsp-delay.hpp"
-#include <Wire.h>
-namespace sygaldry { namespace sygsa {
-uint8_t readReg16Bit(uint8_t i2c_address, uint8_t reg)
-{
-  uint16_t value = 0;  
-  Wire.beginTransmission(i2c_address); 
-  Wire.write(reg);
-  Wire.endTransmission(false);
-  
-  Wire.requestFrom(i2c_address, (uint8_t) 2); 
-  value  = Wire.read();
-  value |= (uint16_t)Wire.read() << 8;      // value low byte
-  return value;
-}
-
-static void writeReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value)
-{
-  //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
-  Wire.beginTransmission(i2c_address);
-  Wire.write(reg);
-  Wire.write( value       & 0xFF); // value low byte
-  Wire.write((value >> 8) & 0xFF); // value high byte
-  Wire.endTransmission();
-}
-
-static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value)
-{
-  int attempt = 0;
-  // Verify that the value has been written before moving on
-  while ((value != readReg16Bit(reg, i2c_address)) && (attempt < 10)) {
-    std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
-    //Write the value to the register
-    writeReg16Bit(reg, value, i2c_address);
-    // Wait a bit
-    sygsp::delay(1);
-
-    //Increase attempt
-    attempt++;
-  };
-  
-  if (attempt > 10) {
-    return false;
-    std::cout << "    Failed to write value" <<std::endl;
-  } else {
-    std::cout << "    Value successfully written" << std::endl;
-    return true;
-  }
-}
-
-}
-
-}
-```
-
-## Registers
-Registers and values for the Least Significant Bit (LSB) are stored in a .hpp file. 
-
-```cpp
-// @#'sygsa-max17055-registers.hpp'
 // Define registers for the MAX17055 fuel gauge
 enum regAddr
 {
@@ -156,16 +64,22 @@ float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
 
 To initialise the MAX17055 component we have several inputs. These are stored as sliders with explicit maximums and minimums as well as default values. 
 
-All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA`
+All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA` this includes `inputs.ichg, outputs.inst_curr, outputs.avg_curr`. Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below.
 
+| **Register Type** | **LSB Size**     |
+|-------------------|------------------|
+| Capacity          | 5.0 mVh/rsense   |
+| Current           | 1.5625 mV/rsense |
+| Voltage           | 7.8125e-5 V      |
+| Percentage        | 1/256 %          |
+| Time              | 5.625/3600 h     |
 
 ```cpp
 // @#'sygsa-max17055.hpp'
 /*
 Copyright 2023 Albert-Ngabo Niyonsenga Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Media and Technology (CIRMMT), McGill University, Montréal, Canada
 
 SPDX-License-Identifier: MIT
 */
@@ -173,12 +87,11 @@ SPDX-License-Identifier: MIT
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "sygah-metadata.hpp"
-#include "sygse-max17055-tests.hpp"
 #include "sygsp-delay.hpp"
 #include "sygsp-micros.hpp"
 #include "sygah-endpoints.hpp"
-#include "sygsa-max17055-registers.hpp"
 #include "sygsa-max17055-helpers.hpp"
+#include <iostream>
 #include "Wire.h"
 
 namespace sygaldry { namespace sygsa {
@@ -253,11 +166,50 @@ struct MAX17055
         toggle<"running"> running;
     } outputs;
 
+    // initialize the MAX17055 for continuous reading
+    void init();
+
+    // poll the MAX17055 for new data and update endpoints
+    void main();
+
+    // Read 16 bit register
+    uint16_t readReg16Bit(uint8_t reg);
+    
+    // Write to 16 bit register
+    void writeReg16Bit(uint8_t reg, uint16_t valu);
+    
+    // Write and verify to 16 bit register
+    bool writeVerifyReg16Bit(uint8_t reg, uint16_t value);
+};
+
+} }
+// @/
+```
+
+The init subroutine applies the EZConfig implementation shown in MAX17055 Software Implementation Guide. The status register is read to check if a hardware/osftware event occured if it did then the fuel gauge must be initiliased.
+
+The design capacity and end of charge current are converted to 16 bit integers to be stored in the registers of the MAX17055. Once the values have been written, Status flag is reset to prepare for a new hardware event. 
+
+The main subroutine reads values from the registers and stores them in persistent outputs. This allows us to reset the fuel gauge with old values, after a hardware reset, TODO: Restoring old previous parameters has not been implemented.
+
+```cpp
+// @#'sygsa-max17055.impl.hpp'
+/*
+Copyright 2023 Albert-Ngabo Niyonsenga Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada
+
+SPDX-License-Identifier: MIT
+*/
+#pragma once
+#include "sygsa-max17055.hpp"
+
+namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
-    void init()
+    void MAX17055::init()
     {
         outputs.running = true;
-        uint16_t STATUS = readReg16Bit(inputs.i2c_addr,STATUS_REG);
+        uint16_t STATUS = readReg16Bit(STATUS_REG);
         uint16_t POR = STATUS&0x0002;
         std::cout << "    Checking status " << "\n"
                 << "    Status read: " << STATUS << "\n"
@@ -267,27 +219,27 @@ struct MAX17055
         if (POR)
         {
             std::cout << "    Initialising Fuel Gauge" << std::endl;
-            while(readReg16Bit(inputs.i2c_addr, 0x3D)&1) {
+            while(readReg16Bit(0x3D)&1) {
                 sygsp::delay(10);
             }
 
             std::cout << "    Start up complete" << std::endl;
             //Initialise Configuration
-            uint16_t HibCFG = readReg16Bit(inputs.i2c_addr, 0xBA);
+            uint16_t HibCFG = readReg16Bit(0xBA);
             // Exit hibernate mode
-            writeReg16Bit(inputs.i2c_addr, 0x60, 0x90);
-            writeReg16Bit(inputs.i2c_addr, 0xBA, 0x0);
-            writeReg16Bit(inputs.i2c_addr, 0x60, 0x0);
+            writeReg16Bit(0x60, 0x90);
+            writeReg16Bit(0xBA, 0x0);
+            writeReg16Bit(0x60, 0x0);
 
             //EZ Config
             // Write Battery capacity
             std::cout << "    Writing Capacity" << std::endl;
             uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
             uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-            writeReg16Bit(inputs.i2c_addr, DESIGNCAP_REG, reg_cap); //Write Design Cap
-            writeReg16Bit(inputs.i2c_addr, ICHTERM_REG, reg_ichg); // End of charge current
-            writeReg16Bit(inputs.i2c_addr, dQACC_REG, reg_cap/32); //Write dQAcc
-            writeReg16Bit(inputs.i2c_addr, dPACC_REG, 44138/32); //Write dPAcc
+            writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
+            writeReg16Bit(ICHTERM_REG, reg_ichg); // End of charge current
+            writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+            writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
 
             // Set empty voltage and recovery voltage
             // Empty voltage in increments of 10mV
@@ -295,37 +247,32 @@ struct MAX17055
             uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
             uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
             uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-            writeReg16Bit(inputs.i2c_addr, VEMPTY_REG, voltage_settings); //Write Vempty
+            writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty
             
             // Set Model Characteristic
-            writeReg16Bit(inputs.i2c_addr, MODELCFG_REG, 0x8000); //Write ModelCFG
+            writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
 
             //Wait until model refresh
-            while(readReg16Bit(inputs.i2c_addr, MODELCFG_REG)&0x8000) {
+            while(readReg16Bit(MODELCFG_REG)&0x8000) {
                 sygsp::delay(10);
             }
             //Reload original HbCFG value
-            writeReg16Bit(inputs.i2c_addr, 0xBA,HibCFG);    
+            writeReg16Bit(0xBA,HibCFG);    
         } else {
             std::cout << "    Loading old config" << std::endl;
         }
         // Reset Status Register when init function runs
         std::cout << "    Resetting Status" << std::endl;
-        STATUS = readReg16Bit(inputs.i2c_addr,STATUS_REG);
+        STATUS = readReg16Bit(STATUS_REG);
         
         // Get new status
         uint16_t RESET_STATUS = STATUS&0xFFFD;
         std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
-        writeVerifyReg16Bit(inputs.i2c_addr,STATUS_REG,RESET_STATUS); //reset POR Status   
-
-        // Read Status to ensure it has been cleared (for debugging)
-        POR = readReg16Bit(inputs.i2c_addr,STATUS_REG)&0x0002;
-        std::cout << "    Status Flag: " << readReg16Bit(inputs.i2c_addr,STATUS_REG) << "\n"
-                << "    POR Flag: " << POR << std::endl;     
+        outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status   
     }
 
     // poll the MAX17055 for new data and update endpoints
-    void main()
+    void MAX17055::main()
     {
         if (!outputs.running) return; // TODO: 
         static auto prev = sygsp::micros();
@@ -337,42 +284,42 @@ struct MAX17055
             float cap_multiplier = base_capacity_multiplier_mAh /  inputs.rsense;
             // ANALOG MEASUREMENTS
             // Current
-            outputs.inst_curr_raw = readReg16Bit(inputs.i2c_addr, CURRENT_REG);
-            outputs.avg_curr_raw = readReg16Bit(inputs.i2c_addr, AVGCURRENT_REG);
+            outputs.inst_curr_raw = readReg16Bit(CURRENT_REG);
+            outputs.avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
             outputs.inst_curr = curr_multiplier * outputs.inst_curr;
             outputs.avg_curr = curr_multiplier * outputs.avg_curr;
             // Voltage
-            outputs.inst_voltage_raw = readReg16Bit(inputs.i2c_addr, VCELL_REG);
-            outputs.avg_voltage_raw = readReg16Bit(inputs.i2c_addr, AVGVCELL_REG);
+            outputs.inst_voltage_raw = readReg16Bit(VCELL_REG);
+            outputs.avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
             outputs.inst_voltage = voltage_multiplier_V * outputs.inst_voltage_raw;
             outputs.avg_voltage = voltage_multiplier_V * outputs.avg_voltage_raw;
             // MODEL OUTPUTS
             // Capacity
-            outputs.capacity_raw = readReg16Bit(inputs.i2c_addr, REPCAP_REG);
-            outputs.fullcapacity_raw = readReg16Bit(inputs.i2c_addr, FULLCAP_REG);
-            outputs.fullcapacitynorm_raw = readReg16Bit(inputs.i2c_addr, FULLCAPNORM_REG);
+            outputs.capacity_raw = readReg16Bit(REPCAP_REG);
+            outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
+            outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
             outputs.capacity = cap_multiplier * outputs.capacity_raw;
             outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
             outputs.fullcapacitynorm = percentage_multiplier * outputs.fullcapacitynorm_raw;
             // SOC, Age
-            outputs.age_raw = readReg16Bit(inputs.i2c_addr, AGE_REG);
-            outputs.soc_raw = readReg16Bit(inputs.i2c_addr,REPSOC_REG);
+            outputs.age_raw = readReg16Bit(AGE_REG);
+            outputs.soc_raw = readReg16Bit(REPSOC_REG);
             outputs.age = percentage_multiplier * outputs.age_raw;
             outputs.soc = percentage_multiplier * outputs.soc_raw;
             // TTF,TTE
-            outputs.tte_raw = readReg16Bit(inputs.i2c_addr, TTE_REG);
-            outputs.ttf_raw = readReg16Bit(inputs.i2c_addr, TTF_REG);
+            outputs.tte_raw = readReg16Bit(TTE_REG);
+            outputs.ttf_raw = readReg16Bit(TTF_REG);
             outputs.tte = time_multiplier_Hours * outputs.tte_raw;
             outputs.ttf = time_multiplier_Hours * outputs.ttf_raw;
             // Cycles
-            outputs.chargecyles_raw = readReg16Bit(inputs.i2c_addr, CYCLES_REG);
+            outputs.chargecyles_raw = readReg16Bit(CYCLES_REG);
             outputs.chargecyles = 0.01f * outputs.chargecyles_raw;
             // Parameters
-            outputs.rcomp =  readReg16Bit(inputs.i2c_addr, RCOMPP0_REG);
-            outputs.tempco = readReg16Bit(inputs.i2c_addr, TEMPCO_REG);
+            outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
+            outputs.tempco = readReg16Bit(TEMPCO_REG);
 
             // Read battery status
-            uint16_t raw_status = readReg16Bit(inputs.i2c_addr,STATUS_REG);
+            uint16_t raw_status = readReg16Bit(STATUS_REG);
 
             // Get the 4th bit
             bool bat_status = raw_status&0x0800;
@@ -383,73 +330,76 @@ struct MAX17055
             outputs.removed = raw_status&0x8000;  // get the 15th bit
             
             // Reset Insertion bit
-            writeVerifyReg16Bit(inputs.i2c_addr, STATUS_REG, raw_status&0xF7F);
+            writeVerifyReg16Bit(STATUS_REG, raw_status&0xF7F);
             // Reset Removal bit
-            writeVerifyReg16Bit(inputs.i2c_addr, STATUS_REG, raw_status&0x7FFF);
+            writeVerifyReg16Bit(STATUS_REG, raw_status&0x7FFF);
         }
     }
-};
 
-} }
+    /// Read 16 bit register
+    uint16_t MAX17055::readReg16Bit(uint8_t reg)
+    {
+        uint16_t value = 0;  
+        Wire.beginTransmission(inputs.i2c_addr); 
+        Wire.write(reg);
+        Wire.endTransmission(false);
+        
+        Wire.requestFrom(inputs.i2c_addr, (uint8_t) 2); 
+        value  = Wire.read();
+        value |= (uint16_t)Wire.read() << 8;      // value low byte
+        return value;
+    }
 
-// @/
-```
+    /// Write to 16 bit register
+    void MAX17055::writeReg16Bit(uint8_t reg, uint16_t value)
+    {
+        //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
+        Wire.beginTransmission(inputs.i2c_addr);
+        Wire.write(reg);
+        Wire.write( value       & 0xFF); // value low byte
+        Wire.write((value >> 8) & 0xFF); // value high byte
+        Wire.endTransmission();
+    }
 
-```cpp
-// @#'sygXY-newcomponent.cpp'
-/*
-Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+    /// Write and verify to 16 bit register
+    bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
+    {
+        int attempt = 0;
+        // Verify that the value has been written before moving on
+        while ((value != readReg16Bit(reg)) && (attempt < 10)) {
+            std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
+            //Write the value to the register
+            writeReg16Bit(reg, value);
+            // Wait a bit
+            sygsp::delay(1);
 
-SPDX-License-Identifier: MIT
-*/
-#include "sygXY-newcomponent.hpp"
-
-namespace sygaldry { namespace sygXY {
-
-void NewComponent::init()
-{
+            //Increase attempt
+            attempt++;
+        };
+        
+        if (attempt > 10) {
+            return false;
+            std::cout << "    Failed to write value" <<std::endl;
+        } else {
+            std::cout << "    Value successfully written" << std::endl;
+            return true;
+        }
+    }
 }
-
-void NewComponent::main()
-{
-}
-
-} } }
-// @/
+} 
 ```
 
-```cpp
-// @#'sygXY-newcomponent.test.cpp'
-#include <catch2/catch_test_macros.hpp>
-#include "sygXY-newcomponent.hpp"
 
-using namespace sygaldry;
-using namespace sygaldry::sygXY;
-
-@{tests}
-// @/
-```
+TODO: Tests
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygXY-newcomponent)
+set(lib sygsa-max17055)
 add_library(${lib} STATIC)
-target_sources(${lib} PRIVATE ${lib}.cpp)
 target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib}
-        PUBLIC sygah-endpoints
-        PUBLIC sygaldry-helpers-metadata
-        )
-
-if (SYGALDRY_BUILD_TESTS)
-add_executable(${lib}-test ${lib}.test.cpp)
-target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(${lib}-test PRIVATE ${lib})
-#target_link_libraries(${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
-catch_discover_tests(${lib}-test)
-endif()
+target_link_libraries(${lib} PUBLIC sygsp-delay)
+# arguably this should be a different library, even in a different document
+target_sources(${lib} PRIVATE sygsa-max17055-two_wire_serif.cpp)
+target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
 # @/
 ```
