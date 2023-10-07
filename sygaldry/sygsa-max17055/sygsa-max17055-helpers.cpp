@@ -42,7 +42,7 @@ static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value
     //Write the value to the register
     writeReg16Bit(reg, value, i2c_address);
     // Wait a bit
-    delay(1);
+    sygsp::delay(1);
 
     //Increase attempt
     attempt++;

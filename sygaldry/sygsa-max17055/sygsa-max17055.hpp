@@ -1,5 +1,5 @@
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Copyright 2023 Albert-Ngabo Niyonsenga Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
 Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
 Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
@@ -26,27 +26,19 @@ struct MAX17055
 , author_<"Albert Niyonsenga">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
-, version_<"0.0.0">
+, version_<"1.0.0">
 {
     struct inputs_t {
         // Initialisation Elements
         uint8_t i2c_addr; // i2c address of the fuel guage
-        int designcap; // design capacity of the batteries in mAh
-        int ichg; // Charge termination current in mA
-        float rsense; // Resistance of current sense resistor (mOhm))
-        float vempty; // Empty voltage of the battery (V)
-        float recovery_voltage; // Recovery voltage of the battery (V)
-
-        // Learned Parameters
-        int soc; // raw State of charge (5mVh/rsense)
-        int rcomp; // compensation parameter for battery
-        int tempco; // temperature compensation parameter
-        int fullcap; // full capacity of battery (5mVh/rsense)
-        int fullcapnorm; // full capacity of battery normalised
-        int cycles; // charge cycles of the battery
+        slider<"capacity", "mAh", int, 0, 32000, 3200> designcap; // Design capacity of the battery (mAh)
+        slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
+        slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
+        slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
+        slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        int pollrate; // poll rate in seconds
+        slider<"poll rate", "ms", int, 0, 300000, 0> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {

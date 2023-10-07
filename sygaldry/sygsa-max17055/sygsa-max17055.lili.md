@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-This is a simple driver for the MAX17055 fuel gauge. The fuel gauge is controlled via its control registers over the I2C bus. This driver was adapted from the driver found at https://github.com/AwotG/Arduino-MAX17055_Driver.
+This is a simple driver for the MAX17055 fuel gauge. The fuel gauge is controlled via its control registers over the I2C bus. This driver was adapted from the driver found at https://github.com/AwotG/Arduino-MAX17055_Driver and from the implementation in the T-Stick firmware found at https://github.com/aburt2/T-Stick/tree/pcb_design. 
 
 This library will be structured using a helpers file that has functions for reading and writing to the registers, and a helpers file that stores a dictionary of the registers.
 
@@ -92,7 +92,7 @@ static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value
     //Write the value to the register
     writeReg16Bit(reg, value, i2c_address);
     // Wait a bit
-    delay(1);
+    sygsp::delay(1);
 
     //Increase attempt
     attempt++;
@@ -113,7 +113,7 @@ static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value
 ```
 
 ## Registers
-Registers and values for the Least Significant Bit (LSB) are stored in a .hpp file.
+Registers and values for the Least Significant Bit (LSB) are stored in a .hpp file. 
 
 ```cpp
 // @#'sygsa-max17055-registers.hpp'
@@ -154,13 +154,15 @@ float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
 
 # Component
 
-To initialise the MAX17055 component we need several inputs. These include the
+To initialise the MAX17055 component we have several inputs. These are stored as sliders with explicit maximums and minimums as well as default values. 
+
+All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA`
 
 
 ```cpp
 // @#'sygsa-max17055.hpp'
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Copyright 2023 Albert-Ngabo Niyonsenga Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
 Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
 Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
@@ -187,27 +189,19 @@ struct MAX17055
 , author_<"Albert Niyonsenga">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
-, version_<"0.0.0">
+, version_<"1.0.0">
 {
     struct inputs_t {
         // Initialisation Elements
         uint8_t i2c_addr; // i2c address of the fuel guage
-        int designcap; // design capacity of the batteries in mAh
-        int ichg; // Charge termination current in mA
-        float rsense; // Resistance of current sense resistor (mOhm))
-        float vempty; // Empty voltage of the battery (V)
-        float recovery_voltage; // Recovery voltage of the battery (V)
-
-        // Learned Parameters
-        int soc; // raw State of charge (5mVh/rsense)
-        int rcomp; // compensation parameter for battery
-        int tempco; // temperature compensation parameter
-        int fullcap; // full capacity of battery (5mVh/rsense)
-        int fullcapnorm; // full capacity of battery normalised
-        int cycles; // charge cycles of the battery
+        slider<"capacity", "mAh", int, 0, 32000, 3200> designcap; // Design capacity of the battery (mAh)
+        slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
+        slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
+        slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
+        slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        int pollrate; // poll rate in seconds
+        slider<"poll rate", "ms", int, 0, 300000, 0> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -397,6 +391,7 @@ struct MAX17055
 };
 
 } }
+
 // @/
 ```
 
