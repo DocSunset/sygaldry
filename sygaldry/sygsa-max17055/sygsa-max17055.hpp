@@ -28,7 +28,7 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        uint8_t i2c_addr; // i2c address of the fuel guage
+        slider<"i2c_addr","int",int,0,127,0x36> i2c_addr; // i2c address of the fuel guage
         slider<"capacity", "mAh", int, 0, 32000, 3200> designcap; // Design capacity of the battery (mAh)
         slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
         slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))

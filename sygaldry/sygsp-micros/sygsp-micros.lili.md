@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 Arduino-style `micros` with more encapsulation and fewer unwanted dependencies.
 
 ```cpp
-// @#'sygsp-delay.hpp'
+// @#'sygsp-micros.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory

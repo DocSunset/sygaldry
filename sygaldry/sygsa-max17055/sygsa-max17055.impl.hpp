@@ -7,6 +7,7 @@ SPDX-License-Identifier: MIT
 */
 #pragma once
 #include "sygsa-max17055.hpp"
+#include "sygsp-delay.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading

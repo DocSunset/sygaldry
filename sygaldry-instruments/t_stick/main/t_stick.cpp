@@ -16,6 +16,7 @@ SPDX-License-Identifier: MIT
 #include "sygse-adc.hpp"
 #include "sygsa-two_wire.hpp"
 #include "sygse-trill.hpp"
+#include "sygse-max17055.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-icm20948-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
@@ -35,6 +36,7 @@ struct TStick
             sygse::Button<GPIO_NUM_15> button;
             sygse::OneshotAdc<33> adc;
             sygsa::TrillCraft touch;
+            sygsa::MAX17055 fuelgauge;
             sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                            , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                            > mimu;
