@@ -5,8 +5,6 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 
 SPDX-License-Identifier: MIT
 */
-// Contains register definitions and base current/capacity LSB multipliers for the max17055 library
-
 // Define registers for the MAX17055 fuel gauge
 enum regAddr
 {
@@ -40,3 +38,4 @@ float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide b
 float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
 float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
 float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+

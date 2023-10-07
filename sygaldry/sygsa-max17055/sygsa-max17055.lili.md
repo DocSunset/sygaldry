@@ -58,6 +58,8 @@ float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide b
 float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
 float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
 float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+
+// @/
 ```
 
 # Component
@@ -220,6 +222,7 @@ namespace sygaldry { namespace sygsa {
     @{wire}
 }
 } 
+// @/
 ```
 
 ## Reading and Writing to Registers
@@ -354,17 +357,17 @@ Once the values have been written, Status flag is reset to prepare for a new har
 } else {
     std::cout << "    Loading old config" << std::endl;
 }
-// Reset Status Register when init function runs
-std::cout << "    Resetting Status" << std::endl;
-STATUS = readReg16Bit(STATUS_REG);
+  // Reset Status Register when init function runs
+  std::cout << "    Resetting Status" << std::endl;
+  STATUS = readReg16Bit(STATUS_REG);
 
-// Get new status
-uint16_t RESET_STATUS = STATUS&0xFFFD;
-std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
-outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
-if (!outputs.running) {
-  outputs.error_message = "Could not reset status flag, disabling reading fuel gauge"
-}
+  // Get new status
+  uint16_t RESET_STATUS = STATUS&0xFFFD;
+  std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
+  outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
+  if (!outputs.running) {
+    outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
+  }
 // @/
 ```
 ## Main subroutine
