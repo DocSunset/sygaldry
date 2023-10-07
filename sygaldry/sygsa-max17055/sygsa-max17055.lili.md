@@ -9,9 +9,9 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-This is a simple driver for the MAX17055 fuel gauge. The fuel gauge is controlled via its control registers over the I2C bus. This driver was adapted from the driver found at https://github.com/AwotG/Arduino-MAX17055_Driver and from the implementation in the T-Stick firmware found at https://github.com/aburt2/T-Stick/tree/pcb_design. 
+This library is a simple driver for the MAX17055 fuel gauge. The fuel gauge is controlled via its control registers over the I2C bus. This driver was adapted from the driver found at https://github.com/AwotG/Arduino-MAX17055_Driver and from the implementation in the T-Stick firmware found at https://github.com/aburt2/T-Stick/tree/pcb_design. 
 
-This library will be structured using a helpers file that has functions for reading and writing to the registers, and a helpers file that stores a dictionary of the registers.
+This library will be structured using a helpers file that stores a dictionary of the registers and the multipliers to compute the Least Significant Bit for the capacity, current, voltage, percentage and time registers.
 
 # Helpers
 
@@ -64,7 +64,11 @@ float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
 
 To initialise the MAX17055 component we have several inputs. These are stored as sliders with explicit maximums and minimums as well as default values. 
 
-All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA` this includes `inputs.ichg, outputs.inst_curr, outputs.avg_curr`. Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below.
+All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA` this includes `inputs.ichg, outputs.inst_curr, outputs.avg_curr`. Resistance values for the current sense resist (`inputs.rsense`) are in `mOhm`. The voltage outputs and inputs are in `V`. This applies to `inputs.empty_voltage,inputs.recovery_voltage,outputs.inst_voltage,outputs.avg_voltage`
+
+The time values `outputs.tte,outputs.ttf` are in hours. The following outputs are given as percentages `outputs.soc, outputs.fullcapnorm, outputs.age`. 
+
+Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below.
 
 | **Register Type** | **LSB Size**     |
 |-------------------|------------------|
@@ -186,11 +190,7 @@ struct MAX17055
 // @/
 ```
 
-The init subroutine applies the EZConfig implementation shown in MAX17055 Software Implementation Guide. The status register is read to check if a hardware/osftware event occured if it did then the fuel gauge must be initiliased.
-
-The design capacity and end of charge current are converted to 16 bit integers to be stored in the registers of the MAX17055. Once the values have been written, Status flag is reset to prepare for a new hardware event. 
-
-The main subroutine reads values from the registers and stores them in persistent outputs. This allows us to reset the fuel gauge with old values, after a hardware reset, TODO: Restoring old previous parameters has not been implemented.
+Below is the full implementation of the init and main subroutines, as well as functions for reading and writing to the registers of the MAX17055
 
 ```cpp
 // @#'sygsa-max17055.impl.hpp'
@@ -208,80 +208,222 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
-        outputs.running = true;
-        uint16_t STATUS = readReg16Bit(STATUS_REG);
-        uint16_t POR = STATUS&0x0002;
-        std::cout << "    Checking status " << "\n"
-                << "    Status read: " << STATUS << "\n"
-                << "    POR flag: " << POR << std::endl;
-
-        // Reset the Fuel Gauge
-        if (POR)
-        {
-            std::cout << "    Initialising Fuel Gauge" << std::endl;
-            while(readReg16Bit(0x3D)&1) {
-                sygsp::delay(10);
-            }
-
-            std::cout << "    Start up complete" << std::endl;
-            //Initialise Configuration
-            uint16_t HibCFG = readReg16Bit(0xBA);
-            // Exit hibernate mode
-            writeReg16Bit(0x60, 0x90);
-            writeReg16Bit(0xBA, 0x0);
-            writeReg16Bit(0x60, 0x0);
-
-            //EZ Config
-            // Write Battery capacity
-            std::cout << "    Writing Capacity" << std::endl;
-            uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
-            uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-            writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
-            writeReg16Bit(ICHTERM_REG, reg_ichg); // End of charge current
-            writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
-            writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
-
-            // Set empty voltage and recovery voltage
-            // Empty voltage in increments of 10mV
-            std::cout << "    Writing Voltage" << std::endl;
-            uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
-            uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
-            uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-            writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty
-            
-            // Set Model Characteristic
-            writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
-
-            //Wait until model refresh
-            while(readReg16Bit(MODELCFG_REG)&0x8000) {
-                sygsp::delay(10);
-            }
-            //Reload original HbCFG value
-            writeReg16Bit(0xBA,HibCFG);    
-        } else {
-            std::cout << "    Loading old config" << std::endl;
-        }
-        // Reset Status Register when init function runs
-        std::cout << "    Resetting Status" << std::endl;
-        STATUS = readReg16Bit(STATUS_REG);
-        
-        // Get new status
-        uint16_t RESET_STATUS = STATUS&0xFFFD;
-        std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
-        outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status   
+        @{init}
     }
 
     // poll the MAX17055 for new data and update endpoints
     void MAX17055::main()
     {
-        if (!outputs.running) return; // TODO: 
+        @{main}
+    }
+
+    @{wire}
+}
+} 
+```
+
+## Reading and Writing to Registers
+Reading and writing to the registers use pretty standard application of read/write. There is also an additiona write and verify function recommended by the MAX17055 Software guide that verifies that the value has been written to the register. This is done for critical values like Status flags that need to be reset.
+
+```cpp
+//@='wire'
+/// Read 16 bit register
+uint16_t MAX17055::readReg16Bit(uint8_t reg)
+{
+    uint16_t value = 0;  
+    Wire.beginTransmission(inputs.i2c_addr); 
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    
+    Wire.requestFrom(inputs.i2c_addr, (uint8_t) 2); 
+    value  = Wire.read();
+    value |= (uint16_t)Wire.read() << 8;      // value low byte
+    return value;
+}
+
+/// Write to 16 bit register
+void MAX17055::writeReg16Bit(uint8_t reg, uint16_t value)
+{
+    //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
+    Wire.beginTransmission(inputs.i2c_addr);
+    Wire.write(reg);
+    Wire.write( value       & 0xFF); // value low byte
+    Wire.write((value >> 8) & 0xFF); // value high byte
+    Wire.endTransmission();
+}
+
+/// Write and verify to 16 bit register
+bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
+{
+    int attempt = 0;
+    // Verify that the value has been written before moving on
+    while ((value != readReg16Bit(reg)) && (attempt < 10)) {
+        std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
+        //Write the value to the register
+        writeReg16Bit(reg, value);
+        // Wait a bit
+        sygsp::delay(1);
+
+        //Increase attempt
+        attempt++;
+    };
+    
+    if (attempt > 10) {
+        return false;
+        std::cout << "    Failed to write value" <<std::endl;
+    } else {
+        std::cout << "    Value successfully written" << std::endl;
+        return true;
+    }
+}
+// @/
+```
+
+
+## Init Subroutine
+The init subroutine applies the EZConfig implementation shown in MAX17055 Software Implementation Guide. The status register is read to check if a hardware/osftware event occured if it did then the fuel gauge must be initiliased.
+
+```cpp
+//@='init'
+uint16_t STATUS = readReg16Bit(STATUS_REG);
+uint16_t POR = STATUS&0x0002;
+std::cout << "    Checking status " << "\n"
+        << "    Status read: " << STATUS << "\n"
+        << "    POR flag: " << POR << std::endl;
+// @/
+```
+
+When resetting the fuel gauge we initially make sure to make sure the fuel gauge is out of hibernation mode
+
+```cpp
+//@+'init'
+// Reset the Fuel Gauge
+if (POR)
+{
+    std::cout << "    Initialising Fuel Gauge" << std::endl;
+    while(readReg16Bit(0x3D)&1) {
+        sygsp::delay(10);
+    }
+
+    std::cout << "    Start up complete" << std::endl;
+    //Initialise Configuration
+    uint16_t HibCFG = readReg16Bit(0xBA);
+    // Exit hibernate mode
+    writeReg16Bit(0x60, 0x90);
+    writeReg16Bit(0xBA, 0x0);
+    writeReg16Bit(0x60, 0x0);
+// @/
+```
+The design capacity, empty voltage, recovery voltage, and end of charge current are converted to 16 bit integers to be stored in the registers of the MAX17055. 
+
+```cpp
+//@+'init'
+   //EZ Config
+    // Write Battery capacity
+    std::cout << "    Writing Capacity" << std::endl;
+    uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
+    uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
+    writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
+    writeReg16Bit(ICHTERM_REG, reg_ichg); // End of charge current
+    writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+    writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
+
+    // Set empty voltage and recovery voltage
+    // Empty voltage in increments of 10mV
+    std::cout << "    Writing Voltage" << std::endl;
+    uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
+    uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
+    uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
+    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+// @/
+```
+
+Once the values have been written, Status flag is reset to prepare for a new hardware event. We use write and verify to ensure the status flag is reset. We output an error message if the status flag cannot be reset.
+
+```cpp
+//@+'init'
+    // Set Model Characteristic
+    writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
+
+    //Wait until model refresh
+    while(readReg16Bit(MODELCFG_REG)&0x8000) {
+        sygsp::delay(10);
+    }
+    //Reload original HbCFG value
+    writeReg16Bit(0xBA,HibCFG);    
+} else {
+    std::cout << "    Loading old config" << std::endl;
+}
+// Reset Status Register when init function runs
+std::cout << "    Resetting Status" << std::endl;
+STATUS = readReg16Bit(STATUS_REG);
+
+// Get new status
+uint16_t RESET_STATUS = STATUS&0xFFFD;
+std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
+outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
+if (!outputs.running) {
+  outputs.error_message = "Could not reset status flag, disabling reading fuel gauge"
+}
+// @/
+```
+## Main subroutine
+The main subroutine reads values from the registers and stores them in persistent outputs. This allows us to reset the fuel gauge with old values, after a hardware reset, TODO: Restoring old previous parameters has not been implemented.
+
+The fuelgauge is only once every `inputs.pollrate` ms.
+
+### Reading Battery Info
+
+Battery status, inserted and removed are all stored in the status register. In order to read them we have to read the 2nd, 11th and 15th bit respectively from the register. The Battery status is 0 when there is a battery present, therefore it has to be inverted to be read
+
+Both the battery insertion and removal are set to 1 once the event occurs and must be reset when read to prepare for a new event.
+
+```cpp
+//@='battinfo'
+// Read battery status
+uint16_t raw_status = readReg16Bit(STATUS_REG);
+
+// Get the 4th bit
+bool bat_status = raw_status&0x0800;
+outputs.status = !bat_status; // battery status 0 when present, must invert
+if (!outputs.status) {
+  outputs.error_message = "No Battery Present";
+}
+// Get insertion
+outputs.inserted = raw_status&0x0800; // Get the 11th bit
+// Get removed
+outputs.removed = raw_status&0x8000;  // get the 15th bit
+
+// Reset Insertion bit
+writeVerifyReg16Bit(STATUS_REG, raw_status&0xF7F);
+// Reset Removal bit
+writeVerifyReg16Bit(STATUS_REG, raw_status&0x7FFF);
+// @/
+```
+
+### Reading Anolog Measurements and Model Outputs
+
+The analog measurements are read from the 16bit registers. The Least significant bit is updated at the beginning of the routine in case it was updated by the user since the last run.
+
+Both the raw and reported values are stored as persistent outputs. This helps with debugging and restoring old values in the case of hardware/software resets (ie: battery dies).
+
+```cpp
+//@='main'
         static auto prev = sygsp::micros();
         auto now = sygsp::micros();
-        if (now-prev > (inputs.pollrate*1e6)) {
+        if (now-prev > (inputs.pollrate*1e3)) {
             prev = now;
-            // CCompute capacity and current multipliers
+            // BATTERY INFO
+            @{battinfo}
+
+            // Update outputs if there is no battery or the init failed don't read
+            outputs.running = outputs.running & outputs.status;
+            if (!outputs.running) return; // TODO: 
+
+            // Compute capacity and current multipliers
             float curr_multiplier = base_current_multiplier_mAh / inputs.rsense;
             float cap_multiplier = base_capacity_multiplier_mAh /  inputs.rsense;
+            
             // ANALOG MEASUREMENTS
             // Current
             outputs.inst_curr_raw = readReg16Bit(CURRENT_REG);
@@ -317,76 +459,8 @@ namespace sygaldry { namespace sygsa {
             // Parameters
             outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
             outputs.tempco = readReg16Bit(TEMPCO_REG);
-
-            // Read battery status
-            uint16_t raw_status = readReg16Bit(STATUS_REG);
-
-            // Get the 4th bit
-            bool bat_status = raw_status&0x0800;
-            outputs.status = !bat_status; // battery status 0 when present, must invert
-            // Get insertion
-            outputs.inserted = raw_status&0x0800; // Get the 11th bit
-            // Get removed
-            outputs.removed = raw_status&0x8000;  // get the 15th bit
-            
-            // Reset Insertion bit
-            writeVerifyReg16Bit(STATUS_REG, raw_status&0xF7F);
-            // Reset Removal bit
-            writeVerifyReg16Bit(STATUS_REG, raw_status&0x7FFF);
         }
-    }
-
-    /// Read 16 bit register
-    uint16_t MAX17055::readReg16Bit(uint8_t reg)
-    {
-        uint16_t value = 0;  
-        Wire.beginTransmission(inputs.i2c_addr); 
-        Wire.write(reg);
-        Wire.endTransmission(false);
-        
-        Wire.requestFrom(inputs.i2c_addr, (uint8_t) 2); 
-        value  = Wire.read();
-        value |= (uint16_t)Wire.read() << 8;      // value low byte
-        return value;
-    }
-
-    /// Write to 16 bit register
-    void MAX17055::writeReg16Bit(uint8_t reg, uint16_t value)
-    {
-        //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
-        Wire.beginTransmission(inputs.i2c_addr);
-        Wire.write(reg);
-        Wire.write( value       & 0xFF); // value low byte
-        Wire.write((value >> 8) & 0xFF); // value high byte
-        Wire.endTransmission();
-    }
-
-    /// Write and verify to 16 bit register
-    bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
-    {
-        int attempt = 0;
-        // Verify that the value has been written before moving on
-        while ((value != readReg16Bit(reg)) && (attempt < 10)) {
-            std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
-            //Write the value to the register
-            writeReg16Bit(reg, value);
-            // Wait a bit
-            sygsp::delay(1);
-
-            //Increase attempt
-            attempt++;
-        };
-        
-        if (attempt > 10) {
-            return false;
-            std::cout << "    Failed to write value" <<std::endl;
-        } else {
-            std::cout << "    Value successfully written" << std::endl;
-            return true;
-        }
-    }
-}
-} 
+// @/
 ```
 
 
