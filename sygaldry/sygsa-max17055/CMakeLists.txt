@@ -1,4 +1,4 @@
-set(lib sygsp-max17055)
+set(lib sygsa-max17055)
 add_library(${lib} STATIC)
 target_include_directories(${lib} PUBLIC .)
 target_link_libraries(${lib} PUBLIC sygsp-delay)

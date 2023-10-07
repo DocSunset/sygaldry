@@ -6,14 +6,11 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
-#include "sygsa-max17055-two_wire_serif.hpp"
+#include "sygsa-max17055-helpers.hpp"
 #include "sygsp-delay.hpp"
 #include <Wire.h>
-
 namespace sygaldry { namespace sygsa {
-
-namespace detail {
-uint8_t MAX17055TwoWireSerif::readReg16Bit(uint8_t reg, uint8_t i2c_address)
+uint8_t readReg16Bit(uint8_t i2c_address, uint8_t reg)
 {
   uint16_t value = 0;  
   Wire.beginTransmission(i2c_address); 
@@ -26,7 +23,7 @@ uint8_t MAX17055TwoWireSerif::readReg16Bit(uint8_t reg, uint8_t i2c_address)
   return value;
 }
 
-void MAX17055TwoWireSerif::writeReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address)
+static void writeReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value)
 {
   //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
   Wire.beginTransmission(i2c_address);
@@ -36,7 +33,7 @@ void MAX17055TwoWireSerif::writeReg16Bit(uint8_t reg, uint16_t value, uint8_t i2
   Wire.endTransmission();
 }
 
-bool MAX17055TwoWireSerif::writeVerifyReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address)
+static bool writeVerifyReg16Bit(uint8_t i2c_address, uint8_t reg, uint16_t value)
 {
   int attempt = 0;
   // Verify that the value has been written before moving on
@@ -45,7 +42,7 @@ bool MAX17055TwoWireSerif::writeVerifyReg16Bit(uint8_t reg, uint16_t value, uint
     //Write the value to the register
     writeReg16Bit(reg, value, i2c_address);
     // Wait a bit
-    sygsp::delay(1);
+    delay(1);
 
     //Increase attempt
     attempt++;
@@ -62,7 +59,4 @@ bool MAX17055TwoWireSerif::writeVerifyReg16Bit(uint8_t reg, uint16_t value, uint
 
 }
 
-// *explicit external instantiations*
-extern template struct MAX17055TwoWireSerif<0x36>;
-
-} }
+}
