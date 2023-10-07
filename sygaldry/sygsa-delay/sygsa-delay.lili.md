@@ -1,4 +1,4 @@
-\page page-sygsa-delay Sygaldry Delay for ESP32
+\page page-sygsa-delay Sygaldry Delay for Arduino
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -13,7 +13,7 @@ Sygaldry portable `delay` implementation in terms of Arduino delay. See also
 \ref page-sygsp-delay.
 
 ```cpp
-// @#'sygse-delay.cpp'
+// @#'sygsa-delay.cpp'
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -38,9 +38,9 @@ void delay(unsigned long ms)
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygse-delay)
+set(lib sygsa-delay)
 add_library(${lib} STATIC)
 target_sources(${lib} PRIVATE ${lib}.cpp)
-target_link_libraries(${lib} PUBLIC sygsp-delay sygse-arduino_hack)
+target_link_libraries(${lib} PUBLIC sygsp-delay sygsp-arduino_hack)
 # @/
 ```
