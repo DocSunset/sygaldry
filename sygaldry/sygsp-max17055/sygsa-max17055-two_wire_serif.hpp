@@ -8,42 +8,43 @@ SPDX-License-Identifier: MIT
 */
 #pragma once
 #include <cstdint>
+#include <iostream>
 
 namespace sygaldry { namespace sygsa {
 
 namespace detail {
 struct MAX17055TwoWireSerif
 {
-    [[nodiscard]] static uint8_t read(uint8_t i2c_address, uint8_t register_address);
-    static uint8_t read(uint8_t i2c_address, uint8_t register_address, uint8_t * buffer, uint8_t bytes);
-    static void write(uint8_t i2c_address, uint8_t register_address, uint8_t value);
+    static uint8_t readReg16Bit(uint8_t reg, uint8_t i2c_address);
+    static void writeReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address);
+    static bool writeVerifyReg16Bit(uint8_t reg, uint16_t value , uint8_t i2c_address);
 };
 }
 
 // *a very simple template*
-/*! Serial interface for ICM20948 using the Arduino TwoWire API
+/*! Serial interface for MAX17055 using the Arduino TwoWire API
 
 \tparam i2c_address The I2C address of the MIMU device
 */
 template<uint8_t i2c_address>
 struct MAX17055TwoWireSerif
 {
-    /// Read one byte and return it
-    [[nodiscard]] static uint8_t read(uint8_t register_address)
+    /// Read 16 bit register
+    static uint8_t readReg16Bit(uint8_t reg, uint8_t i2c_address)
     {
-        return detail::MAX170555TwoWireSerif::read(i2c_address, register_address);
+        return detail::MAX17055TwoWireSerif::readReg16Bit(uint8_t reg, uint8_t i2c_address);
     }
 
-    /// Read many bytes; returns the number of bytes read
-    static uint8_t read(uint8_t register_address, uint8_t * buffer, uint8_t bytes)
+    /// Write to 16 bit register
+    static void writeReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address)
     {
-        return detail::MAX17055TwoWireSerif::read(i2c_address, register_address, buffer, bytes);
+        detail::MAX17055TwoWireSerif::writeReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address);
     }
 
-    /// Write one byte
-    static void write(uint8_t register_address, uint8_t value)
+    /// Write and verify to 16 bit register
+    static bool writeVerifyReg16Bit(uint8_t reg, uint16_t value , uint8_t i2c_address)
     {
-        detail::MAX17055TwoWireSerif::write(i2c_address, register_address, value);
+        detail::MAX17055TwoWireSerif::writeVerifyReg16Bit(uint8_t reg, uint16_t value, uint8_t i2c_address);
     }
 };
 

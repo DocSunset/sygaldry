@@ -9,23 +9,9 @@ SPDX-License-Identifier: MIT
 
 # Serial Interface
 
-The ICM20948 is interacted with via its control registers--essentially a bank
-of memory-mapped switches accessed over either I2C or SPI. Most interactions
-will be to read the data output registers; besides this, almost all
-interactions will be to read and/or write a single byte to/from a single
-register. To allow a greater number of registers to be addressed, the device
-also has four "banks" of registers that are switched between by writing to a
-particular register that is always at the same address no matter which bank is
-currently enabled.
+The MAX17055 fuel gauge is interacted with via its control registers via its I2C interface. 
 
-In line with this operational structure, we wish to define an interface that is
-independent of the particular serial bus used (whether I2C or SPI), as well as
-the specificies of that bus (such as the I2C address or SPI CS pin). We
-presently accomplish this by making the top level ICM20948 class a template
-that accepts a `Serif` type that is expected to define methods `read` and
-`write` for single byte interaction with a particular register at a given
-address, and an overload of `read` taking an `uint8_t` array and size for
-reading multiple sequential bytes.
+The I2C interface implemented follows the same basic structure as the interface for the ICM20948.
 
 Currently the only implementation of this conceptual interface is the
 Arduino `TwoWire`-based I2C serial interface.
