@@ -19,6 +19,10 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include "sygbp-osc_string_constants.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-liblo sygbp-liblo: Liblo OSC Binding
+///\{
 
 template<typename Components>
 struct LibloOsc
@@ -311,4 +315,6 @@ struct LibloOsc
     }
 };
 
+///\}
+///\}
 } }

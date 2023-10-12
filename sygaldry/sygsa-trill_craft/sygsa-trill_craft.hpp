@@ -18,6 +18,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry { namespace sygsa {
+///\addtogroup sygsa
+///\{
+///\defgroup sygsa-trill_craft sygsa-trill_craft: Arduino Trill Craft
+///\{
 
 struct TrillCraft
 : name_<"Trill Craft">
@@ -122,4 +126,6 @@ struct TrillCraft
     void main();
 };
 
+///\}
+///\}
 } }

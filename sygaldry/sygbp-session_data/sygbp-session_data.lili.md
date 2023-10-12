@@ -1,4 +1,4 @@
-\page page-sygbp-session_data Session Data
+\page page-sygbp-session_data sygbp-session_data: Session Data
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -36,7 +36,7 @@ concept `tagged_session_data` provided by
 
 All session managers require a means to iterate over all session data endpoint.
 This is accomplished using the `for_each_endpoint` function provided by
-[the component concepts library](concepts/components.lili.md).
+[the component concepts library](\ref sygac-components).
 
 ```cpp
 // @#'sygbp-session_data.hpp'
@@ -54,6 +54,10 @@ SPDX-License-Identifier: MIT
 #include "sygac-endpoints.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-session_data sygbp-session_data: Session Data
+///\{
 
 template<typename C>
 constexpr void for_each_session_datum(C& components, auto fn)
@@ -64,6 +68,8 @@ constexpr void for_each_session_datum(C& components, auto fn)
     });
 }
 
+///\}
+///\}
 } }
 // @/
 ```

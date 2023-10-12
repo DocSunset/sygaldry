@@ -1,4 +1,4 @@
-\page page-sygse-button ESP32 Button
+\page page-sygse-button sygse-button: ESP32 Button
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -34,6 +34,10 @@ SPDX-License-Identifier: MIT
 #include "sygse-gpio.hpp"
 
 namespace sygaldry { namespace sygse {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-button sygse-button: ESP32 Button
+///\{
 
 enum class ButtonActive {High, Low};
 
@@ -61,7 +65,9 @@ struct Button
         ButtonGestureModel::operator()();
     }
 };
-    
+
+///\}
+///\}
 } }
 // @/
 ```

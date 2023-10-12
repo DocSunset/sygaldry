@@ -8,6 +8,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+/// \addtogroup sygsp-arduino_hack
+/// \{
+
 #include <cstdint>
 
 #define BUFFER_LENGTH 60
@@ -28,3 +31,5 @@ public:
 };
 
 extern TwoWire Wire;
+
+/// \}

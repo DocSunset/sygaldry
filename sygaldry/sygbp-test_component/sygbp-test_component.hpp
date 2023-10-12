@@ -12,6 +12,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry { namespace components {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-test_component sygbp-test_component: Bindings Test Component
+///\{
 
 struct TestComponent : name_<"Test Component 1">
 {
@@ -47,4 +51,6 @@ struct TestComponent : name_<"Test Component 1">
     }
 };
 
+///\}
+///\}
 } } // namespaces

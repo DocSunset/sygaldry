@@ -13,6 +13,10 @@ SPDX-License-Identifier: MIT
 #include <stdlib.h>
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-cstdio_reader sygbp-cstdio_reader: C Standard Input/Output Reader
+///\{
 
 struct CstdioReader
 {
@@ -29,4 +33,6 @@ struct CstdioReader
     }
 };
 
+///\}
+///\}
 } }

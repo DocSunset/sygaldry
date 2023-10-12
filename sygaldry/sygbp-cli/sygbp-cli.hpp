@@ -24,6 +24,10 @@ SPDX-License-Identifier: MIT
 #include "commands/set.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp sygbp: Portable Bindings
+///\{
+///\defgroup sygbp-cli sygbp-cli: CLI Binding
+///\{
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -147,4 +151,6 @@ using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 template<typename Components>
 using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
 
+///\}
+///\}
 } }

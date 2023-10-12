@@ -1,4 +1,4 @@
-\page page-sygsp-button Button Gesture Model
+\page page-sygsp-button sygsp-button: Button Gesture Model
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -52,7 +52,12 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry { namespace sygsp {
+///\addtogroup sygsp sygsp: Portable Sensors
+///\{
+///\defgroup sygsp-button sygsp-button: Button Gesture Model
+///\{
 
+/// Component modelling gestures performed with a single bi-state push button.
 struct ButtonGestureModel
 {
     struct inputs_t {
@@ -71,6 +76,8 @@ struct ButtonGestureModel
     void operator()();
 };
 
+///\}
+///\}
 } }
 // @/
 

@@ -18,7 +18,7 @@ namespace sygaldry { namespace sygsp {
 */
 /// \{
 
-/*! \defgroup sygsp-mimu_fusion MIMU Sensor Fusion
+/*! \addtogroup sygsp-complementary_mimu_fusion
 */
 /// \{
 

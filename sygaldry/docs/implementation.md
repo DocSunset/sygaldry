@@ -28,16 +28,14 @@ adopted throughout the project.
 
 - \subpage page-sygsp-arduino_hack
 - \subpage page-sygsp-button
-- \subpage page-sygsp-debug_printer
 - \subpage page-sygsp-delay
 - \subpage page-sygsp-micros
 - \subpage page-sygsp-mimu_units
-- \subpage page-sygsa-icm20948
-- \subpage page-sygsp-mimu_fusion
+- \subpage page-sygsp-icm20948
+- \subpage page-sygsp-complementary_mimu_fusion
 
 ### Arduino
 
-- \subpage page-sygsa-delay
 - \subpage page-sygsa-trill_craft
 - \subpage page-sygsa-two_wire
 
@@ -46,6 +44,7 @@ adopted throughout the project.
 - \subpage page-sygse-adc
 - \subpage page-sygse-arduino_hack
 - \subpage page-sygse-micros
+- \subpage page-sygse-delay
 - \subpage page-sygse-button
 - \subpage page-sygse-gpio
 - \subpage page-sygse-trill
@@ -54,6 +53,7 @@ adopted throughout the project.
 
 - \subpage page-sygup-basic_logger
 - \subpage page-sygup-cstdio_logger
+- \subpage page-sygup-debug_printer
 
 ## Bindings
 
@@ -68,11 +68,11 @@ adopted throughout the project.
 - \subpage page-sygbp-rapid_json
 - \subpage page-sygbp-session_data
 - \subpage page-sygbp-output_logger
-- \subpage page-sygbp-basic_reader
 - \subpage page-sygbp-cstdio_reader
 
 ### ESP32
 
+- \subpage page-sygbe-runtime
 - \subpage page-sygbe-libmapper_arduino
 - \subpage page-sygbe-spiffs
 - \subpage page-sygbe-wifi

@@ -1,4 +1,4 @@
-\page page-sygac-metadata Metadata Concepts
+\page page-sygac-metadata sygac-metadata: Text Metadata Reflection
 
 [TOC]
 
@@ -32,7 +32,7 @@ _consteval auto name_of() { return std::decay_t<T>::name(); }
 
 In the same way that all textual metadata can be defined using the same
 pattern, so too can it be detected and accessed. So just as we use a
-macro in `components/metadata.lili` to generate metadata helpers, here we
+macro in \ref page-sygah-metadata to generate metadata helpers, here we
 use one to generate their generic accessors.
 
 ```cpp
@@ -51,6 +51,14 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 
 namespace sygaldry {
+
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-metadata sygac-metadata: Text Metadata Reflection
+ */
+/// \{
 
 #define text_concept(CONCEPT_NAME) template<typename T> \
 concept has_##CONCEPT_NAME = requires \
@@ -77,7 +85,10 @@ text_concept(date);
 
 #undef text_concept
 
+/// \}
+/// \}
 }
+
 // @/
 ```
 

@@ -12,6 +12,13 @@ SPDX-License-Identifier: MIT
 #include "sygac-components.hpp"
 
 namespace sygaldry {
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-mimu sygac-mimu: MIMU Concepts
+ */
+/// \{
 
 #define try_spelling(SPELLING)\
 if constexpr (requires {mimu_data.SPELLING;}) return mimu_data.SPELLING; /* member acces */ \
@@ -156,4 +163,6 @@ auto magn_y(auto& mimu) { return vecy_of(magn_of(mimu)); }
 /// Access the third vector component of the magnetometer data of a MIMU data structure or MIMU component
 auto magn_z(auto& mimu) { return vecz_of(magn_of(mimu)); }
 
+/// \}
+/// \}
 }

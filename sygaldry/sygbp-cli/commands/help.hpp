@@ -12,6 +12,8 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 struct Help
 {
     static _consteval auto name() { return "/help"; }
@@ -38,5 +40,6 @@ struct Help
         return 0;
     }
 };
+///\}
 
 } }

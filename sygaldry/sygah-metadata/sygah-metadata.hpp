@@ -13,10 +13,10 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/// \ingroup sygah Sygaldry Helpers
+/// \ingroup sygah
 /// \{
 
-/// \defgroup sygah-metadata Metadata Helpers
+/// \defgroup sygah-metadata sygah-metadata: Metadata Helpers
 /// \{
 
 /// Helper macro used in the definition of metadata structs; This get's undefined immediately so don't try to use it!

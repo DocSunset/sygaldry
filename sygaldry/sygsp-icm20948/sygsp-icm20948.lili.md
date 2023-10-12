@@ -1,4 +1,4 @@
-\page page-sygsa-icm20948 ICM20948
+\page page-sygsp-icm20948 sygsp-icm20948: ICM20948 MIMU Driver
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -54,6 +54,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsa-icm20948-two_wire_serif sygsa-icm20948-two_wire_serif: Arduino Serial Interface for ICM20948 MIMU
+/// \{
+
 namespace detail {
 struct ICM20948TwoWireSerif
 {
@@ -93,6 +98,9 @@ struct ICM20948TwoWireSerif
 // *explicit external instantiations*
 extern template struct ICM20948TwoWireSerif<0b1101000>;
 extern template struct ICM20948TwoWireSerif<0b1101001>;
+
+/// \}
+/// \}
 
 } }
 // @/
@@ -841,6 +849,9 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_registers.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_aux_serif sygsp-icm20948_aux_serif: ICM20948 Auxiliary I2C Bus Controller Serial Interface
 
 /*! Limited I2C serial interface using the ICM20948 aux bus
 
@@ -877,6 +888,9 @@ struct ICM20948AuxSerif
         Registers::I2C_SLV4_CTRL::I2C_SLV4_EN::trigger();
     }
 };
+
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1041,6 +1055,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_registers sygsp-icm20948_registers: Registers for ICM20948 MIMU
+/// \{
+
 static constexpr uint8_t AK09916_I2C_ADDRESS    = 0b0001100;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_0 = 0b1101000;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_1 = 0b1101001;
@@ -1058,6 +1077,8 @@ struct ICM20948Registers
 template<typename Serif>
 uint8_t ICM20948Registers<Serif>::current_bank_ = 0xFF;
 
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1088,6 +1109,10 @@ SPDX-License-Identifier: MIT
 #include "sygsp-mimu_units.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp
+/// \{
+/// \defgroup sygsp-icm20948 sygsp-icm20948: ICM20948 MIMU Driver
+/// \{
 
 template<typename Serif, typename AK09916Serif>
 struct ICM20948
@@ -1133,6 +1158,8 @@ struct ICM20948
     }
 };
 
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1306,6 +1333,9 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+
 template<typename Serif, typename AK09916Serif>
 struct ICM20948Tests
 {
@@ -1318,6 +1348,7 @@ struct ICM20948Tests
     }
 };
 
+/// \}
 } }
 // @/
 ```

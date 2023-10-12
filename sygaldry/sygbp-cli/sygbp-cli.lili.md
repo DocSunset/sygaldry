@@ -1,4 +1,4 @@
-\page page-sygbp-cli Command Line Interface Binding
+\page page-sygbp-cli sygbp-cli: CLI Binding
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -605,6 +605,10 @@ SPDX-License-Identifier: MIT
 @{commands headers}
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp sygbp: Portable Bindings
+///\{
+///\defgroup sygbp-cli sygbp-cli: CLI Binding
+///\{
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -633,6 +637,8 @@ struct CustomCli : name_<"CLI">
 
 @{cli default type alias}
 
+///\}
+///\}
 } }
 // @/
 ```
@@ -736,6 +742,8 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 struct Help
 {
     static _consteval auto name() { return "/help"; }
@@ -762,6 +770,7 @@ struct Help
         return 0;
     }
 };
+///\}
 
 } }
 // @/
@@ -821,6 +830,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct List
 {
@@ -840,6 +851,7 @@ struct List
     }
 };
 
+///\}
 } }
 // @/
 
@@ -1099,6 +1111,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_match_pattern.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct Describe
 {
@@ -1112,6 +1126,7 @@ struct Describe
 
 };
 
+///\}
 } } // namespaces
 // @/
 
@@ -1376,6 +1391,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_match_pattern.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct Set
 {
@@ -1389,6 +1406,7 @@ struct Set
 
 };
 
+///\}
 } }
 // @/
 

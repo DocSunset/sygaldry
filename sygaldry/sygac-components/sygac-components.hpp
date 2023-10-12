@@ -20,6 +20,22 @@ using boost::mp11::mp_transform;
 using boost::mp11::tuple_transform;
 using boost::mp11::tuple_for_each;
 
+/*! \addtogroup sygac sygac: Sygaldry Concepts
+ */
+/// \{
+
+/*! \defgroup sygac-components sygac-components: Components Concepts
+ */
+/// \{
+
+/*! \brief Ensure T is not a union and is either scalar or aggregate. Doesn't catch inheritance!
+
+Note that this concept does not catch when T is a derived type; in this
+case you will likely trip an unholy compiler error with a long chain of template
+instantiations caused by an assertion in boost::pfr. The solution is to ensure
+that your type T does not inherit from any other type.
+
+*/
 template<typename T>
 concept SimpleAggregate
     =  not std::is_union_v<T>
@@ -28,30 +44,39 @@ concept SimpleAggregate
        )
     ;
 
+/// Default case for main subroutine reflection where the main subroutine does not exist.
 template <typename T> struct main_subroutine_reflection {using exists = std::false_type;};
 
+/// Main subroutine reflection for function call operator; this takes precedence over a method called "main"
 template <typename T>
     requires (std::same_as<void, typename function_reflection<&T::operator()>::return_type>
           && !std::same_as<void, typename function_reflection<&T::main>::return_type>)
 struct main_subroutine_reflection<T> : function_reflection<&T::operator()> {};
 
+/// Main subroutine reflection for a method called "main"
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::main>::return_type>
 struct main_subroutine_reflection<T> : function_reflection<&T::main> {};
+/// Default case for init subroutine reflection where the init subroutine does not exist.
 template <typename T> struct init_subroutine_reflection {using exists = std::false_type;};
 
+/// Init subroutine reflection for a method called "init"
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::init>::return_type>
 struct init_subroutine_reflection<T> : function_reflection<&T::init> {};
 
+/// Default case for external sources subroutine reflection where the subroutine does not exist.
 template <typename T> struct external_sources_subroutine_reflection {using exists = std::false_type;};
 
+/// External sources subroutine reflection for a method of the same name
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::external_sources>::return_type>
 struct external_sources_subroutine_reflection<T> : function_reflection<&T::external_sources> {};
 
+/// Default case for external destinations subroutine reflection where the subroutine does not exist.
 template <typename T> struct external_destinations_subroutine_reflection {using exists = std::false_type;};
 
+/// External destinations subroutine reflection for a method of the same name
 template <typename T>
     requires std::same_as<void, typename function_reflection<&T::external_destinations>::return_type>
 struct external_destinations_subroutine_reflection<T> : function_reflection<&T::external_destinations> {};
@@ -94,6 +119,7 @@ has_type_or_value(parts);
 #undef has_type_or_value
 
 
+/// Basic requirements on a regular component; don't use directly, use sygaldry::Component
 template<typename T>
 concept ComponentBasics
     =  has_name<T>
@@ -107,12 +133,15 @@ concept ComponentBasics
         )
     ;
 
+/// Template metafunction predicate default case; most types are not components
 template<typename T> struct validate_general_component : std::false_type {};
 
+/// Case when T is a component without parts
 template<typename T>
     requires ComponentBasics<T> && (not has_parts<T>)
 struct validate_general_component<T> : std::true_type {};
 
+/// Case when T is a component with parts; checks if the parts struct is a component
 template<typename T>
     requires ComponentBasics<T> && (has_parts<T>)
 struct validate_general_component<T> : validate_general_component<parts_t<T>> {};
@@ -131,10 +160,14 @@ struct validate_general_component<T>
     static constexpr bool value = all_valid::value;
 };
 
+/// Concept wrapper for sygadlry::validate_general_component; don't use directly, use sygaldry::Component
 template<typename T>
 concept GeneralComponent = validate_general_component<T>::value;
 
+/// Main concept for checking if a type meets the requirements of a Sygaldry component
 template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
+
+/// Main concept for checking if a type meets the requirements of a Sygaldry assembly, aka a component container
 template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;
 
 namespace node
@@ -567,5 +600,8 @@ void activate(T& container)
     for_each_component(container, activate_inner);
     clear_input_flags(container);
 };
+
+/// \}
+/// \}
 
 }

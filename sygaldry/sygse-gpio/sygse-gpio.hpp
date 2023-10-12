@@ -14,6 +14,11 @@ SPDX-License-Identifier: MIT
 #include <sygah-endpoints.hpp>
 
 namespace sygaldry { namespace sygse {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-gpio sygse-gpio: ESP32 GPIO
+/// Literate source code: \ref page-sygse-gpio
+///\{
 
 template<gpio_num_t pin_number>
 struct GPIO
@@ -131,4 +136,6 @@ struct GPIO
     }
 };
 
+///\}
+///\}
 } }

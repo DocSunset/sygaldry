@@ -1,4 +1,4 @@
-\page page-sygac-endpoints Endpoint Concepts
+\page page-sygac-endpoints sygac-endpoints: Endpoint Concepts
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -681,7 +681,18 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-endpoints sygac-endpoints: Endpoint Concepts
+ */
+/// \{
+
 @{concepts}
+
+/// \}
+/// \}
 
 }
 // @/

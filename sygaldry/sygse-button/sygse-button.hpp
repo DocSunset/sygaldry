@@ -12,6 +12,10 @@ SPDX-License-Identifier: MIT
 #include "sygse-gpio.hpp"
 
 namespace sygaldry { namespace sygse {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-button sygse-button: ESP32 Button
+///\{
 
 enum class ButtonActive {High, Low};
 
@@ -39,5 +43,7 @@ struct Button
         ButtonGestureModel::operator()();
     }
 };
-    
+
+///\}
+///\}
 } }

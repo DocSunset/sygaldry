@@ -1,4 +1,4 @@
-\page page-sygbp-osc_match_pattern OSC Address Pattern Matching
+\page page-sygbp-osc_match_pattern sygbp-osc_match_pattern: OSC Address Pattern Matching
 
 An OSC address (of an OSC Methd) is a null terminated string beginning with a
 `/` and consisting of `/` seperated ASCII-encoded parts, similar to a URL, that
@@ -492,7 +492,9 @@ SPDX-License-Identifier: MIT
 
 @{tests}
 // @/
+```
 
+```cpp
 // @#'sygbp-osc_match_pattern.hpp'
 #pragma once
 /*
@@ -504,9 +506,18 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-osc_match_pattern sygbp-osc_match_pattern: OSC Address Pattern Matching
+///\{
 bool osc_match_pattern(const char * pattern, const char * address);
-// @/
+///\}
+///\}
 
+// @/
+```
+
+```cpp
 // @#'sygbp-osc_match_pattern.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music

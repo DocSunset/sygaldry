@@ -1,4 +1,4 @@
-\page page-sygbp-spelling Spelling
+\page page-sygbp-spelling sygbp-spelling: Spelling
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -9,8 +9,8 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-The base helpers for components and endpoints to declare their names
-conveniently, and for concepts for bindings to access names generically, are
+The base helpers used by components and endpoints to declare their names
+conveniently and concepts for bindings to access names generically are
 defined in \ref sygah-metadata and \ref sygac-metadata
 respectively. This document deals with transformations over names required for
 bindings.
@@ -371,6 +371,10 @@ become necessary.
 #include "sygah-consteval.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-spelling sygbp-spelling: Spelling
+///\{
 
 @{string length function}
 @{compose}
@@ -379,6 +383,8 @@ namespace sygaldry { namespace sygbp {
 @{template aliases}
 @{template variables}
 
+///\}
+///\}
 } }
 // @/
 ```

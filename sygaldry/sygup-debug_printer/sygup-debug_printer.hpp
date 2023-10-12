@@ -11,6 +11,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup
+/// \{
+/// \defgroup sygsp-debug_printer sygsp-debug_printer: Runtime Stage Printer for Debugging
+/// \{
 
 template<typename Logger, string_literal message>
 struct DebugPrinter
@@ -28,4 +32,6 @@ struct DebugPrinter
     void external_destinations() { log.println(message.value, " external_destinations"); }
 };
 
+/// \}
+/// \}
 } }

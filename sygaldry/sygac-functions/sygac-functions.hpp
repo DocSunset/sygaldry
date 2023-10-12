@@ -13,6 +13,13 @@ SPDX-License-Identifier: MIT
 #include <concepts>
 
 namespace sygaldry {
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-functions sygac-functions: Function Reflection
+ */
+/// \{
 
 
 template<typename NotAFunction>
@@ -100,4 +107,6 @@ struct function_reflection
     using parent_reflection = function_type_reflection<std::decay_t<decltype(f)>>; // for tests
 };
 
+/// \}
+/// \}
 }

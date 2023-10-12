@@ -14,6 +14,8 @@ implemented as reusable software components. Many new designs will require new
 components to be implemented, e.g. to interface with sensors that aren't
 already supported by the library, to add new binding protocols, and so on.
 
+A template for a new component can be found [here](\ref page-sygXX-new_component).
+
 # Logical Anatomy of a Component
 
 Logically (i.e. in terms of its logical software design, as opposed to the
@@ -179,12 +181,11 @@ allowed.
 
 namespace sygaldry { namespace sygXY {
 
-/*! \addtogroup sygsp
-*/
+/// \addtogroup sygsp
 /// \{
 
-/*! \defgroup sygsp-mimu_fusion MIMU Sensor Fusion
-*/
+/// \defgroup sygXY-component_name sygXY-component_name: Component Name
+/// Literate source code: page-sygXY-component_name
 /// \{
 
 /*! Brief desxcription
@@ -213,7 +214,6 @@ struct NewComponent
 
 # Template
 
-A template file for a new component is provided at `sygaldry/docs/template.md`,
-also viewable [here](\ref page-sygXY-new_component).
+A template file for a new component is provided viewable [here](\ref page-sygXX-new_component).
 
-\subpage page-sygXY-new_component
+\subpage page-sygXX-new_component

@@ -13,6 +13,14 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-endpoints sygac-endpoints: Endpoint Concepts
+ */
+/// \{
+
 template<typename T>
 concept has_range = requires
 {
@@ -169,5 +177,8 @@ template<has_value T> using element_t = typename _element_type<T>::type;
 tagged(write_only); // don't display or output this endpoint's value
 tagged(session_data); // store this endpoint's value across sessions, e.g. across power cycles on an embedded system
 #undef tagged
+
+/// \}
+/// \}
 
 }

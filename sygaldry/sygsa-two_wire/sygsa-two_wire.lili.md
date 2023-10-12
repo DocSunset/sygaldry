@@ -1,4 +1,4 @@
-\page page-sygsa-two_wire Arduino TwoWire Component
+\page page-sygsa-two_wire sygsa-two_wire: Arduino TwoWire Component
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -26,6 +26,11 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 
 namespace sygaldry { namespace sygsa {
+///\addtogroup sygsa sygsa: Arduino Sensors
+///\{
+///\defgroup sygsa-two_wire sygsa-two_wire: Arduino TwoWire Component
+/// Literate source code: \ref page-sygsa-two_wire
+///\{
 
 template<int sda_pin, int scl_pin, uint32_t frequency = 100000>
 struct TwoWire
@@ -42,6 +47,8 @@ struct TwoWire
     }
 };
 
+///\}
+///\}
 } }
 // @/
 ```

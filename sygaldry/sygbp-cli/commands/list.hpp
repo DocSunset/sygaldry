@@ -14,6 +14,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct List
 {
@@ -33,4 +35,5 @@ struct List
     }
 };
 
+///\}
 } }

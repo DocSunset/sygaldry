@@ -1,4 +1,4 @@
-\page page-sygbe-libmapper_arduino Libmapper Arduino Library
+\page page-sygbe-libmapper_arduino sygbe-libmapper_arduino: ESP32 Libmapper Arduino Library
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music

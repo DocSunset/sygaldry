@@ -1,4 +1,4 @@
-\page page-sygac-runtime Runtime
+\page page-sygac-runtime sygac-runtime: Sygaldry Runtime
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -659,11 +659,15 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/*! \defgroup sygac-runtime Runtime
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-runtime sygac-runtime: Sygaldry Runtime
 */
 /// \{
 
-/*! \defgroup sygac-runtime-detail
+/*! \defgroup sygac-runtime-detail sygac-runtime: Runtime Implementation Details
 These entities are used in the implementation of the Runtime class and should
 be considered private implementation details.
 */
@@ -676,7 +680,7 @@ be considered private implementation details.
 @{Runtime}
 
 /// \}
-
+/// \}
 }
 // @/
 

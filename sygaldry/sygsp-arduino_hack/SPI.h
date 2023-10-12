@@ -14,6 +14,9 @@ SPI Master library for arduino.
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+/// \addtogroup sygsp-arduino_hack
+/// \{
+
 #include <stdint.h>
 
 static constexpr uint8_t LSBFIRST = 0;
@@ -65,3 +68,5 @@ public:
 };
 
 extern SPIClass SPI;
+/// \}
+

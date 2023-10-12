@@ -1,4 +1,4 @@
-\page page-sygbp-cstdio_reader C Standard Input/Output Reader
+\page page-sygbp-cstdio_reader sygbp-cstdio_reader: C Standard Input/Output Reader
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -33,6 +33,10 @@ SPDX-License-Identifier: MIT
 #include <stdlib.h>
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-cstdio_reader sygbp-cstdio_reader: C Standard Input/Output Reader
+///\{
 
 struct CstdioReader
 {
@@ -49,6 +53,8 @@ struct CstdioReader
     }
 };
 
+///\}
+///\}
 } }
 // @/
 ```

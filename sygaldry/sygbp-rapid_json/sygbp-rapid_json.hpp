@@ -17,6 +17,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-session_data.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-rapid_json sygbp-rapid_json: RapidJSON Binding
+///\{
 
 template<typename IStream, typename OStream, typename Components>
 struct RapidJsonSessionStorage
@@ -162,4 +166,6 @@ struct RapidJsonSessionStorage
     }
 };
 
+///\}
+///\}
 } }

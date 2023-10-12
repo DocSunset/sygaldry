@@ -1,4 +1,4 @@
-\page page-sygbe-spiffs ESP32 SPIFFS Session Storage Component
+\page page-sygbe-spiffs sygbe-spiffs: ESP32 SPIFFS Session Storage
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -169,6 +169,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-rapid_json.hpp"
 
 namespace sygaldry { namespace sygbe {
+///\addtogroup sygbe
+///\{
+///\defgroup sygbe-spiffs sygbe-spiffs: ESP32 SPIFFS Session Storage
+///\{
 
 @{SpiffsJsonOStream}
 
@@ -194,6 +198,8 @@ struct SpiffsSessionStorage
     }
 };
 
+///\}
+///\}
 } }
 // @/
 ```

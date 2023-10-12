@@ -1,4 +1,4 @@
-\page page-sygsp-mimu_fusion MIMU Sensor Fusion
+\page page-sygsp-complementary_mimu_fusion sygsp-complementary_mimu_fusion: MIMU Sensor Fusion
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -31,12 +31,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-/*! \addtogroup sygsp
-*/
+/// \addtogroup sygsp
 /// \{
 
-/*! \addtogroup sygsp-mimu_fusion MIMU Sensor Fusion
-*/
+/// \addtogroup sygsp-complementary_mimu_fusion sygsp-complementary_mimu_fusion: MIMU Sensor Fusion
+/// Literate source code: \ref page-sygsp-complementary_mimu_fusion
 /// \{
 
 /// Inputs for the MIMU sensor fusion component
@@ -185,7 +184,7 @@ namespace sygaldry { namespace sygsp {
 */
 /// \{
 
-/*! \defgroup sygsp-mimu_fusion MIMU Sensor Fusion
+/*! \addtogroup sygsp-complementary_mimu_fusion
 */
 /// \{
 
@@ -435,12 +434,12 @@ void complementary_mimu_fusion( const std::array<float, 3>& gyro
 ```cpp
 // #'sygsp-complementary_mimu_fusion.test.cpp'
 #include <catch2/catch_test_macros.hpp>
-#include "sygsp-mimu_fusion.hpp"
+#include "sygsp-complementary_mimu_fusion.hpp"
 
 using namespace sygaldry;
 using namespace sygaldry::sygsp;
 
-// TODO implement this and renable the lili chunks
+// TODO implement this and re-enable the lili chunks
 {tests}
 // /
 ```

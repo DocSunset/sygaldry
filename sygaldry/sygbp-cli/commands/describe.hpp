@@ -17,6 +17,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_match_pattern.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct Describe
 {
@@ -124,4 +126,5 @@ struct Describe
 
 };
 
+///\}
 } } // namespaces

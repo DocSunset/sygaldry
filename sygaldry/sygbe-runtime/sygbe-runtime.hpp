@@ -20,7 +20,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygbe {
 
-/*! \addtogroup sygbe
+/*! \addtogroup sygbe sygbe: ESP32 Bindings
 */
 /// \{
 

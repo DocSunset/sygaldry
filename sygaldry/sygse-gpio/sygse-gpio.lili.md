@@ -1,4 +1,4 @@
-\page page-sygse-gpio ESP32 GPIO
+\page page-sygse-gpio sygse-gpio: ESP32 GPIO
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -288,6 +288,11 @@ SPDX-License-Identifier: MIT
 #include <sygah-endpoints.hpp>
 
 namespace sygaldry { namespace sygse {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-gpio sygse-gpio: ESP32 GPIO
+/// Literate source code: \ref page-sygse-gpio
+///\{
 
 template<gpio_num_t pin_number>
 struct GPIO
@@ -303,6 +308,8 @@ struct GPIO
     @{init function with assertions}
 };
 
+///\}
+///\}
 } }
 // @/
 ```

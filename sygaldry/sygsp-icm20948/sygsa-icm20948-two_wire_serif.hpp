@@ -11,6 +11,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsa-icm20948-two_wire_serif sygsa-icm20948-two_wire_serif: Arduino Serial Interface for ICM20948 MIMU
+/// \{
+
 namespace detail {
 struct ICM20948TwoWireSerif
 {
@@ -50,5 +55,8 @@ struct ICM20948TwoWireSerif
 // *explicit external instantiations*
 extern template struct ICM20948TwoWireSerif<0b1101000>;
 extern template struct ICM20948TwoWireSerif<0b1101001>;
+
+/// \}
+/// \}
 
 } }

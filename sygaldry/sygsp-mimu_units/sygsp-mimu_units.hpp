@@ -15,7 +15,7 @@ namespace sygaldry { namespace sygsp {
 */
 /// \{
 
-/*! \defgroup sygsp-mimu_units MIMU Units
+/*! \defgroup sygsp-mimu_units sygsp-mimu_units: MIMU Units
 
 This software component defines several unit conversion factors.
 */

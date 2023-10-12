@@ -137,7 +137,7 @@ reliability of the components and thus the instrument firmwares written with
 them.
 
 The modular component-oriented design of the project also makes it easier to
-consider quality assessment of the components in the library. This will
+approach quality assessment of the components in the library. This could
 facilitate research that will improve the qualitative and quantitative
 performance of the library's components. Because the components are reusable
 across different instruments, these efforts will enable widespread improvement

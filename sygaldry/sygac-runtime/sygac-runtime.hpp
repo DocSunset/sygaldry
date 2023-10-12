@@ -14,11 +14,15 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/*! \defgroup sygac-runtime Runtime
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-runtime sygac-runtime: Sygaldry Runtime
 */
 /// \{
 
-/*! \defgroup sygac-runtime-detail
+/*! \defgroup sygac-runtime-detail sygac-runtime: Runtime Implementation Details
 These entities are used in the implementation of the Runtime class and should
 be considered private implementation details.
 */
@@ -205,5 +209,5 @@ struct Runtime
 };
 
 /// \}
-
+/// \}
 }

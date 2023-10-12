@@ -1,4 +1,4 @@
-\page page-sygsa-trill_craft Arduino Trill Craft
+\page page-sygsa-trill_craft sygsa-trill_craft: Arduino Trill Craft
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -48,6 +48,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry { namespace sygsa {
+///\addtogroup sygsa
+///\{
+///\defgroup sygsa-trill_craft sygsa-trill_craft: Arduino Trill Craft
+///\{
 
 struct TrillCraft
 : name_<"Trill Craft">
@@ -152,6 +156,8 @@ struct TrillCraft
     void main();
 };
 
+///\}
+///\}
 } }
 // @/
 

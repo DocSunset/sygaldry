@@ -8,15 +8,13 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-// include statements
-
 namespace sygaldry { namespace sygsp {
 
 /*! \addtogroup sygsp
 */
 /// \{
 
-/*! \defgroup sygsp-delay Delay
+/*! \defgroup sygsp-delay sygsp-delay: Delay
 This software component provides a portable API for a simple delay function,
 equivalent to the Arduino `delay` API, but with better encapsulation.
 */

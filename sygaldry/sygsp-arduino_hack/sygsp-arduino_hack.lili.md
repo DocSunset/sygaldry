@@ -1,4 +1,4 @@
-\page page-sygsp-arduino_hack Arduino Hack
+\page page-sygsp-arduino_hack sygsp-arduino_hack Arduino Hack
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -48,6 +48,12 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+/// \addtogroup sygsp sygsp: Portable Sensors
+/// \{
+/// \defgroup sygsp-arduino_hack sygsp-arduino_hack: Arduino Hack
+/// Literate source code: \ref page-sygsp-arduino_hack
+/// \{
+
 #include <cstdint>
 
 static constexpr uint8_t HIGH = 1;
@@ -67,6 +73,9 @@ void digitalWrite(uint8_t pin, uint8_t val);
 unsigned long micros(void);
 void delay(unsigned long ms);
 //void delayMicroseconds(unsigned int us);
+
+/// \}
+/// \}
 // @/
 
 // @#'WProgram.h'
@@ -90,6 +99,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+/// \addtogroup sygsp-arduino_hack
+/// \{
+
 #include <cstdint>
 
 #define BUFFER_LENGTH 60
@@ -110,6 +122,8 @@ public:
 };
 
 extern TwoWire Wire;
+
+/// \}
 // @/
 ```
 
@@ -134,6 +148,9 @@ SPI Master library for arduino.
 
 SPDX-License-Identifier: LGPL-2.1-or-later
 */
+
+/// \addtogroup sygsp-arduino_hack
+/// \{
 
 #include <stdint.h>
 
@@ -186,6 +203,8 @@ public:
 };
 
 extern SPIClass SPI;
+/// \}
+
 // @/
 ```
 

@@ -1,4 +1,4 @@
-\page page-sygbp-output_logger Output Logger
+\page page-sygbp-output_logger sygbp-output_logger Output Logger
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -141,6 +141,10 @@ SPDX-License-Identifier: MIT
 #include "sygup-cstdio_logger.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-output_logger sygbp-output_logger: Output Logger
+///\{
 
 template<typename Logger, typename Components>
 struct OutputLogger : name_<"Output Logger">
@@ -179,6 +183,8 @@ struct OutputLogger : name_<"Output Logger">
 
 template<typename Components> using CstdioOutputLogger = OutputLogger<sygup::CstdioLogger, Components>;
 
+///\}
+///\}
 } }
 // @/
 ```

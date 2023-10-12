@@ -1,4 +1,4 @@
-\page page-sygXX-new_component New Component
+\page page-sygXX-new_component sygXX-new_component: New Component
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -16,7 +16,7 @@ Remember to add your new component to the top level CMakeLists.txt!
 I repeat: Remember to add your new component to the top level CMakeLists.txt!
 
 ```cpp
-// @#'sygXY-newcomponent.hpp'
+// @#'sygXX-newcomponent.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
@@ -29,14 +29,13 @@ SPDX-License-Identifier: MIT
 
 // include statements
 
-namespace sygaldry { namespace sygXY {
+namespace sygaldry { namespace sygXX {
 
-/*! \addtogroup sygXY
-*/
+/// \addtogroup syXX
 /// \{
 
-/*! \defgroup sygXY-newcomponent New Component
-*/
+/// \defgroup sygXX-newcomponent sygXX-newcomponent: New Component
+/// Literate source code: page-sygXX-newcomponent
 /// \{
 
 /*! \brief brief doc
@@ -72,7 +71,7 @@ struct NewComponent
 ```
 
 ```cpp
-// @#'sygXY-newcomponent.cpp'
+// @#'sygXX-newcomponent.cpp'
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -81,9 +80,9 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
-#include "sygXY-newcomponent.hpp"
+#include "sygXX-newcomponent.hpp"
 
-namespace sygaldry { namespace sygXY {
+namespace sygaldry { namespace sygXX {
 
 void NewComponent::init()
 {
@@ -98,12 +97,12 @@ void NewComponent::main()
 ```
 
 ```cpp
-// @#'sygXY-newcomponent.test.cpp'
+// @#'sygXX-newcomponent.test.cpp'
 #include <catch2/catch_test_macros.hpp>
-#include "sygXY-newcomponent.hpp"
+#include "sygXX-newcomponent.hpp"
 
 using namespace sygaldry;
-using namespace sygaldry::sygXY;
+using namespace sygaldry::sygXX;
 
 @{tests}
 // @/
@@ -111,7 +110,7 @@ using namespace sygaldry::sygXY;
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygXY-newcomponent)
+set(lib sygXX-newcomponent)
 add_library(${lib} STATIC)
 target_sources(${lib} PRIVATE ${lib}.cpp)
 target_include_directories(${lib} PUBLIC .)

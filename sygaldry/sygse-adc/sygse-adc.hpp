@@ -13,12 +13,12 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygse {
 
-/*! \addtogroup sygse ESP32 Sensors */
+/*! \addtogroup sygse sygse: ESP32 Sensors */
 /// \{
-/*! \defgroup sygse-adc Oneshot ADC Driver */
+/*! \defgroup sygse-adc sygse-adc: Oneshot ADC Driver */
 ///\{
 
-/*! \defgroup sygse-adc-channels ADC Channels
+/*! \defgroup sygse-adc-channels sygse-adc: ADC Channels
 
 The correspondance between ADC channels and GPIO numbers can be verified by
 referring to [the ESP32 Technical Reference Manual](https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf),

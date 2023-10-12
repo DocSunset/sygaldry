@@ -1,4 +1,4 @@
-\page page-sygbp-test_reader Test Reader
+\page page-sygbp-test_reader sygbp-test_reader: Test Reader
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -14,8 +14,8 @@ SPDX-License-Identifier: MIT
 The test reader implements a [basic reader](\ref page-sygbp-basic_reader).
 
 We need a reader that we can use in test cases to inject input into our
-components. We define one with a string stream from which we pull the
-inputs.
+bindings, especially the CLI binding, that read from a text stream. We define
+one with a string stream from which we pull the inputs.
 
 ```cpp
 // @#'sygbp-test_reader.hpp'
@@ -34,6 +34,10 @@ SPDX-License-Identifier: MIT
 #include <sstream>
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-test_reader sygbp-test_reader: Test Reader
+///\{
 
 struct TestReader
 {
@@ -42,6 +46,8 @@ struct TestReader
     char getchar() {return static_cast<char>(ss.get());}
 };
 
+///\}
+///\}
 } }
 // @/
 
