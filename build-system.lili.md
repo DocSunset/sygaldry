@@ -224,6 +224,8 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
+            pkgs.boost # required by Avendish
+            pkgs.puredata # for building pd externals with Avendish
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -524,6 +526,26 @@ endif()
 
 See [the Catch2 CMake integration documentation](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#top) for more detail.
 
+## Avendish
+
+Avendish is used to build Pd externals, and eventually perhaps for other
+bindings.
+
+```cmake
+# @='fetch Avendish'
+FetchContent_Declare(
+  avendish
+  GIT_REPOSITORY "https://github.com/celtera/avendish"
+  GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
+  GIT_PROGRESS true
+)
+FetchContent_Populate(avendish)
+
+set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
+find_package(Avendish REQUIRED)
+# @/
+```
+
 ## CMake Enabled Libraries
 
 Boost PFR and Boost MP11 are required by the concepts library, and consequently
@@ -762,6 +784,8 @@ project(Sygaldry)
 @{set language standard}
 
 @{prepare for tests}
+
+@{fetch Avendish}
 
 @{include cmake libraries}
 

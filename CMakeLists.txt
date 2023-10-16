@@ -29,6 +29,17 @@ include(Catch)
 set(SYGALDRY_BUILD_TESTS 1)
 endif()
 
+FetchContent_Declare(
+  avendish
+  GIT_REPOSITORY "https://github.com/celtera/avendish"
+  GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
+  GIT_PROGRESS true
+)
+FetchContent_Populate(avendish)
+
+set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
+find_package(Avendish REQUIRED)
+
 add_subdirectory(dependencies/pfr)
 add_subdirectory(dependencies/mp11)
 set(EIGEN_BUILD_TESTING FALSE)

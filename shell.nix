@@ -14,6 +14,8 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
+            pkgs.boost # required by Avendish
+            pkgs.puredata # for building pd externals with Avendish
 
             # additional packages required for esp-idf
             pkgs.wget
