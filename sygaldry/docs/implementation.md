@@ -20,7 +20,6 @@ adopted throughout the project.
 ## Instruments
 
 - \subpage page-sygin-t_stick
-- \subpage page-sygin-t_stick_sketch
 
 ## Sensors
 
