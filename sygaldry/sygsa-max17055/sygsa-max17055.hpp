@@ -6,8 +6,6 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "sygah-metadata.hpp"
 #include "sygsp-delay.hpp"
 #include "sygsp-micros.hpp"

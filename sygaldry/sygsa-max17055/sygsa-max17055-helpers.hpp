@@ -5,6 +5,8 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 
 SPDX-License-Identifier: MIT
 */
+#pragma once
+
 // Define registers for the MAX17055 fuel gauge
 enum regAddr
 {
@@ -33,9 +35,9 @@ FULLCAPNORM_REG = 0x23, // Register for learned parameter full capacity (normali
 };
 
 //Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
-float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
-float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
-float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
-float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
-float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
+static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
+static constexpr float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
+static constexpr float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
+static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
 

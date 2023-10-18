@@ -6,6 +6,8 @@ Like the Trill Craft only a simple component is needed for the MAX17055 to work 
 # @#'CMakeLists.txt'
 set(lib sygse-max17055)
 add_library(${lib} STATIC)
+target_include_directories(${lib} PUBLIC .)
+target_sources(${lib} PRIVATE ${lib}.cpp)
 target_link_libraries(${lib}
         PUBLIC sygse-arduino_hack
         PUBLIC sygsa-max17055
@@ -22,7 +24,6 @@ target_link_libraries(sygse INTERFACE ${lib})
 // @/
 
 // @#'sygse-max17055.cpp'
-#pragma once
 #include "sygsa-max17055.impl.hpp"
 // @/
 ```

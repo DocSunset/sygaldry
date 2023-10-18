@@ -25,6 +25,8 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 
 SPDX-License-Identifier: MIT
 */
+#pragma once
+
 // Define registers for the MAX17055 fuel gauge
 enum regAddr
 {
@@ -53,11 +55,11 @@ FULLCAPNORM_REG = 0x23, // Register for learned parameter full capacity (normali
 };
 
 //Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
-float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
-float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
-float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
-float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
-float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
+static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
+static constexpr float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
+static constexpr float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
+static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
 
 // @/
 ```
@@ -90,8 +92,6 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "sygah-metadata.hpp"
 #include "sygsp-delay.hpp"
 #include "sygsp-micros.hpp"
@@ -289,6 +289,7 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 
 ```cpp
 //@='init'
+inputs.i2c_addr = inputs.i2c_addr.init();
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
 std::cout << "    Checking status " << "\n"
@@ -473,11 +474,10 @@ TODO: Tests
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygsa-max17055)
-add_library(${lib} STATIC)
-target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib} PUBLIC sygsp-delay)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygah-endpoints)
 # arguably this should be a different library, even in a different document
-target_sources(${lib} PRIVATE sygsa-max17055-two_wire_serif.cpp)
-target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
+target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
 # @/
 ```

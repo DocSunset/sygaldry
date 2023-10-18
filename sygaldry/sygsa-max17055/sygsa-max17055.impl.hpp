@@ -13,6 +13,7 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
+        inputs.i2c_addr = inputs.i2c_addr.init();
         uint16_t STATUS = readReg16Bit(STATUS_REG);
         uint16_t POR = STATUS&0x0002;
         std::cout << "    Checking status " << "\n"
