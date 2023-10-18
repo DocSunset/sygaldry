@@ -1,36 +1,22 @@
 \page page-sygac-components sygac-components: Components Concepts
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 
 [TOC]
 
-We would like to statically determine whether a given type describes a
-component. We consider two kinds of general components: regular components, and
-component containers.
+A component has a name and at least one of the following subroutines or
+endpoints structures: an initialization subroutine, a main subroutine, an
+external sources or destinations subroutine, inputs, or outputs.
+An assembly is defined recursively as an aggregate struct that contains only
+components or assemblies.
 
-A regular component has a name and at least one of the following: an
-initialization subroutine, a main subroutine, an external sources or
-destinations subroutine, inputs, outputs, or parts. If it has parts,
-a component's parts must also be valid components.
-
-A component container is merely an aggregate that contains only nested
-containers and/or regular components. It may have a name, but it must be
-declared directly in the container definition in order to preserve
-aggregate-ness (e.g. it must not use the inherited `name_<"name">` helper).
-Component containers, as well as parts structures, are allowed to be empty,
-contain nested component containers, and contain components. These requirements
-are addressed in `validate_container`.
-
-Whereas a regular component's functionality is defined by its main subroutine,
-and its subcomponents should not be activated by the runtime platform bindings,
-containers are defined in terms of their subcomponents, which should be treated
-as regular components by the runtime platform bindings, and activated
-accordingly.
+This document provides a means of identifying components and assemblies, and
+accessing their functionality.
 
 ```cpp
 // @='Component Concepts'
@@ -38,13 +24,13 @@ accordingly.
 
 @{has_main_subroutine}
 
-@{inputs and outputs and parts container}
+@{inputs and outputs}
 
 @{throughpoints and plugins}
 
-/// Basic requirements on a regular component; don't use directly, use sygaldry::Component
+/// Check if T is a Sygaldry component
 template<typename T>
-concept ComponentBasics
+concept Component
     =  has_name<T>
     &&  (  has_init_subroutine<T>
         || has_external_sources_subroutine<T>
@@ -52,34 +38,13 @@ concept ComponentBasics
         || has_external_destinations_subroutine<T>
         || has_inputs<T>
         || has_outputs<T>
-        || has_parts<T>
         )
     ;
 
-/// Template metafunction predicate default case; most types are not components
-template<typename T> struct validate_general_component : std::false_type {};
+@{assembly_predicate}
 
-/// Case when T is a component without parts
 template<typename T>
-    requires ComponentBasics<T> && (not has_parts<T>)
-struct validate_general_component<T> : std::true_type {};
-
-/// Case when T is a component with parts; checks if the parts struct is a component
-template<typename T>
-    requires ComponentBasics<T> && (has_parts<T>)
-struct validate_general_component<T> : validate_general_component<parts_t<T>> {};
-
-@{validate_container}
-
-/// Concept wrapper for sygadlry::validate_general_component; don't use directly, use sygaldry::Component
-template<typename T>
-concept GeneralComponent = validate_general_component<T>::value;
-
-/// Main concept for checking if a type meets the requirements of a Sygaldry component
-template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
-
-/// Main concept for checking if a type meets the requirements of a Sygaldry assembly, aka a component container
-template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;
+concept Assembly = detail::assembly_predicate<T>::value && not Component<T>;
 // @/
 
 // @+'tests'
@@ -87,46 +52,36 @@ struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
-    struct parts_t {
-        struct subcomponent_t : name_<"a subcomponent"> {
-            struct inputs_t {} inputs;
-            void operator()() {}
-        } subcomponent;
-    } parts;
     static void main(const inputs_t&, outputs_t&) {}
 } regular_component;
 
 static_assert(has_main_subroutine<regular_component_t>);
 static_assert(has_inputs<regular_component_t>);
 static_assert(has_outputs<regular_component_t>);
-static_assert(has_parts<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(Component<regular_component_t>);
 
 struct container_component_t
 {
-    static constexpr auto name() {return "container component";}
     regular_component_t component1;
 } container_component;
 
 static_assert(SimpleAggregate<container_component_t>);
-static_assert(ComponentContainer<container_component_t>);
+static_assert(Assembly<container_component_t>);
 static_assert(not Component<container_component_t>);
 
-static_assert(not ComponentContainer<regular_component_t>);
-static_assert(ComponentContainer<regular_component_t::parts_t>);
+static_assert(not Assembly<regular_component_t>);
 // @/
 ```
 
 # Simple Aggregate
 
-Component containers, as well as the input, output, and parts structures of
-regular components, are required to be simple aggregates. Our notion of a
-simple aggregate comes from `boost::pfr`, which we rely on for the ability to
-iterate over lists of endpoints and components in the form of structures, an
-essential functionality for our purposes. We would ideally defer to
-`boost::pfr` for our test of simple aggregate requirements, but a
-straightforward concept--
+Assemblies, as well as the input and output structures of components, are
+required to be simple aggregates. Our notion of a simple aggregate comes from
+`boost::pfr`, which we rely on for the ability to iterate over lists of
+endpoints and components in the form of structures, an essential functionality
+for our purposes. We would ideally defer to `boost::pfr` for our test of simple
+aggregate requirements, but a straightforward concept--
 
 ```cpp
 template<typename T>
@@ -135,28 +90,28 @@ concept SimpleAggregate = requires { boost::pfr::tuple_size_v<T>; };
 
 --does not provide the required results. It appears as though the compiler
 considers this to be a valid expression regardless of the result, i.e. even if
-pfr itself would raise several (overly verbose and difficult to debug) static
-assertion failures with the given `T`.
+`boost::pfr` itself would raise several (overly verbose and difficult to debug)
+static assertion failures with the given `T`.
 
 Attempts to defer to `std::is_aggregate_v<T>` in a similar fashion were also
 unsatisfactory, with various test structures passing the test even through
 `boost::pfr` rejects them at compile time through static assertions. It doesn't
 help that `boost::pfr`'s implementation and documentation don't always agree on
-what the requirements are:
+what the requirements are, as of 2023:
 
 ```cpp
 // @+'tests'
-// docs say: aggregates may not have base classes
+// boost::pfr docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
 // auto failure = boost::pfr::tuple_size_v<not_simple_aggregate1>; // static assertion failure
 
-// docs say: aggregates may not have const fields
+// boost::pfr docs say: aggregates may not have const fields
 struct not_simple_aggregate2 { const int i; };
 static_assert(std::is_aggregate_v<not_simple_aggregate2>); // passes
 static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate2>); // works fine, even though the docs say it's not allowed
 
-// docs say: aggregates may not have reference fields
+// boost::pfr docs say: aggregates may not have reference fields
 struct not_simple_aggregate3 { int& i; };
 static_assert(std::is_aggregate_v<not_simple_aggregate3>); // passes
 static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate3>); // works fine, even though the docs say it's not allowed
@@ -216,7 +171,6 @@ concept SimpleAggregate
 // @+'tests'
 static_assert(SimpleAggregate<regular_component_t::inputs_t>);
 static_assert(SimpleAggregate<regular_component_t::outputs_t>);
-static_assert(SimpleAggregate<regular_component_t::parts_t>);
 static_assert(SimpleAggregate<container_component_t>);
 // @/
 ```
@@ -332,17 +286,15 @@ Along with the `has_name` concept defined in
 [the metadata concept header](concepts/metadata.lili.md),
 this completes the specification of basic component requirements.
 
-## Accessing the main subroutine type
-
 # Inputs and Outputs
 
-To detect whether a component has parts, inputs, or outputs, we employ the same
+To detect whether a component inputs or outputs, we employ the same
 structure parameterized on the expected name of the nested simple aggregate
 structure. We use a macro to avoid repetition. A similar pattern is used
 [to define `has_name`](concepts/metadata.lili).
 
 ```cpp
-// @='inputs and outputs and parts container'
+// @='inputs and outputs'
 #define has_type_or_value(NAME)\
 template<typename T> concept has_##NAME = requires (T t)\
 {\
@@ -362,7 +314,6 @@ template<typename T> requires has_##NAME<T> constexpr const auto& NAME##_of(cons
 
 has_type_or_value(inputs);
 has_type_or_value(outputs);
-has_type_or_value(parts);
 
 #undef has_type_or_value
 // @/
@@ -370,11 +321,9 @@ has_type_or_value(parts);
 // @+'tests'
 static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
-static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
 
 static_assert(std::same_as<regular_component_t::inputs_t, inputs_t<regular_component_t>>);
 static_assert(std::same_as<regular_component_t::outputs_t, outputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::parts_t, parts_t<regular_component_t>>);
 // @/
 ```
 
@@ -386,44 +335,60 @@ TODO
 
 TODO
 
-## Validating Containers
+# Assemblies
+
+An assembly is a simple aggregate struct that contains only components. To
+validate the second requirement, first we insist that the type must be a simple
+aggregate. Then we generate a type list of its members using `boost::pfr`.
+Using `boost::mp11`, we then check if all of these members are components or
+assemblies. If so, we have an assembly.
 
 ```cpp
-// @='validate_container'
-template<typename T>
-    requires std::is_scalar_v<T>
-struct validate_general_component<T> : std::false_type {};
+// @='assembly_predicate'
+namespace detail {
 
+/// Base metafunction case for most types; most types are not assemblies
 template<typename T>
-    requires SimpleAggregate<T> && (not ComponentBasics<T>) && (not std::is_scalar_v<T>)
-struct validate_general_component<T>
+struct assembly_predicate : std::false_type {};
+/// Metafunction case for components; components are considered as assemblies for the purpose of this recursive predicate
+template<typename T>
+    requires Component<T>
+struct assembly_predicate<T> : std::true_type {};
+
+/// Metafunction case where T satisfies `SimpleAggregate` (but not `Component`); checks if all its members are valid
+template<typename T>
+    requires SimpleAggregate<T> && (not Component<T>) && (not std::is_scalar_v<T>)
+struct assembly_predicate<T>
 {
     using tup = decltype(boost::pfr::structure_to_tuple(std::declval<T&>()));
-    using valid_components = boost::mp11::mp_transform<validate_general_component, tup>;
+    using valid_components = boost::mp11::mp_transform<assembly_predicate, tup>;
     using all_valid = boost::mp11::mp_apply<boost::mp11::mp_all, valid_components>;
     static constexpr bool value = all_valid::value;
 };
+}
 // @/
+```
 
+This is somewhat complicated by the fact that the check is necessarily recursive.
+The predicate needs to be true for both components and assemblies, and the
+predicate needs to be used in its own definition. But we don't want our `is_assembly`
+metafunction to return true for components (which are not assemblies). We
+therefore need a seperate more generate predicate that does the recursive check,
+allowing the final actual concept to weed out components.
+
+```cpp
 // @+'tests'
 struct almost_container
 {
     float nope;
     regular_component_t yep;
 };
-static_assert(not ComponentContainer<almost_container>);
-static_assert(ComponentContainer<regular_component_t::parts_t>);
-static_assert(ComponentContainer<container_component_t>);
+static_assert(not Assembly<almost_container>);
+static_assert(Assembly<container_component_t>);
 // @/
 ```
 
 # Accessing Subcomponents and Endpoints
-
-Given a list of components, such as a parts struct or container component,
-there are several common operations that are required: apply a generic function
-(especially a lambda) to every every node in the component tree, or a subset of
-nodes of the same type; access a tuple of references to a certain type of nodes
-in the tree; and find a certain node in the tree, based on its type.
 
 ## Nodes
 
@@ -450,15 +415,6 @@ struct c1_t : name_<"c1"> {
         } out;
     } outputs;
 
-    struct parts_t {
-        struct dummy_part : name_<"dp"> {
-            struct parts_t {
-                static constexpr auto name() {return "dpp";}
-            } parts;
-            void main() {};
-        } part;
-    } parts;
-
     void main(){}
 };
 
@@ -481,15 +437,6 @@ struct c2_t : name_<"c2"> {
         } out;
     } outputs;
 
-    struct parts_t {
-        struct dummy_part : name_<"dp"> {
-            struct parts_t {
-                static constexpr auto name() {return "dpp";}
-            } parts;
-            void main() {};
-        } part;
-    } parts;
-
     void main(){}
 };
 
@@ -503,8 +450,7 @@ constinit accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<c1_t>);
 static_assert(Component<c2_t>);
-static_assert(Component<c1_t::parts_t::dummy_part>);
-static_assert(ComponentContainer<accessor_test_container_t>);
+static_assert(Assembly<accessor_test_container_t>);
 // @/
 ```
 
@@ -522,12 +468,6 @@ The container can be seen as the root of a tree-like structure.
     , ( out // an output endpoint
       )
     )
-  , ( parts // a parts container
-    , ( dp // a component
-      , ( parts // a parts container
-        )
-      )
-    )
   )
 , ( c2 // a component
   , /* etc, as above */
@@ -543,28 +483,22 @@ distinguish between these types at compile time.
 // @='nodes'
 namespace node
 {
-    struct component_container {};
+    struct assembly {};
     struct component {};
-    struct part_component {};
     struct inputs_container {};
     struct outputs_container {};
     struct endpoints_container {};
-    struct parts_container {};
     struct input_endpoint {};
     struct output_endpoint {};
     struct endpoint {};
-    template<typename> struct is_component_container : std::false_type {};
-    template<>         struct is_component_container<component_container> : std::true_type {};
+    template<typename> struct is_assembly : std::false_type {};
+    template<>         struct is_assembly<assembly> : std::true_type {};
     template<typename> struct is_component : std::false_type {};
-    template<typename> struct is_part_component : std::false_type {};
-    template<>         struct is_part_component<part_component> : std::true_type {};
     template<>         struct is_component<component> : std::true_type {};
     template<typename> struct is_inputs_container : std::false_type {};
     template<>         struct is_inputs_container<inputs_container> : std::true_type {};
     template<typename> struct is_outputs_container : std::false_type {};
     template<>         struct is_outputs_container<outputs_container> : std::true_type {};
-    template<typename> struct is_parts_container : std::false_type {};
-    template<>         struct is_parts_container<parts_container> : std::true_type {};
     template<typename> struct is_input_endpoint : std::false_type {};
     template<>         struct is_input_endpoint<input_endpoint> : std::true_type {};
     template<typename> struct is_output_endpoint : std::false_type {};
@@ -585,13 +519,12 @@ namespace node
 
 Generalising `boost::pfr`'s facility of taking a structure and returning a
 tuple of references to or copies of its elements, we aim in this section to
-enable tuple-like semantics for general components, i.e. regular components and
-component containers.
+enable tuple-like semantics for components and assemblies.
 
 In a first attempt, I used `boost::mp11` to first generate a type list from a
 general component. However, this turns out to provide very little use when it
-comes time to make a tuple of references. Instead, the first step is to
-generate the runtime tuple of references. This runtime structure can be
+comes time to access the nodes of the component-tree. Instead, the first step
+is to generate the runtime tuple of references. This runtime structure can be
 manipulated more fluently using a combination of runtime programming and
 template metaprogramming, and if compile-time execution is required, the
 transformations can generally be `constexpr` or `constinit` and thus executed
@@ -626,21 +559,15 @@ using in11  =              ic1::in1_t;
 using in21  =              ic1::in2_t;
 using oc1   =          c1::outputs_t;
 using out1  =              oc1::out_t;
-using pc1   =          c1::parts_t;
-using dp1   =              pc1::dummy_part;
-using dppc1 =                  dp1::parts_t;
 using c2    =     c2_t;
 using ic2   =          c2::inputs_t;
 using in12  =              ic2::in1_t;
 using in22  =              ic2::in2_t;
 using oc2   =          c2::outputs_t;
 using out2  =              oc2::out_t;
-using pc2   =          c2::parts_t;
-using dp2   =              pc2::dummy_part;
-using dppc2 =                  dp2::parts_t;
 
 static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
-, std::tuple< tagged<node::component_container,atc>
+, std::tuple< tagged<node::assembly,atc>
             , std::tuple< tagged<node::component,c1>
                         , std::tuple< tagged<node::inputs_container,ic1>
                                     , std::tuple<tagged<node::input_endpoint,in11>>
@@ -648,11 +575,6 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     >
                         , std::tuple< tagged<node::outputs_container,oc1>
                                     , std::tuple<tagged<node::output_endpoint,out1>>
-                                    >
-                        , std::tuple< tagged<node::parts_container,pc1>
-                                    , std::tuple< tagged<node::part_component,dp1>
-                                                , std::tuple<tagged<node::parts_container,dppc1>>
-                                                >
                                     >
                         >
             , std::tuple< tagged<node::component,c2>
@@ -662,11 +584,6 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     >
                         , std::tuple< tagged<node::outputs_container,oc2>
                                     , std::tuple<tagged<node::output_endpoint,out2>>
-                                    >
-                        , std::tuple< tagged<node::parts_container,pc2>
-                                    , std::tuple< tagged<node::part_component,dp2>
-                                                , std::tuple<tagged<node::parts_container,dppc2>>
-                                                >
                                     >
                         >
             >
@@ -684,28 +601,23 @@ TEST_CASE("sygaldry component_to_tree")
 // @/
 ```
 
-TODO: simplify this implementation. The cases for a component container,
-endpoint container, and parts container are all very very similar, and could
-likely be addressed with a single more generic function.
-
-First consider the case where we have been passed a component container `T&
-component`. `component_to_tree` should return something of the form: `<head,
-<subtree>, <subtree>, ...>` where the head of the tuple is simply the
-`component` tagged `node::component_container`, and each subtree in the tail of
-the tuple is the tree for one component. To make the tail, we can get a tuple
-of references to the subcomponents using `boost::pfr::structure_tie`. Then
-using `boost::mp11::tuple_transform` we can turn each subcomponent reference
-into its corresponding subtree, completing the tail. We then must use
-`tuple_cat` to unpack the tail, which is one tuple containing all of the
-sublists, so that we will have `< head, <subtree>, <subtree> ... >` where the
-tail is zero or more subtree tuples, instead of `< head, < <subtree>,
-<subtree>, ...> >` where the tail is a single tuple containing the subtree
-tuples.
+First consider the case where we have been passed an assembly `T& component`.
+`component_to_tree` should return something of the form: `<head, <subtree>,
+<subtree>, ...>` where the head of the tuple is simply the `component` tagged
+`node::assembly`, and each subtree in the tail of the tuple is the tree for one
+component or subassembly. To make the tail, we can get a tuple of references to
+the subcomponents using `boost::pfr::structure_tie`. Then using
+`boost::mp11::tuple_transform` we can turn each subcomponent reference into its
+corresponding subtree, completing the tail. We then must use `tuple_cat` to
+unpack the tail, which is one tuple containing all of the sublists, so that we
+will have `< head, <subtree>, <subtree> ... >` where the tail is zero or more
+subtree tuples, instead of `< head, < <subtree>, <subtree>, ...> >` where the
+tail is a single tuple containing the subtree tuples.
 
 ```cpp
 // @='component container tree case'
 auto subcomponents = boost::pfr::structure_tie(component);
-auto head = std::make_tuple(tagged<node::component_container, T>{component});
+auto head = std::make_tuple(tagged<node::assembly, T>{component});
 auto tail = tuple_transform([](auto& subcomponent)
 {
     return component_to_tree(subcomponent);
@@ -743,56 +655,46 @@ constexpr auto tuple_tail(T tup)
     else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
 }
 // @/
+
+// @+'tests'
+TEST_CASE("sygaldry tuple head and tail")
+{
+    struct {
+        int a;
+        int b;
+        int c;
+    } x = {0,0,0};
+
+    auto tup = boost::pfr::structure_tie(x);
+    auto head = tuple_head(tup);
+    static_assert(std::same_as<int, decltype(head)>);
+    auto tail = tuple_head(tup);
+
+    auto empty_tuple = std::tuple<>{};
+    auto empty = tuple_head(empty_tuple);
+}
+// @/
 ```
 
 Now consider the case of a regular component. The subtree has the form: `<
-head, <maybe inputs>, <maybe outputs>, <maybe parts> >`. Because only one of
-inputs, outputs, and parts is required, we have to work around the possibility
-that one or two of these subtrees may not exist. Our strategy is to always
-`tuple_cat` four tuples, where the inputs, outputs, and parts tuples may be
-empty tuples, which will vanish during the `tuple_cat` operation. One awkward
-consequence of this strategy is that the `head` of the tree has to be a
-`std::tuple` before being passed to `tuple_cat`.
+head, <maybe inputs>, <maybe outputs>>`. We have to work around the possibility
+that inputs and outputs may not exist. Our strategy is to always `tuple_cat`
+several tuples, where the inputs and outputs tuples may be empty tuples, which
+will vanish during the `tuple_cat` operation. One awkward consequence of this
+strategy is that the `head` of the tree has to be a `std::tuple` before being
+passed to `tuple_cat`.
 
 ```cpp
 // @='component tree case'
-constexpr auto parts_subtree = [](T& component)
-{
-    if constexpr (not has_parts<T>) return std::tuple<>{};
-    else
-    {
-        auto& container = parts_of(component);
-        auto subcomponents = boost::pfr::structure_tie(container);
-        auto head = std::make_tuple(tagged<node::parts_container, parts_t<T>>{container});
-        auto tail = tuple_transform([](auto& subcomponent)
-        {
-            auto subtree = component_to_tree(subcomponent);
-            if constexpr (has_main_subroutine<T>)
-            {
-                auto component = tuple_head(subtree);
-                auto head = std::make_tuple(tagged<node::part_component
-                                                  , typename decltype(component)::type
-                                                  >{component.ref});
-                auto tail = tuple_tail(subtree);
-                return std::tuple_cat(head, tail);
-            }
-            else return subtree;
-        }, subcomponents);
-        return std::make_tuple(std::tuple_cat(head, tail));
-    }
-};
 return std::tuple_cat( std::make_tuple(tagged<node::component, T>{component})
                      , endpoint_subtree<node::input_endpoint>(component)
                      , endpoint_subtree<node::output_endpoint>(component)
-                     , parts_subtree(component)
                      );
 // @/
 ```
 
 We use one function for both input and output endpoints to save a bit of
-repetition. The structure is essentially the same as the components container
-case, except that there's no need to recurse into the endpoints, which are
-always leaves.
+repetition.
 
 ```cpp
 // @+'tuples of nodes'
@@ -825,7 +727,7 @@ constexpr auto endpoint_subtree(T& component)
 template<typename T>
 constexpr auto component_to_tree(T& component)
 {
-    if constexpr (has_name<T> || has_main_subroutine<T> || has_inputs<T> || has_outputs<T> || has_parts<T>)
+    if constexpr (Component<T>)
     {
         @{component tree case}
     }
@@ -843,35 +745,7 @@ The tree structure is useful for certain applications, but most of the time it i
 convenient to work with a flat tuple. The following function flattens a given node tree,
 returning such a flat tuple.
 
-To be able to flatten the tree, we need to be able to access the head and tail
-respectively of the tree's tuples.
-
-```cpp
-// TODO: address that this was yanked up to an earlier part of the file
-// @+'tuples of nodes'
-// @/
-
-// @+'tests'
-TEST_CASE("sygaldry tuple head and tail")
-{
-    struct {
-        int a;
-        int b;
-        int c;
-    } x = {0,0,0};
-
-    auto tup = boost::pfr::structure_tie(x);
-    auto head = tuple_head(tup);
-    static_assert(std::same_as<int, decltype(head)>);
-    auto tail = tuple_head(tup);
-
-    auto empty_tuple = std::tuple<>{};
-    auto empty = tuple_head(empty_tuple);
-}
-// @/
-```
-
-Flattening the tree is then a simple matter of recursively peeling apart the
+Flattening the tree is a simple matter of recursively peeling apart the
 input. The function aims to return a single flat tuple. This is achieved using
 `tuple_cat` to join a flat tuple made from the head of the input with a flat
 tuple made from the end. In case the head is an element, and not a nested
@@ -922,7 +796,7 @@ constexpr auto component_tree_to_node_list(T tree)
 TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
-    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
+    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
 
     auto& in1 = std::get<3>(flattened).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
@@ -1097,36 +971,38 @@ static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
                                       >
                           >);
 
-struct deep_component : name_<"root"> {
-    void main();
-    struct parts_t {
-        struct n1 : name_<"n1"> {
-            void main();
-            struct parts_t {
-                struct n2 : name_<"n2"> {
-                    void main();
-                    struct parts_t {
-                        struct n3 : name_<"n3"> {
-                            void main();
-                            struct inputs_t {
-                                struct in : name_<"in"> {} input;
-                            } inputs;
-                        } part;
-                    } parts;
-                } part;
-            } parts;
-        } part;
-    } parts;
+struct deep_assembly {
+    struct n1 {
+        struct n2 {
+            struct n3 : name_<"n3"> {
+                struct inputs_t {
+                    struct in : name_<"input"> { float value; } input;
+                } inputs;
+                void main() {};
+            } n3_;
+        } n2_;
+    } n1_;
 } deep;
 
-using deep_input = deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in;
+static_assert(std::same_as<decltype(component_to_tree(deep))
+, std::tuple< tagged<node::assembly,deep_assembly>
+            , std::tuple< tagged<node::assembly,deep_assembly::n1>
+                        , std::tuple< tagged<node::assembly,deep_assembly::n1::n2>
+                                    , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                                                , std::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
+                                                            , std::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
+                                                            >
+                                                >
+                                    >
+                        >
+            >
+>);
+
+using deep_input = deep_assembly::n1::n2::n3::inputs_t::in;
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
-        , std::tuple< tagged<node::component,deep_component>
-                    , tagged<node::part_component,deep_component::parts_t::n1>
-                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2>
-                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
-                    , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
+        , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                    , tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>
                     >
         >);
 
@@ -1137,17 +1013,17 @@ Generating a path, given a node's (untagged) type and a component tree, is
 similar to flattening the tree while searching for a particular node.
 
 The input to the search is a tuple representing a part of the overall tree of
-components. If the tuple is empty, this is the tail of a leaf node of the tree.
+components. If the tuple is empty, this is the *tail of a leaf node* of the tree.
 We return the empty tuple unchanged.
 
-Otherwise, we split the tuple into its head and its tail. If the head is a node
-that matches the one we are looking for, we return a tuple containing it.
-Otherwise, if the head is a different node, we search for the sought node in
-the tail of the tuple. If it is found, this search will return a non-empty
-tuple. If the current node is named, we prepend the current node, which is a
-named parent of the sought one, to this tuple, and return it, or else simply
-return the found sub-path. Otherwise we return an empty tuple, since this node
-is not part of the path.
+Otherwise, we *split the tuple into its head and its tail*. If the head is a
+node that matches *the node that we are looking for*, we return a tuple
+containing it. Otherwise, if the head is a different node, we search for the
+sought node in the tail of the tuple. If it is found, this search will return a
+non-empty tuple. If the current node is named, we prepend the current node,
+which is a named parent of the sought one, to this tuple, and return it, or
+else simply return the found sub-path. Otherwise we return an empty tuple,
+since this node is not part of the path.
 
 Finally, if the head is a tuple, then we return the `tuple_cat` of the
 recursive search over the head subtree and tail subtree(s). If any of these
@@ -1159,14 +1035,16 @@ tuple. Otherwise, it will be an empty tuple.
 template<typename T, Tuple Tup>
 constexpr auto path_of(const Tup tree)
 {
-    if constexpr (std::tuple_size_v<Tup> == 0) // tail of leaf
+    if constexpr (std::tuple_size_v<Tup> == 0) // tail of a leaf node
         return std::tuple<>{};
 
+    // split the tuple into its head and its tail
     auto head = tuple_head(tree);
     auto tail_path = path_of<T>(tuple_tail(tree));
+
     if constexpr (Tuple<decltype(head)>) // search subtrees
         return std::tuple_cat(path_of<T>(head), tail_path);
-    else if constexpr (std::same_as<typename decltype(head)::type, T>) // located T
+    else if constexpr (std::same_as<typename decltype(head)::type, T>) // the node that we are looking for
         return std::make_tuple(head);
     else if constexpr (std::tuple_size_v<decltype(tail_path)> > 0) // head is a parent
     {
@@ -1178,7 +1056,7 @@ constexpr auto path_of(const Tup tree)
 }
 
 template<typename T, typename C>
-    requires Component<C> || ComponentContainer<C>
+    requires Component<C> || Assembly<C>
 constexpr auto path_of(C& component)
 {
     return path_of<T>(component_to_tree(component));
@@ -1216,7 +1094,7 @@ are provided to facilitate direct access to useful type lists.
 ```cpp
 // @+'tests'
 static_assert(std::same_as<decltype(outputs), output_endpoints_t<accessor_test_container_t>>);
-static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_component>>);
+static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_assembly>>);
 // TODO: test the other ones as needed
 // @/
 
@@ -1253,7 +1131,7 @@ TEST_CASE("sygaldry for each X")
     SECTION("for each component")
     {
         for_each_component(accessor_test_container, add_names);
-        REQUIRE(allnames == string("c1dpc2dp"));
+        REQUIRE(allnames == string("c1c2"));
     }
 
     SECTION("for each endpoint")
@@ -1303,7 +1181,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node(accessor_test_container, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 
@@ -1316,7 +1194,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node_in_list(list, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 
@@ -1329,7 +1207,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node_in_list(list, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 }
@@ -1420,11 +1298,11 @@ container, and then recurse for each contained component.
 
 ```cpp
 // @='for each component container case'
-if constexpr (ComponentContainer<T>)
+if constexpr (Assembly<T>)
 {
     if constexpr (  mp_empty<nodes>::value
-                 || mp_contains<nodes, node::component_container>::value
-                 )  callback(component, node::component_container{});
+                 || mp_contains<nodes, node::assembly>::value
+                 )  callback(component, node::assembly{});
     boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
     {
         for_each_node<S, RequestedNodes...>(subcomponent, callback);
@@ -1480,20 +1358,6 @@ else if constexpr (Component<T>)
                      )  boost::pfr::for_each_field(outputs, [&](auto& out)
         {
             callback(out, node::output_endpoint{});
-        });
-    }
-    if constexpr (has_parts<T>)
-    {
-        auto& parts = parts_of(component);
-
-        if constexpr (  mp_empty<nodes>::value
-                     || mp_contains<nodes, node::parts_container>::value
-                     )  callback(parts, node::parts_container{});
-
-        // always recurse over nested components
-        boost::pfr::for_each_field(parts, [&]<typename P>(P& part)
-        {
-            for_each_node<P, RequestedNodes...>(part, callback);
         });
     }
 }
@@ -1580,7 +1444,7 @@ void init(T& component)
     if constexpr (requires {component.init();}) component.init();
 }
 
-template<ComponentContainer T>
+template<Assembly T>
 void init(T& container)
 {
     for_each_component(container, [](auto& component) {init(component);});
@@ -1610,7 +1474,7 @@ void activate(T& component)
     clear_input_flags(component);
 }
 
-template<ComponentContainer T>
+template<Assembly T>
 void activate(T& container)
 {
     clear_output_flags(container);

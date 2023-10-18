@@ -114,14 +114,13 @@ template<typename T> requires has_##NAME<T> constexpr const auto& NAME##_of(cons
 
 has_type_or_value(inputs);
 has_type_or_value(outputs);
-has_type_or_value(parts);
 
 #undef has_type_or_value
 
 
-/// Basic requirements on a regular component; don't use directly, use sygaldry::Component
+/// Check if T is a Sygaldry component
 template<typename T>
-concept ComponentBasics
+concept Component
     =  has_name<T>
     &&  (  has_init_subroutine<T>
         || has_external_sources_subroutine<T>
@@ -129,71 +128,52 @@ concept ComponentBasics
         || has_external_destinations_subroutine<T>
         || has_inputs<T>
         || has_outputs<T>
-        || has_parts<T>
         )
     ;
 
-/// Template metafunction predicate default case; most types are not components
-template<typename T> struct validate_general_component : std::false_type {};
+namespace detail {
 
-/// Case when T is a component without parts
+/// Base metafunction case for most types; most types are not assemblies
 template<typename T>
-    requires ComponentBasics<T> && (not has_parts<T>)
-struct validate_general_component<T> : std::true_type {};
+struct assembly_predicate : std::false_type {};
+/// Metafunction case for components; components are considered as assemblies for the purpose of this recursive predicate
+template<typename T>
+    requires Component<T>
+struct assembly_predicate<T> : std::true_type {};
 
-/// Case when T is a component with parts; checks if the parts struct is a component
+/// Metafunction case where T satisfies `SimpleAggregate` (but not `Component`); checks if all its members are valid
 template<typename T>
-    requires ComponentBasics<T> && (has_parts<T>)
-struct validate_general_component<T> : validate_general_component<parts_t<T>> {};
-
-template<typename T>
-    requires std::is_scalar_v<T>
-struct validate_general_component<T> : std::false_type {};
-
-template<typename T>
-    requires SimpleAggregate<T> && (not ComponentBasics<T>) && (not std::is_scalar_v<T>)
-struct validate_general_component<T>
+    requires SimpleAggregate<T> && (not Component<T>) && (not std::is_scalar_v<T>)
+struct assembly_predicate<T>
 {
     using tup = decltype(boost::pfr::structure_to_tuple(std::declval<T&>()));
-    using valid_components = boost::mp11::mp_transform<validate_general_component, tup>;
+    using valid_components = boost::mp11::mp_transform<assembly_predicate, tup>;
     using all_valid = boost::mp11::mp_apply<boost::mp11::mp_all, valid_components>;
     static constexpr bool value = all_valid::value;
 };
+}
 
-/// Concept wrapper for sygadlry::validate_general_component; don't use directly, use sygaldry::Component
 template<typename T>
-concept GeneralComponent = validate_general_component<T>::value;
-
-/// Main concept for checking if a type meets the requirements of a Sygaldry component
-template<typename T> concept Component = ComponentBasics<T> && GeneralComponent<T>;
-
-/// Main concept for checking if a type meets the requirements of a Sygaldry assembly, aka a component container
-template<typename T> concept ComponentContainer = (not ComponentBasics<T>) && GeneralComponent<T>;
+concept Assembly = detail::assembly_predicate<T>::value && not Component<T>;
 
 namespace node
 {
-    struct component_container {};
+    struct assembly {};
     struct component {};
-    struct part_component {};
     struct inputs_container {};
     struct outputs_container {};
     struct endpoints_container {};
-    struct parts_container {};
     struct input_endpoint {};
     struct output_endpoint {};
     struct endpoint {};
-    template<typename> struct is_component_container : std::false_type {};
-    template<>         struct is_component_container<component_container> : std::true_type {};
+    template<typename> struct is_assembly : std::false_type {};
+    template<>         struct is_assembly<assembly> : std::true_type {};
     template<typename> struct is_component : std::false_type {};
-    template<typename> struct is_part_component : std::false_type {};
-    template<>         struct is_part_component<part_component> : std::true_type {};
     template<>         struct is_component<component> : std::true_type {};
     template<typename> struct is_inputs_container : std::false_type {};
     template<>         struct is_inputs_container<inputs_container> : std::true_type {};
     template<typename> struct is_outputs_container : std::false_type {};
     template<>         struct is_outputs_container<outputs_container> : std::true_type {};
-    template<typename> struct is_parts_container : std::false_type {};
-    template<>         struct is_parts_container<parts_container> : std::true_type {};
     template<typename> struct is_input_endpoint : std::false_type {};
     template<>         struct is_input_endpoint<input_endpoint> : std::true_type {};
     template<typename> struct is_output_endpoint : std::false_type {};
@@ -268,43 +248,17 @@ constexpr auto endpoint_subtree(T& component)
 template<typename T>
 constexpr auto component_to_tree(T& component)
 {
-    if constexpr (has_name<T> || has_main_subroutine<T> || has_inputs<T> || has_outputs<T> || has_parts<T>)
+    if constexpr (Component<T>)
     {
-        constexpr auto parts_subtree = [](T& component)
-        {
-            if constexpr (not has_parts<T>) return std::tuple<>{};
-            else
-            {
-                auto& container = parts_of(component);
-                auto subcomponents = boost::pfr::structure_tie(container);
-                auto head = std::make_tuple(tagged<node::parts_container, parts_t<T>>{container});
-                auto tail = tuple_transform([](auto& subcomponent)
-                {
-                    auto subtree = component_to_tree(subcomponent);
-                    if constexpr (has_main_subroutine<T>)
-                    {
-                        auto component = tuple_head(subtree);
-                        auto head = std::make_tuple(tagged<node::part_component
-                                                          , typename decltype(component)::type
-                                                          >{component.ref});
-                        auto tail = tuple_tail(subtree);
-                        return std::tuple_cat(head, tail);
-                    }
-                    else return subtree;
-                }, subcomponents);
-                return std::make_tuple(std::tuple_cat(head, tail));
-            }
-        };
         return std::tuple_cat( std::make_tuple(tagged<node::component, T>{component})
                              , endpoint_subtree<node::input_endpoint>(component)
                              , endpoint_subtree<node::output_endpoint>(component)
-                             , parts_subtree(component)
                              );
     }
     else
     {
         auto subcomponents = boost::pfr::structure_tie(component);
-        auto head = std::make_tuple(tagged<node::component_container, T>{component});
+        auto head = std::make_tuple(tagged<node::assembly, T>{component});
         auto tail = tuple_transform([](auto& subcomponent)
         {
             return component_to_tree(subcomponent);
@@ -402,14 +356,16 @@ constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
 template<typename T, Tuple Tup>
 constexpr auto path_of(const Tup tree)
 {
-    if constexpr (std::tuple_size_v<Tup> == 0) // tail of leaf
+    if constexpr (std::tuple_size_v<Tup> == 0) // tail of a leaf node
         return std::tuple<>{};
 
+    // split the tuple into its head and its tail
     auto head = tuple_head(tree);
     auto tail_path = path_of<T>(tuple_tail(tree));
+
     if constexpr (Tuple<decltype(head)>) // search subtrees
         return std::tuple_cat(path_of<T>(head), tail_path);
-    else if constexpr (std::same_as<typename decltype(head)::type, T>) // located T
+    else if constexpr (std::same_as<typename decltype(head)::type, T>) // the node that we are looking for
         return std::make_tuple(head);
     else if constexpr (std::tuple_size_v<decltype(tail_path)> > 0) // head is a parent
     {
@@ -421,7 +377,7 @@ constexpr auto path_of(const Tup tree)
 }
 
 template<typename T, typename C>
-    requires Component<C> || ComponentContainer<C>
+    requires Component<C> || Assembly<C>
 constexpr auto path_of(C& component)
 {
     return path_of<T>(component_to_tree(component));
@@ -453,11 +409,11 @@ constexpr auto for_each_node(T& component, auto callback)
 
     using nodes = mp_list<RequestedNodes...>;
 
-    if constexpr (ComponentContainer<T>)
+    if constexpr (Assembly<T>)
     {
         if constexpr (  mp_empty<nodes>::value
-                     || mp_contains<nodes, node::component_container>::value
-                     )  callback(component, node::component_container{});
+                     || mp_contains<nodes, node::assembly>::value
+                     )  callback(component, node::assembly{});
         boost::pfr::for_each_field(component, [&]<typename S>(S& subcomponent)
         {
             for_each_node<S, RequestedNodes...>(subcomponent, callback);
@@ -502,20 +458,6 @@ constexpr auto for_each_node(T& component, auto callback)
                          )  boost::pfr::for_each_field(outputs, [&](auto& out)
             {
                 callback(out, node::output_endpoint{});
-            });
-        }
-        if constexpr (has_parts<T>)
-        {
-            auto& parts = parts_of(component);
-
-            if constexpr (  mp_empty<nodes>::value
-                         || mp_contains<nodes, node::parts_container>::value
-                         )  callback(parts, node::parts_container{});
-
-            // always recurse over nested components
-            boost::pfr::for_each_field(parts, [&]<typename P>(P& part)
-            {
-                for_each_node<P, RequestedNodes...>(part, callback);
             });
         }
     }
@@ -567,7 +509,7 @@ void init(T& component)
     if constexpr (requires {component.init();}) component.init();
 }
 
-template<ComponentContainer T>
+template<Assembly T>
 void init(T& container)
 {
     for_each_component(container, [](auto& component) {init(component);});
@@ -593,7 +535,7 @@ void activate(T& component)
     clear_input_flags(component);
 }
 
-template<ComponentContainer T>
+template<Assembly T>
 void activate(T& container)
 {
     clear_output_flags(container);

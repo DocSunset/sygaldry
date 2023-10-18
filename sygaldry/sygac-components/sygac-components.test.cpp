@@ -23,45 +23,36 @@ struct regular_component_t : name_<"regular component">
 {
     struct inputs_t {} inputs;
     struct outputs_t {} outputs;
-    struct parts_t {
-        struct subcomponent_t : name_<"a subcomponent"> {
-            struct inputs_t {} inputs;
-            void operator()() {}
-        } subcomponent;
-    } parts;
     static void main(const inputs_t&, outputs_t&) {}
 } regular_component;
 
 static_assert(has_main_subroutine<regular_component_t>);
 static_assert(has_inputs<regular_component_t>);
 static_assert(has_outputs<regular_component_t>);
-static_assert(has_parts<regular_component_t>);
 static_assert(Component<regular_component_t>);
 static_assert(Component<regular_component_t>);
 
 struct container_component_t
 {
-    static constexpr auto name() {return "container component";}
     regular_component_t component1;
 } container_component;
 
 static_assert(SimpleAggregate<container_component_t>);
-static_assert(ComponentContainer<container_component_t>);
+static_assert(Assembly<container_component_t>);
 static_assert(not Component<container_component_t>);
 
-static_assert(not ComponentContainer<regular_component_t>);
-static_assert(ComponentContainer<regular_component_t::parts_t>);
-// docs say: aggregates may not have base classes
+static_assert(not Assembly<regular_component_t>);
+// boost::pfr docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes
 // auto failure = boost::pfr::tuple_size_v<not_simple_aggregate1>; // static assertion failure
 
-// docs say: aggregates may not have const fields
+// boost::pfr docs say: aggregates may not have const fields
 struct not_simple_aggregate2 { const int i; };
 static_assert(std::is_aggregate_v<not_simple_aggregate2>); // passes
 static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate2>); // works fine, even though the docs say it's not allowed
 
-// docs say: aggregates may not have reference fields
+// boost::pfr docs say: aggregates may not have reference fields
 struct not_simple_aggregate3 { int& i; };
 static_assert(std::is_aggregate_v<not_simple_aggregate3>); // passes
 static_assert(1 == boost::pfr::tuple_size_v<not_simple_aggregate3>); // works fine, even though the docs say it's not allowed
@@ -88,7 +79,6 @@ static_assert(std::is_aggregate_v<not_simple_aggregate7>); // passes
 // auto failure = boost::pfr::structure_to_tuple(nope); // static assertion failure
 static_assert(SimpleAggregate<regular_component_t::inputs_t>);
 static_assert(SimpleAggregate<regular_component_t::outputs_t>);
-static_assert(SimpleAggregate<regular_component_t::parts_t>);
 static_assert(SimpleAggregate<container_component_t>);
 struct void_main { void main() {} };
 struct void_operator { void operator()() {} };
@@ -103,19 +93,16 @@ static_assert(not has_main_subroutine<int_main>);
 static_assert(not has_main_subroutine<int_operator>);
 static_assert(std::same_as<regular_component_t::inputs_t&, decltype(inputs_of(regular_component))>);
 static_assert(std::same_as<regular_component_t::outputs_t&, decltype(outputs_of(regular_component))>);
-static_assert(std::same_as<regular_component_t::parts_t&, decltype(parts_of(regular_component))>);
 
 static_assert(std::same_as<regular_component_t::inputs_t, inputs_t<regular_component_t>>);
 static_assert(std::same_as<regular_component_t::outputs_t, outputs_t<regular_component_t>>);
-static_assert(std::same_as<regular_component_t::parts_t, parts_t<regular_component_t>>);
 struct almost_container
 {
     float nope;
     regular_component_t yep;
 };
-static_assert(not ComponentContainer<almost_container>);
-static_assert(ComponentContainer<regular_component_t::parts_t>);
-static_assert(ComponentContainer<container_component_t>);
+static_assert(not Assembly<almost_container>);
+static_assert(Assembly<container_component_t>);
 struct c1_t : name_<"c1"> {
     struct inputs_t {
         struct in1_t : name_<"in1">, persistent<float>
@@ -134,15 +121,6 @@ struct c1_t : name_<"c1"> {
             float another_extra;
         } out;
     } outputs;
-
-    struct parts_t {
-        struct dummy_part : name_<"dp"> {
-            struct parts_t {
-                static constexpr auto name() {return "dpp";}
-            } parts;
-            void main() {};
-        } part;
-    } parts;
 
     void main(){}
 };
@@ -166,15 +144,6 @@ struct c2_t : name_<"c2"> {
         } out;
     } outputs;
 
-    struct parts_t {
-        struct dummy_part : name_<"dp"> {
-            struct parts_t {
-                static constexpr auto name() {return "dpp";}
-            } parts;
-            void main() {};
-        } part;
-    } parts;
-
     void main(){}
 };
 
@@ -188,8 +157,7 @@ constinit accessor_test_container_t accessor_test_container{};
 
 static_assert(Component<c1_t>);
 static_assert(Component<c2_t>);
-static_assert(Component<c1_t::parts_t::dummy_part>);
-static_assert(ComponentContainer<accessor_test_container_t>);
+static_assert(Assembly<accessor_test_container_t>);
 using atc   = accessor_test_container_t;
 using c1    =     c1_t;
 using ic1   =          c1::inputs_t;
@@ -197,21 +165,15 @@ using in11  =              ic1::in1_t;
 using in21  =              ic1::in2_t;
 using oc1   =          c1::outputs_t;
 using out1  =              oc1::out_t;
-using pc1   =          c1::parts_t;
-using dp1   =              pc1::dummy_part;
-using dppc1 =                  dp1::parts_t;
 using c2    =     c2_t;
 using ic2   =          c2::inputs_t;
 using in12  =              ic2::in1_t;
 using in22  =              ic2::in2_t;
 using oc2   =          c2::outputs_t;
 using out2  =              oc2::out_t;
-using pc2   =          c2::parts_t;
-using dp2   =              pc2::dummy_part;
-using dppc2 =                  dp2::parts_t;
 
 static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
-, std::tuple< tagged<node::component_container,atc>
+, std::tuple< tagged<node::assembly,atc>
             , std::tuple< tagged<node::component,c1>
                         , std::tuple< tagged<node::inputs_container,ic1>
                                     , std::tuple<tagged<node::input_endpoint,in11>>
@@ -219,11 +181,6 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     >
                         , std::tuple< tagged<node::outputs_container,oc1>
                                     , std::tuple<tagged<node::output_endpoint,out1>>
-                                    >
-                        , std::tuple< tagged<node::parts_container,pc1>
-                                    , std::tuple< tagged<node::part_component,dp1>
-                                                , std::tuple<tagged<node::parts_container,dppc1>>
-                                                >
                                     >
                         >
             , std::tuple< tagged<node::component,c2>
@@ -233,11 +190,6 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
                                     >
                         , std::tuple< tagged<node::outputs_container,oc2>
                                     , std::tuple<tagged<node::output_endpoint,out2>>
-                                    >
-                        , std::tuple< tagged<node::parts_container,pc2>
-                                    , std::tuple< tagged<node::part_component,dp2>
-                                                , std::tuple<tagged<node::parts_container,dppc2>>
-                                                >
                                     >
                         >
             >
@@ -271,7 +223,7 @@ TEST_CASE("sygaldry tuple head and tail")
 TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
-    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, pc1, dp1, dppc1, c2, ic2, in12, in22, oc2, out2, pc2, dp2, dppc2>>);
+    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
 
     auto& in1 = std::get<3>(flattened).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
@@ -294,43 +246,45 @@ static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
                                       >
                           >);
 
-struct deep_component : name_<"root"> {
-    void main();
-    struct parts_t {
-        struct n1 : name_<"n1"> {
-            void main();
-            struct parts_t {
-                struct n2 : name_<"n2"> {
-                    void main();
-                    struct parts_t {
-                        struct n3 : name_<"n3"> {
-                            void main();
-                            struct inputs_t {
-                                struct in : name_<"in"> {} input;
-                            } inputs;
-                        } part;
-                    } parts;
-                } part;
-            } parts;
-        } part;
-    } parts;
+struct deep_assembly {
+    struct n1 {
+        struct n2 {
+            struct n3 : name_<"n3"> {
+                struct inputs_t {
+                    struct in : name_<"input"> { float value; } input;
+                } inputs;
+                void main() {};
+            } n3_;
+        } n2_;
+    } n1_;
 } deep;
 
-using deep_input = deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in;
+static_assert(std::same_as<decltype(component_to_tree(deep))
+, std::tuple< tagged<node::assembly,deep_assembly>
+            , std::tuple< tagged<node::assembly,deep_assembly::n1>
+                        , std::tuple< tagged<node::assembly,deep_assembly::n1::n2>
+                                    , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                                                , std::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
+                                                            , std::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
+                                                            >
+                                                >
+                                    >
+                        >
+            >
+>);
+
+using deep_input = deep_assembly::n1::n2::n3::inputs_t::in;
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
-        , std::tuple< tagged<node::component,deep_component>
-                    , tagged<node::part_component,deep_component::parts_t::n1>
-                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2>
-                    , tagged<node::part_component,deep_component::parts_t::n1::parts_t::n2::parts_t::n3>
-                    , tagged<node::input_endpoint,deep_component::parts_t::n1::parts_t::n2::parts_t::n3::inputs_t::in>
+        , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                    , tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>
                     >
         >);
 
 auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
 static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
 static_assert(std::same_as<decltype(outputs), output_endpoints_t<accessor_test_container_t>>);
-static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_component>>);
+static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_assembly>>);
 // TODO: test the other ones as needed
 TEST_CASE("sygaldry for each X")
 {
@@ -343,7 +297,7 @@ TEST_CASE("sygaldry for each X")
     SECTION("for each component")
     {
         for_each_component(accessor_test_container, add_names);
-        REQUIRE(allnames == string("c1dpc2dp"));
+        REQUIRE(allnames == string("c1c2"));
     }
 
     SECTION("for each endpoint")
@@ -393,7 +347,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node(accessor_test_container, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 
@@ -406,7 +360,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node_in_list(list, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 
@@ -419,7 +373,7 @@ TEST_CASE("sygaldry for each X")
             if constexpr (has_name<T>) allnodes += string(entity.name());
         };
         for_each_node_in_list(list, add_node);
-        REQUIRE(allnodes == string("c1in1in2outdpdppc2in1in2outdpdpp"));
+        REQUIRE(allnodes == string("c1in1in2outc2in1in2out"));
 
     }
 }
