@@ -8,6 +8,7 @@ target_link_libraries(${lib}
         )
 target_link_libraries(sygsp INTERFACE ${lib})
 
+if(SYGALDRY_BUILD_AVENDISH)
 avnd_make_pd(TARGET ${lib}
         MAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${lib}.hpp"
         MAIN_CLASS sygaldry::sygsp::ButtonGestureModel
@@ -18,3 +19,4 @@ target_link_libraries(${lib}_pd
         PUBLIC sygah-consteval
         PUBLIC sygah-endpoints
         )
+endif()

@@ -492,9 +492,11 @@ Catch2 is used for unit testing on platforms where it can run. Other platforms
 may use a different testing methodology.
 
 ```cmake
-# @='Fetch Catch2'
+# @='include FetchContent'
 Include(FetchContent)
+# @/
 
+# @='Fetch Catch2'
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -533,6 +535,7 @@ bindings.
 
 ```cmake
 # @='fetch Avendish'
+if (NOT ESP_PLATFORM)
 FetchContent_Declare(
   avendish
   GIT_REPOSITORY "https://github.com/celtera/avendish"
@@ -543,6 +546,8 @@ FetchContent_Populate(avendish)
 
 set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
 find_package(Avendish REQUIRED)
+set(SYGALDRY_BUILD_AVENDISH 1)
+endif()
 # @/
 ```
 
@@ -782,6 +787,7 @@ project(Sygaldry)
 
 @{set SYGALDRY_ROOT}
 @{set language standard}
+@{include FetchContent}
 
 @{prepare for tests}
 

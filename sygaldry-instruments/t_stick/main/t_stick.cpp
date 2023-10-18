@@ -26,7 +26,7 @@ struct TStick
     sygse::Button<GPIO_NUM_15> button;
     sygse::OneshotAdc<33> adc;
     sygsa::TrillCraft touch;
-    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_0>
                    , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;
     sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
