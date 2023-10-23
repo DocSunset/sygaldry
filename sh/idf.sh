@@ -9,6 +9,19 @@
 
 ./sh/lili.sh || exit 1
 
+# relies on environment variables set in nix-shell shellHook
+# TODO: check that they are set reasonably and complain otherwise
+
+[ -d "$IDF_PATH" ] || {
+    git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+    pushd "$IDF_PATH"
+        git fetch -a
+        git checkout v5.1
+    popd
+    "./$IDF_PATH/install.sh"
+}
+source "$IDF_PATH/export.sh"
+
 cd "sygaldry-instruments/$1"
 shift
 idf.py $@

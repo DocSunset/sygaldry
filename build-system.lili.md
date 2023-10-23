@@ -28,7 +28,7 @@ The process, in brief, is as follows:
 [here](https://nixos.org/download), or that of your operating system
 distribution.
 2. Obtain a copy of the Sygaldry source code repository *and its submodules, recursively*,
-using `git`.
+using `git`, e.g. `git clone --recurse-submodules url-or-ssh-path/to/DocSunset/sygaldry`.
 3. Use `nix-shell` to automatically install all dependencies, run the test-suite,
 and compile instrument firmware.
 
@@ -242,15 +242,6 @@ in pkgs.stdenvNoCC.mkDerivation {
             mkdir -p ./nixenv/esp-idf-tools/
             export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
             IDF_PATH='nixenv/esp-idf'
-            [ -d "$IDF_PATH" ] || {
-                git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
-                pushd "$IDF_PATH"
-                    git fetch -a
-                    git checkout v5.1
-                popd
-                "./$IDF_PATH/install.sh"
-            }
-            source "$IDF_PATH/export.sh"
         '';
 }
 # @/
@@ -422,13 +413,11 @@ Presumably a similar tactic could be used to compile using `gcc` on a machine wh
 ### ESP32
 
 Building an ESP32 instrument is currently achieved using the normal ESP-IDF
-build tools, with the caveat that the argument `-D SYGALDRY_ROOT="..."` must be
-passed to `idf.py`, giving the directory in which the root of the Sygaldry
-repository is located. For example, the following POSIX shell script, when run
+build tools. The following POSIX shell script, when run
 from the root of the repository, would run `idf.py` for the ESP32 instrument
-located in the directory passed as the first argument to the script using the
-command passed as second argument to the script. Make sure to source the idf
-environment exports first.
+located in the directory passed as the first argument to the script, forwarding
+remaining arguments to idf.py. The script will also clone, install, and export
+the IDF if it is not already available.
 
 ```sh
 # @#'sh/idf.sh'
@@ -442,6 +431,19 @@ environment exports first.
 # SPDX-License-Identifier: MIT
 
 ./sh/lili.sh || exit 1
+
+# relies on environment variables set in nix-shell shellHook
+# TODO: check that they are set reasonably and complain otherwise
+
+[ -d "$IDF_PATH" ] || {
+    git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+    pushd "$IDF_PATH"
+        git fetch -a
+        git checkout v5.1
+    popd
+    "./$IDF_PATH/install.sh"
+}
+source "$IDF_PATH/export.sh"
 
 cd "sygaldry-instruments/$1"
 shift
