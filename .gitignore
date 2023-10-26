@@ -1,5 +1,6 @@
 build
 nixenv
+.ignore
 _build*/*
 .gdb_history
 *.o
