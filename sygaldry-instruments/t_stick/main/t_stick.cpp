@@ -7,9 +7,6 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <stdio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include "sygse-button.hpp"
 #include "sygse-adc.hpp"
 #include "sygsa-two_wire.hpp"
@@ -26,7 +23,7 @@ struct TStick
     sygse::Button<GPIO_NUM_15> button;
     sygse::OneshotAdc<33> adc;
     sygsa::TrillCraft touch;
-    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_0>
+    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                    , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;
     sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
