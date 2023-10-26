@@ -12,7 +12,10 @@
 # relies on environment variables set in nix-shell shellHook
 # TODO: check that they are set reasonably and complain otherwise
 
+echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
+
 [ -d "$IDF_PATH" ] || {
+    echo "idf.sh -- IDF_PATH '$IDF_PATH' is not a directory; installing esp-idf..."
     git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
     pushd "$IDF_PATH"
         git fetch -a

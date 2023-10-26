@@ -151,9 +151,9 @@ to clone the repository and its submodules.
 --pure`. This may take a little while the first time, while `nix` sets up the
 development environment and the `esp-idf` is installed.
 
-You are now ready to go! Run `./sh/run.sh` to compile and run the tests,
-`doxygen` to generate local documentation, `./sh/idf.sh t_stick app` to
-compile the T-Stick firmware, and so on.
+Once you reach the command prompt, you are now ready to go! Run `./sh/run.sh`
+to compile and run the tests, `doxygen` to generate local documentation,
+`./sh/idf.sh t_stick app` to compile the T-Stick firmware, and so on.
 
 Alternatively, rather than running `nix-shell --pure` to drop into the sygaldry
 development environment, you may also run `nix-shell --pure --run "..."` with a
@@ -218,14 +218,11 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.gcc13
             pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
             pkgs.cacert # required so cmake can fetch git repos like catch2
-            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.pkg-config # so cmake can find liblo
             pkgs.cmake
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
-            pkgs.boost # required by Avendish
-            pkgs.puredata # for building pd externals with Avendish
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -238,10 +235,16 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.ccache
             pkgs.dfu-util
         ];
+        buildInputs = [
+            pkgs.boost # required by Avendish
+            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
+            pkgs.puredata # for building pd externals with Avendish
+        ];
         shellHook = ''
+            sh/lili.sh
             mkdir -p ./nixenv/esp-idf-tools/
             export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
-            IDF_PATH='nixenv/esp-idf'
+            export IDF_PATH='nixenv/esp-idf'
         '';
 }
 # @/
@@ -435,7 +438,10 @@ the IDF if it is not already available.
 # relies on environment variables set in nix-shell shellHook
 # TODO: check that they are set reasonably and complain otherwise
 
+echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
+
 [ -d "$IDF_PATH" ] || {
+    echo "idf.sh -- IDF_PATH '$IDF_PATH' is not a directory; installing esp-idf..."
     git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
     pushd "$IDF_PATH"
         git fetch -a

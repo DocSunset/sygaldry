@@ -8,14 +8,11 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.gcc13
             pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
             pkgs.cacert # required so cmake can fetch git repos like catch2
-            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.pkg-config # so cmake can find liblo
             pkgs.cmake
             pkgs.doxygen
             pkgs.parallel
             pkgs.lili
-            pkgs.boost # required by Avendish
-            pkgs.puredata # for building pd externals with Avendish
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -28,9 +25,15 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.ccache
             pkgs.dfu-util
         ];
+        buildInputs = [
+            pkgs.boost # required by Avendish
+            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
+            pkgs.puredata # for building pd externals with Avendish
+        ];
         shellHook = ''
+            sh/lili.sh
             mkdir -p ./nixenv/esp-idf-tools/
             export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
-            IDF_PATH='nixenv/esp-idf'
+            export IDF_PATH='nixenv/esp-idf'
         '';
 }
