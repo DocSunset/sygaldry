@@ -8,6 +8,7 @@
 
 # SPDX-License-Identifier: MIT
 
+cd "$SYGALDRY_ROOT"
 find -iname '*.lili.md' | parallel '
     cd {//}
     generated="$(grep -m 1 -h -r -I "@#" {/} | head -n 1 | sed 's/^.*@#.//' | sed 's/.$//')"

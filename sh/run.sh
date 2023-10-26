@@ -9,7 +9,7 @@
 
 # SPDX-License-Identifier: MIT
 
-./sh/lili.sh || exit 1
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 [ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
 [ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen' # && cd _build_doxygen/latex && make pdf'
 [ -d "$dir" ] || {

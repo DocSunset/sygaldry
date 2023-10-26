@@ -215,14 +215,14 @@ let pkgs = import (fetchTarball {
 in pkgs.stdenvNoCC.mkDerivation {
         name = "sygaldry";
         nativeBuildInputs = [
-            pkgs.gcc13
-            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
+            pkgs.gcc13 # default compiler
+            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf, Pi Pico SDK
             pkgs.cacert # required so cmake can fetch git repos like catch2
             pkgs.pkg-config # so cmake can find liblo
-            pkgs.cmake
-            pkgs.doxygen
-            pkgs.parallel
-            pkgs.lili
+            pkgs.cmake # main build automation tool; required for esp-idf, Pi Pico SDK
+            pkgs.doxygen # used to build documentation website
+            pkgs.parallel # used to speed up helper scripts
+            pkgs.lili # literate programming
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -230,10 +230,14 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.flex
             pkgs.bison
             pkgs.gperf
-            pkgs.python3
-            pkgs.ninja
+            pkgs.python3 # possibly also used by Pi Pico SDK
+            pkgs.ninja # possibly also used by Pi Pico SDK
             pkgs.ccache
             pkgs.dfu-util
+
+            # additional packages required for Pi Pico SDK
+            pkgs.gcc-arm-embedded
+            pkgs.openocd
         ];
         buildInputs = [
             pkgs.boost # required by Avendish
@@ -241,10 +245,14 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.puredata # for building pd externals with Avendish
         ];
         shellHook = ''
-            sh/lili.sh
-            mkdir -p ./nixenv/esp-idf-tools/
-            export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
+            export SYGALDRY_ROOT="${toString ./.}"
+            mkdir -p "$SYGALDRY_ROOT/nixenv/"
+
+            export IDF_TOOLS_PATH="$SYGALDRY_ROOT/nixenv/esp-idf-tools"
+            mkdir -p "$IDF_TOOLS_PATH"
             export IDF_PATH='nixenv/esp-idf'
+
+            export PICO_SDK_PATH="$SYGALDRY_ROOT/nixenv/pico_sdk"
         '';
 }
 # @/
@@ -287,6 +295,7 @@ Run this script from the root of the repository.
 
 # SPDX-License-Identifier: MIT
 
+cd "$SYGALDRY_ROOT"
 find -iname '*.lili.md' | parallel '
     cd {//}
     generated="$(grep -m 1 -h -r -I "@@#" {/} | head -n 1 | sed 's/^.*@#.//' | sed 's/.$//')"
@@ -379,7 +388,7 @@ accounted for and included in `.gitignore`.
 
 # SPDX-License-Identifier: MIT
 
-./sh/lili.sh || exit 1
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 [ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
 [ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen' # && cd _build_doxygen/latex && make pdf'
 [ -d "$dir" ] || {
@@ -416,11 +425,10 @@ Presumably a similar tactic could be used to compile using `gcc` on a machine wh
 ### ESP32
 
 Building an ESP32 instrument is currently achieved using the normal ESP-IDF
-build tools. The following POSIX shell script, when run
-from the root of the repository, would run `idf.py` for the ESP32 instrument
-located in the directory passed as the first argument to the script, forwarding
-remaining arguments to idf.py. The script will also clone, install, and export
-the IDF if it is not already available.
+build tools. The following POSIX shell script would run `idf.py` for the ESP32
+instrument located in the directory passed as the first argument to the script,
+forwarding remaining arguments to idf.py. The script will also clone, install,
+and export the IDF if it is not already available.
 
 ```sh
 # @#'sh/idf.sh'
@@ -433,7 +441,7 @@ the IDF if it is not already available.
 
 # SPDX-License-Identifier: MIT
 
-./sh/lili.sh || exit 1
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 
 # relies on environment variables set in nix-shell shellHook
 # TODO: check that they are set reasonably and complain otherwise
@@ -447,11 +455,11 @@ echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
         git fetch -a
         git checkout v5.1
     popd
-    "./$IDF_PATH/install.sh"
+    "$IDF_PATH/install.sh"
 }
 source "$IDF_PATH/export.sh"
 
-cd "sygaldry-instruments/$1"
+cd "$SYGALDRY_ROOT/sygaldry-instruments/$1"
 shift
 idf.py $@@
 # @/
@@ -466,6 +474,47 @@ from the developer, but is hoped to save time overall.
 At the time of writing, Sygaldry also requires a fairly recent version of the
 ESP-IDF; an appropriate version of the framework is installed when setting up
 the development environment.
+
+## Raspberry Pi Pico SDK
+
+Building for Raspberry Pi Pico requires a copy of the Pico C/C++ SDK. The following
+POSIX shell script ensures that the SDK is available, before changing directory
+to the given instrument and invoking CMake to build the firmware for it.
+
+```sh
+# @#'sh/pico_sdk.sh'
+#!/bin/sh -e
+
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+# Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+# Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+# Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+# SPDX-License-Identifier: MIT
+
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
+
+# relies on environment variables set in nix-shell shellHook
+# TODO: check that they are set reasonably and complain otherwise
+
+echo "pico_sdk.sh -- PICO_SDK_PATH: $PICO_SDK_PATH"
+
+[ -d "$PICO_SDK_PATH" ] || {
+    echo "pico_sdk.sh -- PICO_SDK_PATH '$PICO_SDK_PATH' is not a directory; installing pico SDK..."
+    git clone https://github.com/raspberrypi/pico-sdk.git "$PICO_SDK_PATH"
+    pushd "$PICO_SDK_PATH"
+        git fetch -a
+        git checkout 1.5.1
+        git submodule update --init
+    popd
+}
+
+cd "$SYGALDRY_ROOT/sygaldry-instruments/$1"
+shift
+[ -d "_build_release" ] || CMAKE_BUILD_TYPE="RelWithDebInfo" cmake -B "_build_release" -S .
+cmake --build "_build_release" -j 4
+# @/
+```
 
 # The CMakeLists.txt
 

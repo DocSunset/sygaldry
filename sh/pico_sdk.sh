@@ -12,19 +12,19 @@
 # relies on environment variables set in nix-shell shellHook
 # TODO: check that they are set reasonably and complain otherwise
 
-echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
+echo "pico_sdk.sh -- PICO_SDK_PATH: $PICO_SDK_PATH"
 
-[ -d "$IDF_PATH" ] || {
-    echo "idf.sh -- IDF_PATH '$IDF_PATH' is not a directory; installing esp-idf..."
-    git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
-    pushd "$IDF_PATH"
+[ -d "$PICO_SDK_PATH" ] || {
+    echo "pico_sdk.sh -- PICO_SDK_PATH '$PICO_SDK_PATH' is not a directory; installing pico SDK..."
+    git clone https://github.com/raspberrypi/pico-sdk.git "$PICO_SDK_PATH"
+    pushd "$PICO_SDK_PATH"
         git fetch -a
-        git checkout v5.1
+        git checkout 1.5.1
+        git submodule update --init
     popd
-    "$IDF_PATH/install.sh"
 }
-source "$IDF_PATH/export.sh"
 
 cd "$SYGALDRY_ROOT/sygaldry-instruments/$1"
 shift
-idf.py $@
+[ -d "_build_release" ] || CMAKE_BUILD_TYPE="RelWithDebInfo" cmake -B "_build_release" -S .
+cmake --build "_build_release" -j 4

@@ -5,14 +5,14 @@ let pkgs = import (fetchTarball {
 in pkgs.stdenvNoCC.mkDerivation {
         name = "sygaldry";
         nativeBuildInputs = [
-            pkgs.gcc13
-            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
+            pkgs.gcc13 # default compiler
+            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf, Pi Pico SDK
             pkgs.cacert # required so cmake can fetch git repos like catch2
             pkgs.pkg-config # so cmake can find liblo
-            pkgs.cmake
-            pkgs.doxygen
-            pkgs.parallel
-            pkgs.lili
+            pkgs.cmake # main build automation tool; required for esp-idf, Pi Pico SDK
+            pkgs.doxygen # used to build documentation website
+            pkgs.parallel # used to speed up helper scripts
+            pkgs.lili # literate programming
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -20,10 +20,14 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.flex
             pkgs.bison
             pkgs.gperf
-            pkgs.python3
-            pkgs.ninja
+            pkgs.python3 # possibly also used by Pi Pico SDK
+            pkgs.ninja # possibly also used by Pi Pico SDK
             pkgs.ccache
             pkgs.dfu-util
+
+            # additional packages required for Pi Pico SDK
+            pkgs.gcc-arm-embedded
+            pkgs.openocd
         ];
         buildInputs = [
             pkgs.boost # required by Avendish
@@ -31,9 +35,13 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.puredata # for building pd externals with Avendish
         ];
         shellHook = ''
-            sh/lili.sh
-            mkdir -p ./nixenv/esp-idf-tools/
-            export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
+            export SYGALDRY_ROOT="${toString ./.}"
+            mkdir -p "$SYGALDRY_ROOT/nixenv/"
+
+            export IDF_TOOLS_PATH="$SYGALDRY_ROOT/nixenv/esp-idf-tools"
+            mkdir -p "$IDF_TOOLS_PATH"
             export IDF_PATH='nixenv/esp-idf'
+
+            export PICO_SDK_PATH="$SYGALDRY_ROOT/nixenv/pico_sdk"
         '';
 }
