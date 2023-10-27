@@ -203,7 +203,7 @@ TEST_CASE("sygaldry component_to_tree")
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 3.14f);
-}
+};
 TEST_CASE("sygaldry tuple head and tail")
 {
     struct {

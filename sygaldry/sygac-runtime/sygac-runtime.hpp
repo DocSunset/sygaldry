@@ -104,10 +104,13 @@ template<typename ComponentContainer>
 constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
 {
     auto tup = component_filter_by_tag<node::component>(cont);
-    return boost::mp11::tuple_transform([&](auto& tagged_component)
-    {
-        return component_runtime{tagged_component.ref, cont};
-    }, tup);
+    if constexpr (is_tuple_v<decltype(tup)>)
+        return boost::mp11::tuple_transform([&](auto& tagged_component)
+        {
+            return component_runtime{tagged_component.ref, cont};
+        }, tup);
+    // if there's only one component, `component_filter_by_tag` returns the tagged component directly
+    else return std::make_tuple(component_runtime{tup.ref, cont});
 }
 /// \}
 

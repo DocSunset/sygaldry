@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 Include(FetchContent)
 
-if (NOT ESP_PLATFORM)
+if (NOT ESP_PLATFORM AND NOT PICO_SDK)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -28,7 +28,7 @@ include(Catch)
 set(SYGALDRY_BUILD_TESTS 1)
 endif()
 
-if (NOT ESP_PLATFORM)
+if (NOT ESP_PLATFORM AND NOT PICO_SDK)
 FetchContent_Declare(
   avendish
   GIT_REPOSITORY "https://github.com/celtera/avendish"
@@ -44,8 +44,20 @@ endif()
 
 add_subdirectory(dependencies/pfr)
 add_subdirectory(dependencies/mp11)
-set(EIGEN_BUILD_TESTING FALSE)
-add_subdirectory(dependencies/eigen)
+if(PICO_SDK)
+    # on Raspberry Pi Pico SDK, the upsteam Eigen3 cmake trips an error,
+    # see https://gitlab.com/libeigen/eigen/-/issues/2740
+    # for now, we work around this by manually defining the Eigen library with
+    # a compatible name, alias, etc.
+    set ( EIGEN_DEFINITIONS "")
+    add_library (eigen INTERFACE)
+    add_library (Eigen3::Eigen ALIAS eigen)
+    target_compile_definitions (eigen INTERFACE ${EIGEN_DEFINITIONS})
+    target_include_directories (eigen INTERFACE $ENV{SYGALDRY_ROOT}/dependencies/eigen)
+else()
+    set(EIGEN_BUILD_TESTING FALSE)
+    add_subdirectory(dependencies/eigen)
+endif()
 
 add_library(sygaldry INTERFACE)
 
@@ -139,11 +151,11 @@ add_library(sygbp INTERFACE)
     target_link_libraries(sygbp INTERFACE sygbp-session_data)
                 add_subdirectory(sygaldry/sygbp-spelling)
     target_link_libraries(sygbp INTERFACE sygbp-spelling)
+                add_subdirectory(sygaldry/sygbp-test_component)
+    target_link_libraries(sygbp INTERFACE sygbp-test_component)
     if (SYGALDRY_BUILD_TESTS)
                     add_subdirectory(sygaldry/sygbp-test_reader)
         target_link_libraries(sygbp INTERFACE sygbp-test_reader)
-                    add_subdirectory(sygaldry/sygbp-test_component)
-        target_link_libraries(sygbp INTERFACE sygbp-test_component)
     endif()
 target_link_libraries(sygaldry INTERFACE sygbp)
 
@@ -160,6 +172,13 @@ add_library(sygbe INTERFACE)
     target_link_libraries(sygbe INTERFACE sygbe-wifi)
 
 target_link_libraries(sygaldry INTERFACE sygbe)
+endif()
+
+if (PICO_SDK)
+add_library(sygbr INTERFACE)
+                add_subdirectory(sygaldry/sygbr-runtime)
+    target_link_libraries(sygbr INTERFACE sygbr-runtime)
+target_link_libraries(sygaldry INTERFACE sygbr)
 endif()
 
 add_library(sygup INTERFACE)
