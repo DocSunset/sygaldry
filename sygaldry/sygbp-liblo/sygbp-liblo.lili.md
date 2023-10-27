@@ -672,7 +672,6 @@ using std::string;
 
 using namespace sygaldry;
 using namespace sygaldry::sygbp;
-using namespace sygaldry::components;
 
 @{tests}
 // @/

@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace sygbp {
 ///\addtogroup sygbp
 ///\{
 ///\defgroup sygbp-test_component sygbp-test_component: Bindings Test Component

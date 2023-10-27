@@ -105,7 +105,7 @@ struct TestComponents
 {
     Component1 cpt1;
     Component2 cpt2;
-    sygaldry::components::TestComponent tc;
+    sygaldry::sygbp::TestComponent tc;
 };
 
 struct CliCommands

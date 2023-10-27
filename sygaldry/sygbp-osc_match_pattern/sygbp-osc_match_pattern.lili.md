@@ -542,7 +542,7 @@ add_library(${lib} STATIC)
     target_include_directories(${lib} PUBLIC .)
 target_link_libraries(sygbp INTERFACE ${lib})
 
-if (CMAKE_BUILD_TYPE)
+if(SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(${lib}-test PRIVATE ${lib})

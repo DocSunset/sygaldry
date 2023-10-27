@@ -11,7 +11,7 @@ add_library(${lib} INTERFACE)
             )
 target_link_libraries(sygbp INTERFACE ${lib})
 
-if (CMAKE_BUILD_TYPE)
+if(SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test
         PRIVATE Catch2::Catch2WithMain

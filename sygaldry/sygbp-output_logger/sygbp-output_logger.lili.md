@@ -48,7 +48,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
 
 struct TestComponents
 {
-    sygaldry::components::TestComponent tc;
+    sygaldry::sygbp::TestComponent tc;
 };
 
 TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
@@ -107,7 +107,7 @@ add_library(${lib} INTERFACE)
             )
 target_link_libraries(sygbp INTERFACE ${lib})
 
-if (CMAKE_BUILD_TYPE)
+if(SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test
         PRIVATE Catch2::Catch2WithMain
