@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
 #include "sygbe-spiffs.hpp"
 #include "sygbe-wifi.hpp"
 #include "sygbp-liblo.hpp"
-#include "sygbp-cli.hpp"
+#include "sygbp-cstdio_cli.hpp"
 
 namespace sygaldry { namespace sygbe {
 

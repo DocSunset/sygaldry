@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "sygac-runtime.hpp"
+#include "sygbr-cli.hpp"
 
 namespace sygaldry { namespace sygbr {
 
@@ -42,7 +43,7 @@ struct PicoSDKInstrument
         };
         //sygbr::FlashSessionStorage<Components> session_storage;
         Components components;
-        //sygbp::CstdioCli<Components> cli;
+        PicoCli<Components> cli;
     };
 
     static inline Instrument instrument{};
@@ -67,8 +68,7 @@ struct PicoSDKInstrument
                 gpio_put(LED_PIN, 0);
                 sleep_ms(250);
                 gpio_put(LED_PIN, 1);
-                puts("Hello World\n");
-                sleep_ms(1000);
+                sleep_ms(250);
         }
     }
 };

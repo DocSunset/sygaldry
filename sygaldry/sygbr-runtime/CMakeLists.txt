@@ -10,3 +10,6 @@ target_link_libraries(${lib}
         #INTERFACE sygbp-liblo
         #INTERFACE sygbp-cli
         )
+#target_compile_definitions(${lib} INTERFACE
+#        PICO_STDIO_DEFAULT_CRLF=0
+#        )

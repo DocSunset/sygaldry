@@ -178,6 +178,8 @@ if (PICO_SDK)
 add_library(sygbr INTERFACE)
                 add_subdirectory(sygaldry/sygbr-runtime)
     target_link_libraries(sygbr INTERFACE sygbr-runtime)
+                add_subdirectory(sygaldry/sygbr-cli)
+    target_link_libraries(sygbr INTERFACE sygbr-cli)
 target_link_libraries(sygaldry INTERFACE sygbr)
 endif()
 
