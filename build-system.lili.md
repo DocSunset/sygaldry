@@ -782,6 +782,13 @@ if (ESP_PLATFORM)
     target_link_libraries(sygaldry INTERFACE sygsa)
 endif()
 
+if (PICO_SDK)
+    add_library(sygsr INTERFACE)
+                    add_subdirectory(sygaldry/sygsr-button)
+        target_link_libraries(sygsr INTERFACE sygsr-button)
+    target_link_libraries(sygaldry INTERFACE sygsr)
+endif()
+
 add_library(sygbp INTERFACE)
                 add_subdirectory(sygaldry/sygbp-cstdio_reader)
     target_link_libraries(sygbp INTERFACE sygbp-cstdio_reader)

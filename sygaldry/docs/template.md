@@ -16,7 +16,7 @@ Remember to add your new component to the top level CMakeLists.txt!
 I repeat: Remember to add your new component to the top level CMakeLists.txt!
 
 ```cpp
-// @#'sygXX-newcomponent.hpp'
+// @#'sygXX-new_component.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
@@ -31,11 +31,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygXX {
 
-/// \addtogroup syXX
+/// \addtogroup sygXX
 /// \{
 
-/// \defgroup sygXX-newcomponent sygXX-newcomponent: New Component
-/// Literate source code: page-sygXX-newcomponent
+/// \defgroup sygXX-new_component sygXX-new_component: New Component
+/// Literate source code: page-sygXX-new_component
 /// \{
 
 /*! \brief brief doc
@@ -61,7 +61,7 @@ struct NewComponent
 
     /// brief doc
     void main();
-}
+};
 
 /// \}
 /// \}
@@ -71,7 +71,7 @@ struct NewComponent
 ```
 
 ```cpp
-// @#'sygXX-newcomponent.cpp'
+// @#'sygXX-new_component.cpp'
 /*
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -80,7 +80,7 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
-#include "sygXX-newcomponent.hpp"
+#include "sygXX-new_component.hpp"
 
 namespace sygaldry { namespace sygXX {
 
@@ -97,9 +97,9 @@ void NewComponent::main()
 ```
 
 ```cpp
-// @#'sygXX-newcomponent.test.cpp'
+// @#'sygXX-new_component.test.cpp'
 #include <catch2/catch_test_macros.hpp>
-#include "sygXX-newcomponent.hpp"
+#include "sygXX-new_component.hpp"
 
 using namespace sygaldry;
 using namespace sygaldry::sygXX;
@@ -110,13 +110,13 @@ using namespace sygaldry::sygXX;
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygXX-newcomponent)
+set(lib sygXX-new_component)
 add_library(${lib} STATIC)
 target_sources(${lib} PRIVATE ${lib}.cpp)
 target_include_directories(${lib} PUBLIC .)
 target_link_libraries(${lib}
         PUBLIC sygah-endpoints
-        PUBLIC sygaldry-helpers-metadata
+        PUBLIC sygah-metadata
         )
 
 if (SYGALDRY_BUILD_TESTS)
