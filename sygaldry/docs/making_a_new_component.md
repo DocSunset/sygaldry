@@ -153,7 +153,7 @@ and build (`CMakeLists.txt`) the component. This literate source file is placed
 in a directory `sygaldry/sygXX-component_name` in the Sygaldry repository;
 `sygXX` is the identifier of the package group that the component is part of
 (e.g. `sygsp`), and `sygXX-component_name` is the software component
-identifier. This directory is added to `build-system.lili.md` with a call to
+identifier. This directory is added to \ref page-docs-build_system with a call to
 `add_subdirectory`, and the added `cmake` library is linked into the
 appropriate submodule of the Sygaldry library.
 

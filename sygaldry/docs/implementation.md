@@ -101,3 +101,7 @@ adopted throughout the project.
 - \subpage page-sygac-metadata
 - \subpage page-sygac-mimu
 - \subpage page-sygac-functions
+
+## Infrastructure
+
+- \subpage page-docs-build_system

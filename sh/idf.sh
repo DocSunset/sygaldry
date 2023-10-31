@@ -9,9 +9,9 @@
 
 "$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 
-# relies on environment variables set in nix-shell shellHook
-# TODO: check that they are set reasonably and complain otherwise
-
+export IDF_TOOLS_PATH="$SYGALDRY_ROOT/nixenv/esp-idf-tools"
+mkdir -p "$IDF_TOOLS_PATH"
+export IDF_PATH="$SYGALDRY_ROOT/nixenv/esp-idf"
 echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
 
 [ -d "$IDF_PATH" ] || {

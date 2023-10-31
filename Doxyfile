@@ -944,8 +944,9 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = ./README.md\
+                         ./LICENSE.md\
                          ./sygaldry/docs/design_concepts.md\
-                         ./build-system.lili.md\
+                         ./sygaldry/docs/developer_setup.md\
                          ./sygaldry/docs/making_a_new_instrument.md\
                          ./sygaldry/docs/making_a_new_component.md\
                          ./sygaldry/docs/contributing.md\

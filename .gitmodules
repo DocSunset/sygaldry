@@ -16,6 +16,3 @@
 [submodule "dependencies/Trill-Arduino"]
 	path = dependencies/Trill-Arduino
 	url = https://github.com/BelaPlatform/Trill-Arduino.git
-[submodule "dependencies/eigen"]
-	path = dependencies/eigen
-	url = https://gitlab.com/libeigen/eigen.git

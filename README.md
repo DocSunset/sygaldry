@@ -170,9 +170,9 @@ Depending on your goals, consider starting with one of the following documents
 - [Design concepts](\ref page-docs-design_concepts). This document
   describes the conceptual framework of the project and serves as a glossary of
   important terms used throughout.
-- [Setting up the development environment](\ref page-docs-build_system). This is necessary for compiling firmware
-  and contributing new components and instruments to the project. All users should
-  eventually start here.
+- [Setting up the development environment](\ref page-docs-developer_setup).
+  This is necessary for compiling firmware and contributing new components and
+  instruments to the project. All users should eventually start here.
 - \ref page-sygin-making_a_new_instrument.
 - \ref page-docs-replicating_an_existing_instrument. TODO.
 - \ref page-docs-making_a_new_component.

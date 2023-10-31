@@ -1,3 +1,18 @@
+\page page-sh-pico_sdk sh/pico_sdk.sh Raspberry Pi Pico SDK Convenience Script
+
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+
+Building for Raspberry Pi Pico requires a copy of the Pico C/C++ SDK. The following
+POSIX shell script ensures that the SDK is available, before changing directory
+to the given instrument and invoking CMake to build the firmware for it.
+
+```sh
+# @#'pico_sdk.sh'
 #!/bin/sh -e
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -26,3 +41,5 @@ cd "$SYGALDRY_ROOT/sygaldry-instruments/$1"
 shift
 [ -d "_build_release" ] || CMAKE_BUILD_TYPE="RelWithDebInfo" cmake -B "_build_release" -S .
 cmake --build "_build_release" -j 4
+# @/
+```

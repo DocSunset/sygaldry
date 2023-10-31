@@ -15,49 +15,31 @@ set(CMAKE_CXX_EXTENSIONS Off)
 Include(FetchContent)
 
 if (NOT ESP_PLATFORM AND NOT PICO_SDK)
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.3.2 # or a later release
-)
-
-FetchContent_MakeAvailable(Catch2)
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-include(CTest)
-include(Catch)
-set(SYGALDRY_BUILD_TESTS 1)
+    find_package(Catch2 3 REQUIRED)
+    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+    include(CTest)
+    include(Catch)
+    set(SYGALDRY_BUILD_TESTS 1)
 endif()
 
 if (NOT ESP_PLATFORM AND NOT PICO_SDK)
-FetchContent_Declare(
-  avendish
-  GIT_REPOSITORY "https://github.com/celtera/avendish"
-  GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
-  GIT_PROGRESS true
-)
-FetchContent_Populate(avendish)
+    FetchContent_Declare(
+      avendish
+      GIT_REPOSITORY "https://github.com/celtera/avendish"
+      GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
+      GIT_PROGRESS true
+    )
+    FetchContent_Populate(avendish)
 
-set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
-find_package(Avendish REQUIRED)
-set(SYGALDRY_BUILD_AVENDISH 1)
+    set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
+    find_package(Avendish REQUIRED)
+    set(SYGALDRY_BUILD_AVENDISH 1)
 endif()
 
 add_subdirectory(dependencies/pfr)
 add_subdirectory(dependencies/mp11)
-if(PICO_SDK)
-    # on Raspberry Pi Pico SDK, the upsteam Eigen3 cmake trips an error,
-    # see https://gitlab.com/libeigen/eigen/-/issues/2740
-    # for now, we work around this by manually defining the Eigen library with
-    # a compatible name, alias, etc.
-    set ( EIGEN_DEFINITIONS "")
-    add_library (eigen INTERFACE)
-    add_library (Eigen3::Eigen ALIAS eigen)
-    target_compile_definitions (eigen INTERFACE ${EIGEN_DEFINITIONS})
-    target_include_directories (eigen INTERFACE $ENV{SYGALDRY_ROOT}/dependencies/eigen)
-else()
-    set(EIGEN_BUILD_TESTING FALSE)
-    add_subdirectory(dependencies/eigen)
-endif()
+find_package(Eigen3 3.4 REQUIRED NO_MODULE) # https://eigen.tuxfamily.org/dox/TopicCMakeGuide.html
+find_package(RapidJSON)
 
 add_library(sygaldry INTERFACE)
 
