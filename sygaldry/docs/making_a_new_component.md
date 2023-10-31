@@ -29,10 +29,10 @@ component, it should be placed within the top level `sygaldry` namespace. To
 encapsulate the new component and avoid name collisions, it should be further
 placed in an appropriate package namespace depending on what the component
 implements and the platform-portability of the implementation. We will use the
-example namespace `sygXY`
+example namespace `sygXX`
 
 ```cpp
-namespace sygaldry { namespace sygXY {
+namespace sygaldry { namespace sygXX {
 
 struct NewComponent
 : // metadata helpers here
@@ -73,7 +73,7 @@ copyright of the component, as seen in the following example:
 ```cpp
 #include "sygah-metadata.hpp"
 
-namespace sygaldry { namespace sygXY {
+namespace sygaldry { namespace sygXX {
 
 struct NewComponent
 : name_<"COMPONENT NAME HERE">
@@ -147,28 +147,141 @@ the component.
 # Physical Anatomy of a Component
 
 Physically, Sygaldry components are implemented as software components with a
-uniform layout. A single `sygXY-component_name.lili.md` literate source file
+uniform layout. A single `sygXX-component_name.lili.md` literate source file
 generates all of the machine code required to declare (`hpp`), define (`cpp`),
 and build (`CMakeLists.txt`) the component. This literate source file is placed
-in a directory `sygaldry/sygXY-component_name` in the Sygaldry repository;
-`sygXY` is the identifier of the package group that the component is part of
-(e.g. `sygsp`), and `sygXY-component_name` is the software component
+in a directory `sygaldry/sygXX-component_name` in the Sygaldry repository;
+`sygXX` is the identifier of the package group that the component is part of
+(e.g. `sygsp`), and `sygXX-component_name` is the software component
 identifier. This directory is added to `build-system.lili.md` with a call to
 `add_subdirectory`, and the added `cmake` library is linked into the
 appropriate submodule of the Sygaldry library.
 
-# Documentation
+\warning This last step is particularly important and pesky. If you forget to
+add your new component to the top level build files, then it will not compile,
+and you will not be able to include it in instruments or other components.
+Attempting to do so will cause a compiler error to the effect that the header
+file for your component could not be found, and/or a CMake error to the effect
+that the library target for your component does not exist. Remember to add your
+component to the build!
+
+# Literate Anatomy of a Component
 
 Literate programming is a fundamental part of the Sygaldry project. Every component
 should be implemented in a literate source file using `lili` annotations to allow
-the machine code to be extracted.
+the machine code to be extracted, include `doxygen` documentation, and have a
+copyright and license statement.
+
+## Literate Programming with lili
+
+`lili` is a simple literate programming tool that allows machine code to be
+embedded in a document in any order, and later extracted for compilation.
+This is accomplished by annotating the document with simple command strings
+that allow the machine code to be identified and reassembled in order.
+
+There are three basic `lili` annotations that most authors will want to use,
+two for delimiting chunks of code, and one for invoking a chunk of code defined
+elsewhere.
+
+For more documentation on `lili`, run `lili -h` from the nix shell environment,
+or review [`lili`'s literate source code](https://github.com/DocSunset/lili).
+
+### Chunk definitions
+
+A basic code chunk definition looks like this:
+
+```cpp
+// @='chunk name'
+
+/* body of code chunk here */
+
+// @/
+```
+
+The sequence of characters `@=` followed by a name in quotes is recognized by
+`lili` as the start of a code chunk with the given name. Anything on the line
+before the `@` or after the name is ignored. Typically, this line is commented
+out in the machine source language (C++ above), but this is purely aesthetic.
+The entire line will never appear in the extracted machine code.
+
+The sequence `@/` is used to mark the end of the code chunk. As with the start
+of the chunk, anything else on the line where `@/` appears is ignored. By
+convention, we comment out this line in the source language.
+
+Within the document where the code chunk is defined, the chunk is always
+wrapped in appropriate code-fencing syntax so that it will be syntax
+highlighted when the documentation website is generated.
+
+### Chunk invocations
+
+When a chunk is defined anywhere in a document with `@='name'` and `@/`, it can
+be invoked in another chunk definition with the sequence `@{name}`. This has
+the effect of pasting the chunk in the location of the invocation. Whatever
+characters preceed the `@` of the invocation are taken to be indentation, and
+every line of the pasted chunk will have this indentation prepended to it.
+
+So if we have a chunk:
+
+```cpp
+// @='child chunk'
+i += 5;
+// @/
+```
+
+And we invoke it:
+
+```cpp
+// @='parent chunk'
+int i = 0;
+int j = 0;
+while (i < 20)
+{
+    ++j;
+    @{child chunk}
+}
+printf("%d\n", j);
+// @/
+```
+
+This should print `4`.
+
+\warning Note that it is only allowed to invoke a chunk once. This is a
+deliberate constraint on the design of `lili` to prevent "code reuse by copy
+and paste" usage idioms.
+
+### Tangle chunks
+
+The above definition and invocation commands allow the machine code to be
+presented in arbitrary order, not limited by the semantics of the compiler.
+This enables the author absolute flexibility over the presentation of the
+code so that they can describe the code in whatever way is hoped to be most
+clear to other human readers.
+
+The last commonly needed command is used to define a machine code document that
+should be extracted from the documentation. It works in the same way as a
+regular code chunk definition, but using the sequence `@#` instead of `@=`. The
+name of the chunk it taken to be a filename. When `lili` is run, the text of
+the chunk thus defined, with any chunk invocations expanded recursively, will
+be written to a file with that name, in the same directory as the `lili` source
+file. This process is called "tangling" the machine source, which by analogy
+exists in an un-tangled state woven through the literate source prose.
+
+## Doxygen Documentation
 
 As well as the literate source code, components should be further annotated
 with `doxygen` comments. Components should also be nested within appropriate
 `doxygen` groups corresponding to their package namespace and software
 component identifier. Components should also have a `doxygen` `\page` command
-at the top of the file, where the page name is `page-sygXY-component_name`, i.e.
-the software component identifier prepended with `page-`.
+at the top of the file, where the page name is `page-sygXX-component_name`,
+i.e. the software component identifier prepended with `page-`, and the title of
+the page begins with the software component identifier, as in
+`sygXX-component_name: Page Title`. The page title is often simply the name of
+the component. While this is all terribly redundant, it's necessary so that the
+documentation website will include the software component identifier in the
+page title so that users reading the documentation can unambiguously make this
+important association.
+
+## Copyright and License Text
 
 Finally, all source files (both literate and machine) must have a copyright
 statement and license identifier at the top of the file, as seen in all
@@ -176,44 +289,10 @@ documents in the repository. Contributors are welcome to use whatever license
 they feel is appropriate, although MIT is encouraged for consistency when
 allowed.
 
-```cpp
-\page page-sygXY-component_name
-
-namespace sygaldry { namespace sygXY {
-
-/// \addtogroup sygsp
-/// \{
-
-/// \defgroup sygXY-component_name sygXY-component_name: Component Name
-/// Literate source code: page-sygXY-component_name
-/// \{
-
-/*! Brief desxcription
-
-Detailed description
-*/
-struct NewComponent
-{
-    // ...
-
-    /*! Subroutine description
-
-    detailed description
-
-    \param[in,out] p param documentation
-    etc
-    */
-    void main(int p) { /* ... */ }
-};
-
-/// \}
-/// \}
-
-} }
-```
-
 # Template
 
 A template file for a new component is provided viewable [here](\ref page-sygXX-new_component).
+This provides an example of the logical, physical, and literate design
+of a component.
 
 \subpage page-sygXX-new_component

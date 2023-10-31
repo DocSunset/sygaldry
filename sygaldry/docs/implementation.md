@@ -48,6 +48,10 @@ adopted throughout the project.
 - \subpage page-sygse-gpio
 - \subpage page-sygse-trill
 
+### Raspberry Pi Pico SDK
+
+- \subpage page-sygsr-button
+
 ## Utility Components
 
 - \subpage page-sygup-basic_logger
@@ -75,6 +79,11 @@ adopted throughout the project.
 - \subpage page-sygbe-libmapper_arduino
 - \subpage page-sygbe-spiffs
 - \subpage page-sygbe-wifi
+
+### Raspberry Pi Pico SDK
+
+- \subpage page-sygbr-runtime
+- \subpage page-sygbr-cli
 
 ## Helpers
 
