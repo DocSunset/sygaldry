@@ -7,6 +7,7 @@ in pkgs.stdenvNoCC.mkDerivation {
         nativeBuildInputs = [ # dependencies at build time
             pkgs.gcc13 # default compiler
             pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf, Pi Pico SDK
+            pkgs.openssh # for convenience and in case the user uses ssh for git auth
             pkgs.cacert # required so cmake can fetch git repos like catch2
             pkgs.pkg-config # so cmake can find liblo
             pkgs.cmake # main build automation tool; required for esp-idf, Pi Pico SDK
