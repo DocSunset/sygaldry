@@ -271,6 +271,8 @@ if (PICO_SDK)
     add_library(sygsr INTERFACE)
                     add_subdirectory(sygaldry/sygsr-button)
         target_link_libraries(sygsr INTERFACE sygsr-button)
+add_subdirectory(sygaldry/sygsr-adc)
+target_link_libraries(sygsr INTERFACE sygsr-adc)
     target_link_libraries(sygaldry INTERFACE sygsr)
 endif()
 

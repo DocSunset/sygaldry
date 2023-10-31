@@ -14,7 +14,10 @@ implemented as reusable software components. Many new designs will require new
 components to be implemented, e.g. to interface with sensors that aren't
 already supported by the library, to add new binding protocols, and so on.
 
-A template for a new component can be found [here](\ref page-sygXX-new_component).
+The skeleton of a new component can be automatically generated with \ref page-sh-new_component.
+Run the script in the build environment to get started. After generating the
+skeleton, continue with the rest of this document for more information on
+the rationale behind the design of a Sygaldry component.
 
 # Logical Anatomy of a Component
 
@@ -288,11 +291,3 @@ statement and license identifier at the top of the file, as seen in all
 documents in the repository. Contributors are welcome to use whatever license
 they feel is appropriate, although MIT is encouraged for consistency when
 allowed.
-
-# Template
-
-A template file for a new component is provided viewable [here](\ref page-sygXX-new_component).
-This provides an example of the logical, physical, and literate design
-of a component.
-
-\subpage page-sygXX-new_component

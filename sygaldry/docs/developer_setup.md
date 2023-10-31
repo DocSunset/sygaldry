@@ -169,6 +169,8 @@ environment.
     - Run `lili` on each literate source file that has been update, regenerating tangled machine code
 - \subpage page-sh-test
     - Compile and run tests for portable components.
+- \subpage page-sh-new_component
+    - Automatically generate the skeleton of a new component. See \ref page-docs-making_a_new_component for more details.
 - \subpage page-sh-update_docs
     - Update the doxygen documentation website repository
 - \subpage page-sh-idf
