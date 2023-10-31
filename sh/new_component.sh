@@ -68,18 +68,35 @@ echo "FULL_AUTHOR is '$FULL_AUTHOR'"
 echo "LICENSE is '$LICENSE'"
 
 build_system_source="$SYGALDRY_ROOT/build-system.lili.md"
+implementation_docs="$SYGALDRY_ROOT/sygaldry/docs/implementation.md"
 component_dir="$SYGALDRY_ROOT/sygaldry/$COMPONENT"
-[ -d "$component_dir" ] && { echo "Directory '$component_dir' already exists! Aborting." ; exit 1 ; }
-[ grep "$COMPONENT" "$build_system_source" ] && { echo "Component already added to build automation! Aborting." ; exit 1 ; }
+[ -d "$component_dir" ] &&
+    { echo "Directory '$component_dir' already exists! Aborting." ; exit 1 ; }
+[ -f "$build_system_source" ] ||
+    { echo "Build system source file not located at '$build_system_source'! Aborting." ; exit 1 ; }
+grep -sq "$PACKAGE" "$build_system_source" ||
+    { echo "Package $PACKAGE not found in build automation! Aborting." ; exit 1 ; }
+grep -sq "$COMPONENT" "$build_system_source" &&
+    { echo "Component already added to build automation! Aborting." ; exit 1 ; }
+[ -f "$implementation_docs" ] ||
+    { echo "Implementation documentation file not located at '$implementation_docs'! Aborting." ; exit 1 ; }
+grep -sq "\($PACKAGE\)" "$implementation_docs" ||
+    { echo "Package $PACKAGE not found in implementation documentation! Aborting." ; exit 1 ; }
+grep -sq "$COMPONENT" "$implementation_docs" &&
+    { echo "Component already added to implementation docs! Aborting." ; exit 1 ; }
 
 echo "making directory '$component_dir'..."
 mkdir "$component_dir"
 
 echo "adding component to build automation..."
-sed -i -e "\Starget_link_libraries(sygaldry INTERFACE $PACKAGE)Siadd_subdirectory(sygaldry/$COMPONENT)\ntarget_link_libraries(sygsr INTERFACE $COMPONENT)" "$build_system_source"
+sed -e "/target_link_libraries(sygaldry INTERFACE $PACKAGE)/iadd_subdirectory(sygaldry/$COMPONENT)\ntarget_link_libraries(sygsr INTERFACE $COMPONENT)" "$build_system_source"
+
+echo "adding component to implementation documentation..."
+sed -e '/('"$PACKAGE"')/a- \\subpage page-'"$COMPONENT" "$implementation_docs"
 
 echo "populating literate source..."
-cat << COMPONENT_LILI_MD > "$component_dir/$COMPONENT.lili.md"
+#"$component_dir/$COMPONENT.lili.md"
+cat << COMPONENT_LILI_MD > /dev/null
 \page page-$COMPONENT $COMPONENT: $TITLE
 
 $COPYRIGHT
@@ -176,20 +193,20 @@ using namespace sygaldry::$PACKAGE;
 \`\`\`cmake
 # @#'CMakeLists.txt'
 set(lib $COMPONENT)
-add_library(${lib} STATIC)
-target_sources(${lib} PRIVATE ${lib}.cpp)
-target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib}
+add_library(\${lib} STATIC)
+target_sources(\${lib} PRIVATE \${lib}.cpp)
+target_include_directories(\${lib} PUBLIC .)
+target_link_libraries(\${lib}
         PUBLIC sygah-endpoints
         PUBLIC sygah-metadata
         )
 
 if (SYGALDRY_BUILD_TESTS)
-add_executable(${lib}-test ${lib}.test.cpp)
-target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
-target_link_libraries(${lib}-test PRIVATE ${lib})
-#target_link_libraries(${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
-catch_discover_tests(${lib}-test)
+add_executable(\${lib}-test \${lib}.test.cpp)
+target_link_libraries(\${lib}-test PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(\${lib}-test PRIVATE \${lib})
+#target_link_libraries(\${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
+catch_discover_tests(\${lib}-test)
 endif()
 # @/
 \`\`\`
@@ -197,7 +214,3 @@ COMPONENT_LILI_MD
 
 echo "tangling machine code..."
 lili.sh
-echo "staging changes..."
-git add "$component_dir"
-git add "$build_system_source"
-git add "$SYGALDRY_ROOT/CMakeLists.txt"

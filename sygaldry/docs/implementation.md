@@ -14,17 +14,15 @@ reader's understanding of the code. For more detailed documentation of the
 library than the reference documentation provides, the literate sources are
 the authoritative source on the behavior of the library.
 
-See also \ref page-docs-contributing for information on the coding conventions
-adopted throughout the project.
+See also \ref page-docs-contributing and \ref page-docs-making_a_new_component
+for information on the coding conventions adopted throughout the project.
 
 ## Instruments
-
 - \subpage page-sygin-t_stick
 
 ## Sensors
 
-### Portable
-
+### Portable (sygsp)
 - \subpage page-sygsp-arduino_hack
 - \subpage page-sygsp-button
 - \subpage page-sygsp-delay
@@ -33,13 +31,11 @@ adopted throughout the project.
 - \subpage page-sygsp-icm20948
 - \subpage page-sygsp-complementary_mimu_fusion
 
-### Arduino
-
+### Arduino (sygsa)
 - \subpage page-sygsa-trill_craft
 - \subpage page-sygsa-two_wire
 
-### ESP32
-
+### ESP-IDF (sygse)
 - \subpage page-sygse-adc
 - \subpage page-sygse-arduino_hack
 - \subpage page-sygse-micros
@@ -48,20 +44,18 @@ adopted throughout the project.
 - \subpage page-sygse-gpio
 - \subpage page-sygse-trill
 
-### Raspberry Pi Pico SDK
-
+### Raspberry Pi Pico SDK (sygsr)
 - \subpage page-sygsr-button
+- \subpage page-sygsr-adc
 
-## Utility Components
-
+## Utility Components (sygup)
 - \subpage page-sygup-basic_logger
 - \subpage page-sygup-cstdio_logger
 - \subpage page-sygup-debug_printer
 
 ## Bindings
 
-### Platform Independent
-
+### Portable (sygbp)
 - \subpage page-sygbp-cli
 - \subpage page-sygbp-basic_reader
 - \subpage page-sygbp-spelling
@@ -73,28 +67,24 @@ adopted throughout the project.
 - \subpage page-sygbp-output_logger
 - \subpage page-sygbp-cstdio_reader
 
-### ESP32
-
+### ESP-IDF (sygbe)
 - \subpage page-sygbe-runtime
 - \subpage page-sygbe-libmapper_arduino
 - \subpage page-sygbe-spiffs
 - \subpage page-sygbe-wifi
 
-### Raspberry Pi Pico SDK
-
+### Raspberry Pi Pico SDK (sygbr)
 - \subpage page-sygbr-runtime
 - \subpage page-sygbr-cli
 
-## Helpers
-
+## Helpers (sygah)
 - \subpage page-sygah-string_literal
 - \subpage page-sygah-metadata
 - \subpage page-sygah-endpoints
 - \subpage page-sygah-mimu
 - \subpage page-sygah-consteval
 
-## Concepts
-
+## Concepts (sygac)
 - \subpage page-sygac-runtime
 - \subpage page-sygac-components
 - \subpage page-sygac-endpoints
@@ -103,5 +93,4 @@ adopted throughout the project.
 - \subpage page-sygac-functions
 
 ## Infrastructure
-
 - \subpage page-docs-build_system
