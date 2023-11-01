@@ -67,17 +67,10 @@ echo "AUTHOR is '$AUTHOR'"
 echo "FULL_AUTHOR is '$FULL_AUTHOR'"
 echo "LICENSE is '$LICENSE'"
 
-build_system_source="$SYGALDRY_ROOT/build-system.lili.md"
 implementation_docs="$SYGALDRY_ROOT/sygaldry/docs/implementation.md"
 component_dir="$SYGALDRY_ROOT/sygaldry/$COMPONENT"
 [ -d "$component_dir" ] &&
     { echo "Directory '$component_dir' already exists! Aborting." ; exit 1 ; }
-[ -f "$build_system_source" ] ||
-    { echo "Build system source file not located at '$build_system_source'! Aborting." ; exit 1 ; }
-grep -sq "$PACKAGE" "$build_system_source" ||
-    { echo "Package $PACKAGE not found in build automation! Aborting." ; exit 1 ; }
-grep -sq "$COMPONENT" "$build_system_source" &&
-    { echo "Component already added to build automation! Aborting." ; exit 1 ; }
 [ -f "$implementation_docs" ] ||
     { echo "Implementation documentation file not located at '$implementation_docs'! Aborting." ; exit 1 ; }
 grep -sq "\($PACKAGE\)" "$implementation_docs" ||
@@ -88,15 +81,12 @@ grep -sq "$COMPONENT" "$implementation_docs" &&
 echo "making directory '$component_dir'..."
 mkdir "$component_dir"
 
-echo "adding component to build automation..."
-sed -e "/target_link_libraries(sygaldry INTERFACE $PACKAGE)/iadd_subdirectory(sygaldry/$COMPONENT)\ntarget_link_libraries(sygsr INTERFACE $COMPONENT)" "$build_system_source"
-
 echo "adding component to implementation documentation..."
-sed -e '/('"$PACKAGE"')/a- \\subpage page-'"$COMPONENT" "$implementation_docs"
+sed -i -e '/('"$PACKAGE"')/a- \\subpage page-'"$COMPONENT" "$implementation_docs"
 
 echo "populating literate source..."
-#"$component_dir/$COMPONENT.lili.md"
-cat << COMPONENT_LILI_MD > /dev/null
+
+cat << COMPONENT_LILI_MD > "$component_dir/$COMPONENT.lili.md"
 \page page-$COMPONENT $COMPONENT: $TITLE
 
 $COPYRIGHT

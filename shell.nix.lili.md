@@ -68,6 +68,7 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.cmake # main build automation tool; required for esp-idf, Pi Pico SDK
             pkgs.doxygen # used to build documentation website
             pkgs.parallel # used to speed up helper scripts
+            pkgs.bc # used in helper scripts
             pkgs.lili # literate programming
 
             # additional packages required for esp-idf
@@ -87,7 +88,6 @@ in pkgs.stdenvNoCC.mkDerivation {
         ];
         buildInputs = [ # dependencies at run time
             pkgs.catch2_3 # unit test library for portable tests
-            pkgs.eigen # portable linear algebra library
             pkgs.boost # required by Avendish
             pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.puredata # for building pd externals with Avendish

@@ -45,8 +45,8 @@ for information on the coding conventions adopted throughout the project.
 - \subpage page-sygse-trill
 
 ### Raspberry Pi Pico SDK (sygsr)
-- \subpage page-sygsr-button
 - \subpage page-sygsr-adc
+- \subpage page-sygsr-button
 
 ## Utility Components (sygup)
 - \subpage page-sygup-basic_logger

@@ -16,15 +16,15 @@ namespace sygaldry { namespace sygsr {
 /// \addtogroup sygsr
 /// \{
 
-/// \defgroup sygsr-adc sygsr-adc: Raspberry Pi Pico SDK ADC
+/// \defgroup sygsr-adc sygsr-adc: Raspberry Pi Pico SDK ADC Driver
 /// Literate source code: page-sygsr-adc
 /// \{
 
-/*! \brief Oneshot analog-digital converter driver
+/*! \brief Oneshot analog-digital converter
 */
 struct ADC
 : name_<"ADC">
-, description_<"Oneshot analog-digital converter driver">
+, description_<"Oneshot analog-digital converter">
 , author_<"Travis J. West">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
