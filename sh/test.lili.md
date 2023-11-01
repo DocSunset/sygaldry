@@ -25,7 +25,7 @@ that may be compiled by various dependencies.
 
 ```sh
 # @#'test.sh'
-#!/bin/sh -e
+#!/bin/env sh
 
 # create the build directory if necessary, then build and test the project
 

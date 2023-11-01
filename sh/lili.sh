@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/env sh
 # generate machine sources from literate source code
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
@@ -17,4 +17,4 @@ find -iname '*.lili.md' | parallel '
         echo {} "newer than $generated, running lili..."
         lili {/} || exit 1 # short circuit on any lili error with failure return code
     } || exit 0
-' && generate_components_cmake.sh && generate_implementation_index.sh
+' && generate_components_cmake.sh

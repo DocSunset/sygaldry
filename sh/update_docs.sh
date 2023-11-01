@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/env sh
 
 # Update the documentation repo at $1
 

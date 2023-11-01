@@ -12,7 +12,7 @@ a new component.
 
 ```sh
 # @#'new_component.sh'
-#!/bin/sh -e
+#!/bin/env sh
 function usage() {
     cat <<USAGE
 $0 [options] - new component setup script
