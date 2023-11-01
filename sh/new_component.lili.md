@@ -81,22 +81,12 @@ echo "AUTHOR is '$AUTHOR'"
 echo "FULL_AUTHOR is '$FULL_AUTHOR'"
 echo "LICENSE is '$LICENSE'"
 
-implementation_docs="$SYGALDRY_ROOT/sygaldry/docs/implementation.md"
 component_dir="$SYGALDRY_ROOT/sygaldry/$COMPONENT"
 [ -d "$component_dir" ] &&
     { echo "Directory '$component_dir' already exists! Aborting." ; exit 1 ; }
-[ -f "$implementation_docs" ] ||
-    { echo "Implementation documentation file not located at '$implementation_docs'! Aborting." ; exit 1 ; }
-grep -sq "\($PACKAGE\)" "$implementation_docs" ||
-    { echo "Package $PACKAGE not found in implementation documentation! Aborting." ; exit 1 ; }
-grep -sq "$COMPONENT" "$implementation_docs" &&
-    { echo "Component already added to implementation docs! Aborting." ; exit 1 ; }
 
 echo "making directory '$component_dir'..."
 mkdir "$component_dir"
-
-echo "adding component to implementation documentation..."
-sed -i -e '/('"$PACKAGE"')/a- \\subpage page-'"$COMPONENT" "$implementation_docs"
 
 echo "populating literate source..."
 #"$component_dir/$COMPONENT.lili.md"

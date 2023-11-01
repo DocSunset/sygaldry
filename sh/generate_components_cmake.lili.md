@@ -79,12 +79,6 @@ syg_add_package_group(sygsr)
 endif()
 LISTSFILE
 
-function list_components()
-{
-    find "$SYGALDRY_ROOT/sygaldry" -maxdepth 1 -name 'syg*-*' -type d |
-        sed 's/^\/.*\///g'
-}
-
 linecount="$(cat "$cmakeliststxt" | wc -l)"
 componentcount="$(list_components | wc -l)"
 expected_linecount="$(echo "$linecount+$componentcount" | bc)"

@@ -17,4 +17,4 @@ find -iname '*.lili.md' | parallel '
         echo {} "newer than $generated, running lili..."
         lili {/} || exit 1 # short circuit on any lili error with failure return code
     } || exit 0
-' && generate_components_cmake.sh
+' && generate_components_cmake.sh && generate_implementation_index.sh
