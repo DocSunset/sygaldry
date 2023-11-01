@@ -70,6 +70,7 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 - \subpage page-sygbp-spelling
 - \subpage page-sygbp-cli
 - \subpage page-sygbp-osc_match_pattern
+- \subpage page-sygbp-basic_reader
 
 ### ESP-IDF (sygbe)
 - \subpage page-sygbe-runtime

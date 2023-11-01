@@ -156,24 +156,8 @@ to clone the repository and its submodules.
 development environment. Once you reach the command prompt, you are now ready
 to go!
 
-# Convenience Scripts
+# Next steps
 
-Several convenience scripts are provided to facilitate development. When the
-nix shell environment is activated by running `nix-shell --pure`, these can be
-run directly, e.g. `test.sh`, since the `sh` directory is prepended to the
-binary search path. Alternatively, you may run `nix-shell --pure --run
-'script.sh'` to run a given script without dropping into the nix shell
-environment.
-
-- \subpage page-sh-lili
-    - Run `lili` on each literate source file that has been update, regenerating tangled machine code
-- \subpage page-sh-test
-    - Compile and run tests for portable components.
-- \subpage page-sh-new_component
-    - Automatically generate the skeleton of a new component. See \ref page-docs-making_a_new_component for more details.
-- \subpage page-sh-update_docs
-    - Update the doxygen documentation website repository
-- \subpage page-sh-idf
-    - Install the ESP-IDF and build an IDF-based instrument firmware.
-- \subpage page-sh-pico_sdk
-    - Install the Raspberry Pi Pico SDK and build a Pico SDK-based instrument firmware.
+- \ref page-docs-making_a_new_component
+- \ref page-docs-making_a_new_instrument
+- \ref page-docs-convenience_scripts

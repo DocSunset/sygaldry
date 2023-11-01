@@ -52,6 +52,7 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 ## Bindings
 
 ### Portable (sygbp)
+- \subpage page-sygbp-basic_reader
 
 ### ESP-IDF (sygbe)
 
