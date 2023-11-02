@@ -1210,7 +1210,6 @@ target_link_libraries(${lib} INTERFACE
         sygsp-delay
         sygsp-micros
         sygsp-mimu_units
-        sygsa-two_wire_serif
         )
 @{cmake snippets}
 # @/

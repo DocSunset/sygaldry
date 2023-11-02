@@ -13,5 +13,3 @@ target_link_libraries(${lib}
         PRIVATE idf::esp_adc
         PRIVATE idf::esp_common
         )
-
-target_link_libraries(sygse INTERFACE ${lib})

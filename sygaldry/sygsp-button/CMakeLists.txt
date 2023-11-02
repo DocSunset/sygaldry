@@ -6,7 +6,6 @@ target_link_libraries(${lib}
         PUBLIC sygah-consteval
         PUBLIC sygah-endpoints
         )
-target_link_libraries(sygsp INTERFACE ${lib})
 
 if(SYGALDRY_BUILD_AVENDISH)
 avnd_make_pd(TARGET ${lib}

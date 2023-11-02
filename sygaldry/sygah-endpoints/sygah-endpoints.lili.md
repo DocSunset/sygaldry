@@ -932,7 +932,6 @@ add_library(${lib} INTERFACE)
 target_link_libraries(${lib} INTERFACE sygah-consteval)
 target_link_libraries(${lib} INTERFACE sygah-metadata)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(sygah INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

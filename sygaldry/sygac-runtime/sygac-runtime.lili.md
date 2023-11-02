@@ -764,7 +764,6 @@ target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygac-components)
 target_link_libraries(${lib} INTERFACE sygac-functions)
 target_link_libraries(${lib} INTERFACE Boost::mp11)
-target_link_libraries(sygac INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

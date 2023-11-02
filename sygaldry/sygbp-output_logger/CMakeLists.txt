@@ -1,15 +1,14 @@
 set(lib sygbp-output_logger)
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib} INTERFACE .)
-    target_link_libraries(${lib}
-            INTERFACE sygbp-spelling
-            INTERFACE sygac-metadata
-            INTERFACE sygac-components
-            INTERFACE sygah-metadata
-            INTERFACE sygbp-osc_string_constants
-            INTERFACE sygup-cstdio_logger
-            )
-target_link_libraries(sygbp INTERFACE ${lib})
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+        INTERFACE sygbp-spelling
+        INTERFACE sygac-metadata
+        INTERFACE sygac-components
+        INTERFACE sygah-metadata
+        INTERFACE sygbp-osc_string_constants
+        INTERFACE sygup-cstdio_logger
+        )
 
 if(SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
