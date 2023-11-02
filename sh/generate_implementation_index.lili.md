@@ -67,6 +67,7 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 ## Sensors
 
 ### Portable (sygsp)
+- \subpage page-sygsp-byte_serif
 
 ### Arduino (sygsa)
 

@@ -75,8 +75,8 @@ echo "making directory '$component_dir'..."
 mkdir "$component_dir"
 
 echo "populating literate source..."
-#"$component_dir/$COMPONENT.lili.md"
-cat << COMPONENT_LILI_MD > /dev/null
+
+cat << COMPONENT_LILI_MD > "$component_dir/$COMPONENT.lili.md"
 \page page-$COMPONENT $COMPONENT: $TITLE
 
 $COPYRIGHT

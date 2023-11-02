@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 #include "sygsa-two_wire.hpp"
 #include "sygse-trill.hpp"
 #include "sygsp-icm20948.hpp"
-#include "sygsa-icm20948-two_wire_serif.hpp"
+#include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
 #include "sygbe-runtime.hpp"
 
@@ -23,8 +23,8 @@ struct TStick
     sygse::Button<GPIO_NUM_15> button;
     sygse::OneshotAdc<33> adc;
     sygsa::TrillCraft touch;
-    sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_1>
-                   , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
+    sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                   , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;
     sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
 };
