@@ -33,6 +33,8 @@ struct Button : sygsp::ButtonGestureModel
 , license_<"SPDX-License-Identifier: MIT">
 , version_<"0.0.0">
 {
+    static_assert(0 <= pin_number && pin_number <= 29);
+
     void init()
     {
         gpio_init(pin_number);

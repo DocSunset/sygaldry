@@ -5,6 +5,7 @@ target_include_directories(${lib} PUBLIC .)
 target_link_libraries(${lib}
         PUBLIC sygah-endpoints
         PUBLIC sygah-metadata
+        PRIVATE hardware_adc
         )
 
 if (SYGALDRY_BUILD_TESTS)
