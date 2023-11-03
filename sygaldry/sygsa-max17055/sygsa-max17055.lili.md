@@ -113,14 +113,14 @@ struct MAX17055
     struct inputs_t {
         // Initialisation Elements
         slider<"i2c_addr","int",int,0,127,0x36> i2c_addr; // i2c address of the fuel guage
-        slider<"capacity", "mAh", int, 0, 32000, 3200> designcap; // Design capacity of the battery (mAh)
+        slider<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
         slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
         slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
         slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
         slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider<"poll rate", "ms", int, 0, 300000, 0> pollrate; // poll rate in milliseconds
+        slider<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -289,7 +289,16 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 
 ```cpp
 //@='init'
+// Initialise all the slider variables
 inputs.i2c_addr = inputs.i2c_addr.init();
+inputs.designcap = inputs.designcap.init();
+inputs.ichg = input.ichg.init();
+inputs.rsense = inputs.rsense.init();
+inputs.vempty = inputs.vempty.init();
+inputs.recovery_voltage = inputs.recovery_voltage.init();
+inputs.pollrate = inputs.pollrate.init();
+
+// Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
 std::cout << "    Checking status " << "\n"
