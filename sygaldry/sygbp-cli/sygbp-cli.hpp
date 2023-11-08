@@ -87,7 +87,7 @@ struct CustomCli : name_<"CLI">
     {
         log.print("\r> ");
         for (int i = 0; i < argc - 1; ++i) log.print(argv[i], " ");
-        log.print(argv[argc - 1]);
+        if (argc > 0) log.print(argv[argc - 1]);
     }
 
     void _reset()
