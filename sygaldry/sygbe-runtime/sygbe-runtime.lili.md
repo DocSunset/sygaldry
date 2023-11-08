@@ -31,6 +31,7 @@ SPDX-License-Identifier: MIT
 #include <freertos/task.h>
 #include "sygac-runtime.hpp"
 #include "sygsa-two_wire.hpp"
+#include "syghe-pins.hpp"
 #include "sygbe-spiffs.hpp"
 #include "sygbe-wifi.hpp"
 #include "sygbp-liblo.hpp"
@@ -58,13 +59,16 @@ struct ESP32Instrument
 {
     struct Instrument {
         struct Components {
-            sygsa::TwoWire<21,22,400000> i2c;
+            sygsa::TwoWire<syghe::I2C_MAIN_SDA,syghe::I2C_MAIN_SCL,400000> i2c;
             InnerInstrument instrument;
             sygbe::WiFi wifi;
             sygbp::LibloOsc<InnerInstrument> osc;
         };
         sygbe::SpiffsSessionStorage<Components> session_storage;
         Components components;
+        #if defined SYGALDRY_ESP32S3
+        // TODO: enable usb CDC
+        #endif
         sygbp::CstdioCli<Components> cli;
     };
 

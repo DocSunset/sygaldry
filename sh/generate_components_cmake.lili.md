@@ -68,6 +68,7 @@ syg_add_package_group(sygsp)
 syg_add_package_group(sygbp)
 
 if (ESP_PLATFORM)
+syg_add_package_group(syghe)
 syg_add_package_group(sygsa)
 syg_add_package_group(sygse)
 syg_add_package_group(sygbe)

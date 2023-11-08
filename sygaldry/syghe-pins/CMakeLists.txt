@@ -1,0 +1,13 @@
+idf_build_get_property(target IDF_TARGET)
+if(${target} MATCHES esp32s3)
+    set(SYGALDRY_ESP32S3 1)
+elseif(${target} MATCHES esp32)
+    set(SYGALDRY_ESP32 1)
+else()
+    message(FATAL_ERROR "Unrecognized IDF_TARGET value ${target}; syghe-pins may require an update?")
+endif()
+
+set(lib syghe-pins)
+configure_file(${lib}.hpp.in ${lib}.hpp)
+add_library(${lib} INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/${lib}.hpp")
+target_include_directories(${lib} INTERFACE ${CMAKE_CURRENT_BINARY_DIR})

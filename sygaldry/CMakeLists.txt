@@ -52,6 +52,8 @@ syg_add_component(sygbp-cli sygbp)
 syg_add_component(sygbp-osc_match_pattern sygbp)
 
 if (ESP_PLATFORM)
+syg_add_package_group(syghe)
+syg_add_component(syghe-pins syghe)
 syg_add_package_group(sygsa)
 syg_add_component(sygsa-trill_craft sygsa)
 syg_add_component(sygsa-two_wire_serif sygsa)

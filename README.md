@@ -44,9 +44,9 @@ sygbe::ESP32Instrument<TStick> tstick{};
 extern "C" void app_main(void) { tstick.app_main(); }
 ```
 
-The substantive code in this implementation requires fewer lines than the
-binding code for *a single signal* in the previous version of the firmware,
-thanks to the automatic protocol bindings.
+The substantive (i.e. non-boilerplate) code in this implementation requires
+fewer lines than the binding code for *a single signal* in the previous version
+of the firmware, thanks to the automatic protocol bindings.
 
 ## Automatic Protocol Bindings
 

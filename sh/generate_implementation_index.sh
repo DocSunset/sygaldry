@@ -37,6 +37,10 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 ## Instruments
 - \subpage page-sygin-t_stick
 
+## Hardware Abstraction
+
+### ESP-IDF (syghe)
+
 ## Sensors
 
 ### Portable (sygsp)
