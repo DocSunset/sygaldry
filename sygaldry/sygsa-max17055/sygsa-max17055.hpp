@@ -7,12 +7,8 @@ SPDX-License-Identifier: MIT
 */
 #pragma once
 #include "sygah-metadata.hpp"
-#include "sygsp-delay.hpp"
-#include "sygsp-micros.hpp"
 #include "sygah-endpoints.hpp"
 #include "sygsa-max17055-helpers.hpp"
-#include <iostream>
-#include "Wire.h"
 
 namespace sygaldry { namespace sygsa {
 
@@ -26,15 +22,14 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider<"i2c_addr","int",int,0,127,0x36> i2c_addr; // i2c address of the fuel guage
-        slider<"capacity", "mAh", int, 0, 32000, 3200> designcap; // Design capacity of the battery (mAh)
+        slider<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
         slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
         slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
         slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
         slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider<"poll rate", "ms", int, 0, 300000, 0> pollrate; // poll rate in milliseconds
+        slider<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -78,10 +73,9 @@ struct MAX17055
 
         // Battery Status
         toggle<"present"> status;
-        toggle<"removed"> removed;
-        toggle<"inserted"> inserted;
 
         text_message<"error message"> error_message;
+        text_message<"status message"> status_message;
 
         toggle<"running"> running;
     } outputs;
@@ -100,6 +94,18 @@ struct MAX17055
     
     // Write and verify to 16 bit register
     bool writeVerifyReg16Bit(uint8_t reg, uint16_t value);
+
+    // Write design capacity
+    void writeDesignCapacity();
+
+    // Write end of charge current
+    void writeICHG();
+
+    // Write Vempty and recovery voltage
+    void writeVoltage();
+
+    // Restore old parameters
+    bool restoreParameters();
 };
 
 } }

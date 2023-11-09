@@ -6,6 +6,11 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
+#include "sygsp-delay.hpp"
+#include "sygsp-micros.hpp"
+#include "sygsa-max17055-helpers.hpp"
+#include <iostream>
+#include "Wire.h"
 #include "sygsa-max17055.hpp"
 #include "sygsp-delay.hpp"
 
@@ -13,21 +18,29 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
-        inputs.i2c_addr = inputs.i2c_addr.init();
+        // Initialise all the slider variables
+        inputs.designcap = inputs.designcap.init();
+        inputs.ichg = input.ichg.init();
+        inputs.rsense = inputs.rsense.init();
+        inputs.vempty = inputs.vempty.init();
+        inputs.recovery_voltage = inputs.recovery_voltage.init();
+        inputs.pollrate = inputs.pollrate.init();
+
+        // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
         uint16_t POR = STATUS&0x0002;
-        std::cout << "    Checking status " << "\n"
-                << "    Status read: " << STATUS << "\n"
-                << "    POR flag: " << POR << std::endl;
+        std::cout << "Checking status " << "\n"
+                << "Status read: " << STATUS << "\n"
+                << "POR flag: " << POR << std::endl;
         // Reset the Fuel Gauge
         if (POR)
         {
-            std::cout << "    Initialising Fuel Gauge" << std::endl;
+            std::cout << "Initialising Fuel Gauge" << std::endl;
             while(readReg16Bit(0x3D)&1) {
                 sygsp::delay(10);
             }
 
-            std::cout << "    Start up complete" << std::endl;
+            std::cout << "Start up complete" << std::endl;
             //Initialise Configuration
             uint16_t HibCFG = readReg16Bit(0xBA);
             // Exit hibernate mode
@@ -36,21 +49,15 @@ namespace sygaldry { namespace sygsa {
             writeReg16Bit(0x60, 0x0);
            //EZ Config
             // Write Battery capacity
-            std::cout << "    Writing Capacity" << std::endl;
-            uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
-            uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-            writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
-            writeReg16Bit(ICHTERM_REG, reg_ichg); // End of charge current
-            writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+            std::cout << "Writing Capacity" << std::endl;
+            writeDesignCapacity(); //Write Design Cap
+            writeICHG(); // End of charge current
             writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
 
             // Set empty voltage and recovery voltage
             // Empty voltage in increments of 10mV
-            std::cout << "    Writing Voltage" << std::endl;
-            uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
-            uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
-            uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-            writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+            std::cout << "Writing Voltage" << std::endl;
+            writeVoltage();
             // Set Model Characteristic
             writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
 
@@ -59,7 +66,14 @@ namespace sygaldry { namespace sygsa {
                 sygsp::delay(10);
             }
             //Reload original HbCFG value
-            writeReg16Bit(0xBA,HibCFG);    
+            writeReg16Bit(0xBA,HibCFG); 
+
+            // Restore old parameters
+            if (outputs.fullcapacitynorm_raw != 0) {
+                if (!restoreParameters()) {
+                    outputs.error_message = "Parameters were not successfully restored"
+                };
+            }   
         } else {
             std::cout << "    Loading old config" << std::endl;
         }
@@ -81,6 +95,18 @@ namespace sygaldry { namespace sygsa {
     {
                 static auto prev = sygsp::micros();
                 auto now = sygsp::micros();
+                // Check if properties have been updated
+                if (inputs.designcap.updated) {
+                    writeDesignCapacity(); //Write Design Cap
+                }
+                if (inputs.ichg.updated) {
+                    writeICHG(); // End of charge current
+                }
+                if (inputs.vempty.updated || inputs.recovery_voltage.updated) {
+                    writeVoltage();
+                }
+
+                // Poll at fixed interval
                 if (now-prev > (inputs.pollrate*1e3)) {
                     prev = now;
                     // BATTERY INFO
@@ -93,15 +119,6 @@ namespace sygaldry { namespace sygsa {
                     if (!outputs.status) {
                       outputs.error_message = "No Battery Present";
                     }
-                    // Get insertion
-                    outputs.inserted = raw_status&0x0800; // Get the 11th bit
-                    // Get removed
-                    outputs.removed = raw_status&0x8000;  // get the 15th bit
-
-                    // Reset Insertion bit
-                    writeVerifyReg16Bit(STATUS_REG, raw_status&0xF7F);
-                    // Reset Removal bit
-                    writeVerifyReg16Bit(STATUS_REG, raw_status&0x7FFF);
 
                     // Update outputs if there is no battery or the init failed don't read
                     outputs.running = outputs.running & outputs.status;
@@ -153,11 +170,11 @@ namespace sygaldry { namespace sygsa {
     uint16_t MAX17055::readReg16Bit(uint8_t reg)
     {
         uint16_t value = 0;  
-        Wire.beginTransmission(inputs.i2c_addr); 
+        Wire.beginTransmission(i2c_addr); 
         Wire.write(reg);
         Wire.endTransmission(false);
         
-        Wire.requestFrom(inputs.i2c_addr, (uint8_t) 2); 
+        Wire.requestFrom(i2c_addr, (uint8_t) 2); 
         value  = Wire.read();
         value |= (uint16_t)Wire.read() << 8;      // value low byte
         return value;
@@ -167,7 +184,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::writeReg16Bit(uint8_t reg, uint16_t value)
     {
         //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
-        Wire.beginTransmission(inputs.i2c_addr);
+        Wire.beginTransmission(i2c_addr);
         Wire.write(reg);
         Wire.write( value       & 0xFF); // value low byte
         Wire.write((value >> 8) & 0xFF); // value high byte
@@ -180,7 +197,6 @@ namespace sygaldry { namespace sygsa {
         int attempt = 0;
         // Verify that the value has been written before moving on
         while ((value != readReg16Bit(reg)) && (attempt < 10)) {
-            std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
             //Write the value to the register
             writeReg16Bit(reg, value);
             // Wait a bit
@@ -192,11 +208,63 @@ namespace sygaldry { namespace sygsa {
         
         if (attempt > 10) {
             return false;
-            std::cout << "    Failed to write value" <<std::endl;
+            outputs.error_message = "Failed to write value";
         } else {
-            std::cout << "    Value successfully written" << std::endl;
+            outputs.status_message = "Value successfully written";
             return true;
         }
     }
+
+    // helper functions for reading properties
+    /// Write design capacity
+    void writeDesignCapacity() {
+        uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
+        writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
+        writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+    };
+
+    /// Write end of charge current
+    void writeICHG() {
+        uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
+        writeReg16Bit(ICHTERM_REG, reg_ichg)
+    };
+
+    /// Write Vempty and recovery voltage
+    void writeVoltage() {
+        uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
+        uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
+        uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
+        writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+    };
+
+    /// Restore old parameters
+    bool restoreParameters() {
+        // Output status message
+        outputs.status_message = "Restoring old parameters"
+
+        // Write full capacity normalised, rcomp and tempco
+        writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco);
+        writeVerifyReg16Bit(RCOMP0_REG, outputs.rcomp);
+        writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw);
+
+        // Delay from 350ms
+        sygsp::delay(350);
+
+        // Write mixed capacity
+        outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
+        uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynorm_raw) / 25600;
+        writeVerifyReg16Bit(0x0F,mixcap);
+        writeVerifyReg16Bit(FULLCAP_REG, outputs.fullcapacity_raw);
+
+        // Set dQacc to 200% of capacity and dPacc to 200%
+        writeReg16Bit(dQACC_REG, outputs.fullcapacity_raw / 16); //Write dQAcc
+        writeReg16Bit(dPACC_REG, 0x0C80); //Write dQAcc
+
+        // Delay for 350ms
+        sygsp::delay(350);
+
+        // Restore cycles
+        writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw);
+    };
 }
 } 

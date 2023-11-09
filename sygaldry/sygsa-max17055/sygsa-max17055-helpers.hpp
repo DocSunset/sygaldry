@@ -34,6 +34,9 @@ CYCLES_REG      = 0x17, // Register for learned parameter charge cycles
 FULLCAPNORM_REG = 0x23, // Register for learned parameter full capacity (normalised)
 };
 
+// Set Fuel Gauge I2C address
+static constexpr int i2c_addr = 0x36; // set fuel gauge i2c address as it is a constant
+
 //Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
 static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
 static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
