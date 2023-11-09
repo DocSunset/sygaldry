@@ -1,4 +1,4 @@
-\page page-sygbp-cli Command Line Interface Binding
+\page page-sygbp-cli sygbp-cli: CLI Binding
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -352,7 +352,7 @@ struct TestComponents
 {
     Component1 cpt1;
     Component2 cpt2;
-    sygaldry::components::TestComponent tc;
+    sygaldry::sygbp::TestComponent tc;
 };
 // @/
 ```
@@ -439,7 +439,7 @@ Notice that we accept the list of components which the CLI interacts with as an
 argument. We assume that this is in the form of a reflectable simple-aggregate
 struct, which we will discuss further below.
 
-On ESP-IDF, we need to echo user input back to the log output so that the user
+We need to echo user input back to the log output so that the user
 has feedback as they write. Ideally we would implement a full readline REPL,
 but this remains as future work for now.
 
@@ -452,19 +452,15 @@ void process(const char c, Components& components)
     else
     {
         buffer[write_pos] = c;
+        buffer[write_pos+1] = 0;
         if (_new_arg())
             argv[argc++] = &buffer[write_pos];
         write_pos++;
     }
 
-    #ifdef ESP_PLATFORM
-    char s[2] = {0,0};
-    s[0] = c;
-    log.print(s);
-    #endif
-
-    if (c == '\n')
+    if (c == '\n' || c == '\r')
     {
+        log.print("\r\n");
         _try_to_match_and_execute(components);
         _reset();
     }
@@ -474,6 +470,8 @@ void process(const char c, Components& components)
         log.println("CLI line buffer overflow!");
         _reset();
     }
+
+    _prompt();
 }
 
 void external_sources(Components& components)
@@ -535,9 +533,6 @@ struct DefaultCommands
 
 template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
-
-template<typename Components>
-using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
 // @/
 ```
 
@@ -547,7 +542,7 @@ using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
 // @+'cli implementation details'
 bool _is_whitespace(char c)
 {
-    if (c == ' ' || c == '\t' || c == '\n') return true;
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') return true;
     else return false;
 }
 
@@ -558,23 +553,26 @@ bool _new_arg() const
 
 bool _overflow() const
 {
-    return argc == MAX_ARGS || write_pos == BUFFER_SIZE;
+    return argc == MAX_ARGS || write_pos == BUFFER_SIZE-1; // -1 so we can erase forward one as we write
 }
 
 void _prompt()
 {
-    log.print("> ");
+    log.print("\r> ");
+    for (int i = 0; i < argc - 1; ++i) log.print(argv[i], " ");
+    if (argc > 0) log.print(argv[argc - 1]);
 }
 
 void _reset()
 {
     argc = 0;
     write_pos = 0;
-    _prompt();
 }
 
 void _complain_about_command_failure(int retcode)
-{} // TODO
+{
+    log.println("command failed!");
+} // TODO
 // @/
 ```
 
@@ -584,10 +582,10 @@ void _complain_about_command_failure(int retcode)
 // @#'sygbp-cli.hpp'
 #pragma once
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -599,12 +597,14 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 #include "sygah-metadata.hpp"
 #include "sygbp-osc_match_pattern.hpp"
-#include "sygup-cstdio_logger.hpp"
-#include "sygbp-cstdio_reader.hpp"
 
 @{commands headers}
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp sygbp: Portable Bindings
+///\{
+///\defgroup sygbp-cli sygbp-cli: CLI Binding
+///\{
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -633,6 +633,41 @@ struct CustomCli : name_<"CLI">
 
 @{cli default type alias}
 
+///\}
+///\}
+} }
+// @/
+```
+
+```cpp
+// @#'sygbp-cstdio_cli.hpp'
+#pragma once
+/*
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+
+SPDX-License-Identifier: MIT
+*/
+
+#include "sygbp-cli.hpp"
+#include "sygup-cstdio_logger.hpp"
+#include "sygbp-cstdio_reader.hpp"
+
+namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp sygbp: Portable Bindings
+///\{
+///\defgroup sygbp-cstdio_cli sygbp-cstdio_cli: C Standard IO CLI Binding
+///\{
+
+/// CLI binding using the C standard input/output API to read serial data
+/// \tparam Components the assembly to bind to the CLI
+template<typename Components>
+using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
+
+///\}
+///\}
 } }
 // @/
 ```
@@ -736,6 +771,8 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 struct Help
 {
     static _consteval auto name() { return "/help"; }
@@ -762,6 +799,7 @@ struct Help
         return 0;
     }
 };
+///\}
 
 } }
 // @/
@@ -821,6 +859,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_string_constants.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct List
 {
@@ -840,6 +880,7 @@ struct List
     }
 };
 
+///\}
 } }
 // @/
 
@@ -1099,6 +1140,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_match_pattern.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct Describe
 {
@@ -1112,6 +1155,7 @@ struct Describe
 
 };
 
+///\}
 } } // namespaces
 // @/
 
@@ -1376,6 +1420,8 @@ SPDX-License-Identifier: MIT
 #include "sygbp-osc_match_pattern.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp-cli
+///\{
 
 struct Set
 {
@@ -1389,6 +1435,7 @@ struct Set
 
 };
 
+///\}
 } }
 // @/
 
@@ -1450,23 +1497,22 @@ using namespace sygaldry;
 # @#'CMakeLists.txt'
 set(lib sygbp-cli)
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib}
-        INTERFACE .
-        INTERFACE ./commands
-        )
-    target_link_libraries(${lib}
-        INTERFACE Boost::pfr
-        INTERFACE sygah-consteval
-        INTERFACE sygac-endpoints
-        INTERFACE sygac-components
-        INTERFACE sygac-metadata
-        INTERFACE sygah-metadata
-        INTERFACE sygbp-cstdio_reader
-        INTERFACE sygup-cstdio_logger
-        INTERFACE sygbp-osc_match_pattern
-        INTERFACE sygbp-osc_string_constants
-        )
-target_link_libraries(sygbp INTERFACE ${lib})
+target_include_directories(${lib}
+    INTERFACE .
+    INTERFACE ./commands
+    )
+target_link_libraries(${lib}
+    INTERFACE Boost::pfr
+    INTERFACE sygah-consteval
+    INTERFACE sygac-endpoints
+    INTERFACE sygac-components
+    INTERFACE sygac-metadata
+    INTERFACE sygah-metadata
+    INTERFACE sygbp-cstdio_reader
+    INTERFACE sygup-cstdio_logger
+    INTERFACE sygbp-osc_match_pattern
+    INTERFACE sygbp-osc_string_constants
+    )
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

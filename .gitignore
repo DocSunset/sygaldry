@@ -1,6 +1,7 @@
 build
 nixenv
-_build*/*
+.ignore
+_build*
 .gdb_history
 *.o
 *.pd_linux

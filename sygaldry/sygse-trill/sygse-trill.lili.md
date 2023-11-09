@@ -1,6 +1,6 @@
-\page page-sygse-trill Trill on ESP32
+\page page-sygse-trill sygse-trill: Trill on ESP32
 
-Only a very simple IDF component is required to make the `Trill-Arduino` library
+Only a very simple component is required to make the `Trill-Arduino` library
 available for ESP32 builds.
 
 ```cmake
@@ -19,8 +19,6 @@ target_link_libraries(${lib}
         PUBLIC sygse-arduino_hack
         PUBLIC sygsa-trill_craft
         )
-
-target_link_libraries(sygse INTERFACE ${lib})
 # @/
 ```
 

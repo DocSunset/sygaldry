@@ -18,7 +18,6 @@ using std::string;
 
 using namespace sygaldry;
 using namespace sygaldry::sygbp;
-using namespace sygaldry::components;
 
 TEST_CASE("sygaldry liblo osc port is valid")
 {

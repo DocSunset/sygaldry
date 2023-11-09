@@ -4,16 +4,17 @@ let pkgs = import (fetchTarball {
     }) { overlays = [ (import ./nix/overlay.nix) ]; }; # apply overlay to make lili available
 in pkgs.stdenvNoCC.mkDerivation {
         name = "sygaldry";
-        nativeBuildInputs = [
-            pkgs.gcc13
-            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf
+        nativeBuildInputs = [ # dependencies at build time
+            pkgs.gcc13 # default compiler
+            pkgs.git # required so cmake can fetch git repos like catch2. Also for esp-idf, Pi Pico SDK
+            pkgs.openssh # for convenience and in case the user uses ssh for git auth
             pkgs.cacert # required so cmake can fetch git repos like catch2
-            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
             pkgs.pkg-config # so cmake can find liblo
-            pkgs.cmake
-            pkgs.doxygen
-            pkgs.parallel
-            pkgs.lili
+            pkgs.cmake # main build automation tool; required for esp-idf, Pi Pico SDK
+            pkgs.doxygen # used to build documentation website
+            pkgs.parallel # used to speed up helper scripts
+            pkgs.bc # used in helper scripts
+            pkgs.lili # literate programming
 
             # additional packages required for esp-idf
             pkgs.wget
@@ -21,23 +22,24 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.flex
             pkgs.bison
             pkgs.gperf
-            pkgs.python3
-            pkgs.ninja
+            pkgs.python3 # possibly also used by Pi Pico SDK
+            pkgs.ninja # possibly also used by Pi Pico SDK
             pkgs.ccache
             pkgs.dfu-util
+
+            # additional packages required for Pi Pico SDK
+            pkgs.gcc-arm-embedded
+            pkgs.openocd
+        ];
+        buildInputs = [ # dependencies at run time
+            pkgs.catch2_3 # unit test library for portable tests
+            pkgs.boost # required by Avendish
+            pkgs.liblo # for building OSC bindings tests. TODO this should be optional
+            pkgs.puredata # for building pd externals with Avendish
         ];
         shellHook = ''
-            mkdir -p ./nixenv/esp-idf-tools/
-            export IDF_TOOLS_PATH="$(realpath nixenv/esp-idf-tools)"
-            IDF_PATH='nixenv/esp-idf'
-            [ -d "$IDF_PATH" ] || {
-                git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
-                pushd "$IDF_PATH"
-                    git fetch -a
-                    git checkout v5.1
-                popd
-                "./$IDF_PATH/install.sh"
-            }
-            source "$IDF_PATH/export.sh"
+            export SYGALDRY_ROOT="${toString ./.}"
+            mkdir -p "$SYGALDRY_ROOT/nixenv/"
+            export PATH="$SYGALDRY_ROOT/sh:$PATH"
         '';
 }

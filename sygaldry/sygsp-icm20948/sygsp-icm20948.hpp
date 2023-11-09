@@ -18,6 +18,10 @@ SPDX-License-Identifier: MIT
 #include "sygsp-mimu_units.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp
+/// \{
+/// \defgroup sygsp-icm20948 sygsp-icm20948: ICM20948 MIMU Driver
+/// \{
 
 template<typename Serif, typename AK09916Serif>
 struct ICM20948
@@ -126,4 +130,6 @@ struct ICM20948
     }
 };
 
+/// \}
+/// \}
 } }

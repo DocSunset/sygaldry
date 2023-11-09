@@ -13,6 +13,10 @@ SPDX-License-Identifier: MIT
 #include <sstream>
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-test_reader sygbp-test_reader: Test Reader
+///\{
 
 struct TestReader
 {
@@ -21,4 +25,6 @@ struct TestReader
     char getchar() {return static_cast<char>(ss.get());}
 };
 
+///\}
+///\}
 } }

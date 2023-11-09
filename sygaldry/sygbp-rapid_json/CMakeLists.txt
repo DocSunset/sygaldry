@@ -12,7 +12,6 @@ add_library(${lib} INTERFACE)
             INTERFACE sygbp-osc_string_constants
             INTERFACE sygbp-session_data
             )
-target_link_libraries(sygbp INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

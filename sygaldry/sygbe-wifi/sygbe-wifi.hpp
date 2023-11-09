@@ -25,6 +25,10 @@ SPDX-License-Identifier: MIT
 #include <sygup-cstdio_logger.hpp>
 
 namespace sygaldry { namespace sygbe {
+///\addtogroup sygbe
+///\{
+///\defgroup sygbe-wifi sygbe-wifi: ESP32 WiFi
+///\{
 
 struct WiFi
 : name_<"WiFi Manager">
@@ -315,4 +319,6 @@ struct WiFi
     void main() { return; }
 };
 
+///\}
+///\}
 } }

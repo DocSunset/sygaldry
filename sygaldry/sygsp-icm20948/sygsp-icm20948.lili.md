@@ -1,4 +1,4 @@
-\page page-sygsa-icm20948 ICM20948
+\page page-sygsp-icm20948 sygsp-icm20948: ICM20948 MIMU Driver
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -9,160 +9,9 @@ SPDX-License-Identifier: MIT
 
 # Serial Interface
 
-The ICM20948 is interacted with via its control registers--essentially a bank
-of memory-mapped switches accessed over either I2C or SPI. Most interactions
-will be to read the data output registers; besides this, almost all
-interactions will be to read and/or write a single byte to/from a single
-register. To allow a greater number of registers to be addressed, the device
-also has four "banks" of registers that are switched between by writing to a
-particular register that is always at the same address no matter which bank is
-currently enabled.
-
-In line with this operational structure, we wish to define an interface that is
-independent of the particular serial bus used (whether I2C or SPI), as well as
-the specificies of that bus (such as the I2C address or SPI CS pin). We
-presently accomplish this by making the top level ICM20948 class a template
-that accepts a `Serif` type that is expected to define methods `read` and
-`write` for single byte interaction with a particular register at a given
-address, and an overload of `read` taking an `uint8_t` array and size for
-reading multiple sequential bytes.
-
-Currently the only implementation of this conceptual interface is the
-Arduino `TwoWire`-based I2C serial interface.
-
-# Arduino TwoWire Serial Interface
-
-We declare a realization of this interface for the Arduino `TwoWire` API. As
-well as a straightforward `struct` that requires the I2C address to be passed,
-we define *a very simple template* that passes this information as a compile-time
-non-type template parameter. We declare *explicit external instantiations* of
-this template for the two default I2C addresses and compile them in the
-implementation file for the `Serif`.
-
-```cpp
-// @#'sygsa-icm20948-two_wire_serif.hpp'
-/*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
-
-SPDX-License-Identifier: MIT
-*/
-#pragma once
-#include <cstdint>
-
-namespace sygaldry { namespace sygsa {
-
-namespace detail {
-struct ICM20948TwoWireSerif
-{
-    [[nodiscard]] static uint8_t read(uint8_t i2c_address, uint8_t register_address);
-    static uint8_t read(uint8_t i2c_address, uint8_t register_address, uint8_t * buffer, uint8_t bytes);
-    static void write(uint8_t i2c_address, uint8_t register_address, uint8_t value);
-};
-}
-
-// *a very simple template*
-/*! Serial interface for ICM20948 using the Arduino TwoWire API
-
-\tparam i2c_address The I2C address of the MIMU device
-*/
-template<uint8_t i2c_address>
-struct ICM20948TwoWireSerif
-{
-    /// Read one byte and return it
-    [[nodiscard]] static uint8_t read(uint8_t register_address)
-    {
-        return detail::ICM20948TwoWireSerif::read(i2c_address, register_address);
-    }
-
-    /// Read many bytes; returns the number of bytes read
-    static uint8_t read(uint8_t register_address, uint8_t * buffer, uint8_t bytes)
-    {
-        return detail::ICM20948TwoWireSerif::read(i2c_address, register_address, buffer, bytes);
-    }
-
-    /// Write one byte
-    static void write(uint8_t register_address, uint8_t value)
-    {
-        detail::ICM20948TwoWireSerif::write(i2c_address, register_address, value);
-    }
-};
-
-// *explicit external instantiations*
-extern template struct ICM20948TwoWireSerif<0b1101000>;
-extern template struct ICM20948TwoWireSerif<0b1101001>;
-
-} }
-// @/
-```
-
-The definition of these functions involves very typical use of the `TwoWire` API.
-We define the single byte read in terms of the multi byte read.
-
-```cpp
-// @#'sygsa-icm20948-two_wire_serif.cpp'
-/*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
-
-SPDX-License-Identifier: MIT
-*/
-#include "sygsa-icm20948-two_wire_serif.hpp"
-#include <Wire.h>
-
-namespace sygaldry { namespace sygsa {
-
-namespace detail {
-uint8_t ICM20948TwoWireSerif::read(uint8_t i2c_address, uint8_t register_address)
-{
-    uint8_t out = 0;
-    read(i2c_address, register_address, &out, 1);
-    return out;
-}
-
-uint8_t ICM20948TwoWireSerif::read(uint8_t i2c_address, uint8_t register_address, uint8_t * buffer, uint8_t bytes)
-{
-    Wire.beginTransmission(i2c_address);
-    Wire.write(register_address);
-    Wire.endTransmission(false); // repeated start
-    Wire.requestFrom(i2c_address, bytes);
-    for (uint8_t i = 0; i < bytes; ++i)
-    {
-        if (Wire.available()) buffer[i] = Wire.read();
-        else return i;
-    }
-    return bytes;
-}
-
-void ICM20948TwoWireSerif::write(uint8_t i2c_address, uint8_t register_address, uint8_t value)
-{
-    Wire.beginTransmission(i2c_address);
-    Wire.write(register_address);
-    Wire.write(value);
-    Wire.endTransmission();
-}
-}
-
-extern template struct ICM20948TwoWireSerif<0b1101000>;
-extern template struct ICM20948TwoWireSerif<0b1101001>;
-
-} }
-// @/
-```
-
-```cmake
-# @+'cmake snippets'
-# arguably this should be a different library, even in a different document
-target_sources(${lib} PRIVATE sygsa-icm20948-two_wire_serif.cpp)
-target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
-# @/
-```
-
-## Basic Sanity Check Test
+The ICM20948 is interacted with via its control registers according to the
+concept of [a byte-wise serial interface](\ref page-sygsp-byte_serif) described
+elsewhere.
 
 Before proceeding with the rest of the implementation, we consider
 a couple of very simple tests to ensure that the above serial interface
@@ -841,6 +690,9 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_registers.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_aux_serif sygsp-icm20948_aux_serif: ICM20948 Auxiliary I2C Bus Controller Serial Interface
 
 /*! Limited I2C serial interface using the ICM20948 aux bus
 
@@ -877,6 +729,9 @@ struct ICM20948AuxSerif
         Registers::I2C_SLV4_CTRL::I2C_SLV4_EN::trigger();
     }
 };
+
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1022,7 +877,7 @@ range.
 // @/
 ```
 
-## Summary
+## Registers Summary
 
 ```cpp
 // @#'sygsp-icm20948_registers.hpp'
@@ -1041,6 +896,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_registers sygsp-icm20948_registers: Registers for ICM20948 MIMU
+/// \{
+
 static constexpr uint8_t AK09916_I2C_ADDRESS    = 0b0001100;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_0 = 0b1101000;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_1 = 0b1101001;
@@ -1058,6 +918,8 @@ struct ICM20948Registers
 template<typename Serif>
 uint8_t ICM20948Registers<Serif>::current_bank_ = 0xFF;
 
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1088,6 +950,10 @@ SPDX-License-Identifier: MIT
 #include "sygsp-mimu_units.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp
+/// \{
+/// \defgroup sygsp-icm20948 sygsp-icm20948: ICM20948 MIMU Driver
+/// \{
 
 template<typename Serif, typename AK09916Serif>
 struct ICM20948
@@ -1133,6 +999,8 @@ struct ICM20948
     }
 };
 
+/// \}
+/// \}
 } }
 // @/
 ```
@@ -1306,6 +1174,9 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+
 template<typename Serif, typename AK09916Serif>
 struct ICM20948Tests
 {
@@ -1318,6 +1189,7 @@ struct ICM20948Tests
     }
 };
 
+/// \}
 } }
 // @/
 ```
@@ -1329,9 +1201,16 @@ The various sub-components are collected together into one CMake library.
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygsp-icm20948)
-add_library(${lib} STATIC)
-target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib} PUBLIC sygsp-delay sygsp-mimu_units)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE
+        sygah-mimu
+        sygah-metadata
+        sygsp-delay
+        sygsp-delay
+        sygsp-micros
+        sygsp-mimu_units
+        )
 @{cmake snippets}
 # @/
 ```

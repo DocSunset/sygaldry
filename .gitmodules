@@ -19,3 +19,4 @@
 [submodule "dependencies/eigen"]
 	path = dependencies/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+

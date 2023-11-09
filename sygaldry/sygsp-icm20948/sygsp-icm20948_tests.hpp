@@ -14,6 +14,9 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+
 template<typename Serif, typename AK09916Serif>
 struct ICM20948Tests
 {
@@ -163,4 +166,5 @@ struct ICM20948Tests
     }
 };
 
+/// \}
 } }

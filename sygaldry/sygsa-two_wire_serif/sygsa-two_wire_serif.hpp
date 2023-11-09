@@ -11,8 +11,13 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsa-two_wire_serif sygsa-two_wire_serif: Arduino Serial Interface for ICM20948 MIMU
+/// \{
+
 namespace detail {
-struct ICM20948TwoWireSerif
+struct TwoWireByteSerif
 {
     [[nodiscard]] static uint8_t read(uint8_t i2c_address, uint8_t register_address);
     static uint8_t read(uint8_t i2c_address, uint8_t register_address, uint8_t * buffer, uint8_t bytes);
@@ -26,29 +31,28 @@ struct ICM20948TwoWireSerif
 \tparam i2c_address The I2C address of the MIMU device
 */
 template<uint8_t i2c_address>
-struct ICM20948TwoWireSerif
+struct TwoWireByteSerif
 {
     /// Read one byte and return it
     [[nodiscard]] static uint8_t read(uint8_t register_address)
     {
-        return detail::ICM20948TwoWireSerif::read(i2c_address, register_address);
+        return detail::TwoWireByteSerif::read(i2c_address, register_address);
     }
 
     /// Read many bytes; returns the number of bytes read
     static uint8_t read(uint8_t register_address, uint8_t * buffer, uint8_t bytes)
     {
-        return detail::ICM20948TwoWireSerif::read(i2c_address, register_address, buffer, bytes);
+        return detail::TwoWireByteSerif::read(i2c_address, register_address, buffer, bytes);
     }
 
     /// Write one byte
     static void write(uint8_t register_address, uint8_t value)
     {
-        detail::ICM20948TwoWireSerif::write(i2c_address, register_address, value);
+        detail::TwoWireByteSerif::write(i2c_address, register_address, value);
     }
 };
 
-// *explicit external instantiations*
-extern template struct ICM20948TwoWireSerif<0b1101000>;
-extern template struct ICM20948TwoWireSerif<0b1101001>;
+/// \}
+/// \}
 
 } }

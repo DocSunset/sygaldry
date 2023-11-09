@@ -12,10 +12,12 @@ SPDX-License-Identifier: MIT
 #include "sygse-gpio.hpp"
 
 namespace sygaldry { namespace sygse {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-button sygse-button: ESP32 Button
+///\{
 
-enum class ButtonActive {High, Low};
-
-template<gpio_num_t pin_number, ButtonActive active_level = ButtonActive::Low>
+template<gpio_num_t pin_number, sygsp::ButtonActive active_level = sygsp::ButtonActive::Low>
 struct Button
 : name_<"Button">
 , author_<"Travis J. West">
@@ -29,15 +31,17 @@ struct Button
     {
         gpio::init();
         gpio::input_mode();
-        if constexpr (active_level == ButtonActive::Low) gpio::enable_pullup();
+        if constexpr (active_level == sygsp::ButtonActive::Low) gpio::enable_pullup();
         else gpio::enable_pulldown();
     }
 
     void operator()()
     {
-        inputs.button_state = (char)gpio::level();
+        inputs.button_state = (char)gpio::level() == (char)active_level;
         ButtonGestureModel::operator()();
     }
 };
-    
+
+///\}
+///\}
 } }

@@ -13,6 +13,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_registers sygsp-icm20948_registers: Registers for ICM20948 MIMU
+/// \{
+
 static constexpr uint8_t AK09916_I2C_ADDRESS    = 0b0001100;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_0 = 0b1101000;
 static constexpr uint8_t ICM20948_I2C_ADDRESS_1 = 0b1101001;
@@ -424,4 +429,6 @@ struct CNTL3 : AK09916Register<"CNTL3", 0x32, 0>
 template<typename Serif>
 uint8_t ICM20948Registers<Serif>::current_bank_ = 0xFF;
 
+/// \}
+/// \}
 } }

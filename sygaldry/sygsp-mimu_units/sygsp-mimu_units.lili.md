@@ -1,4 +1,4 @@
-\page page-sygsp-mimu_units MIMU Units
+\page page-sygsp-mimu_units sygsp-mimu_units: MIMU Units
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -26,7 +26,7 @@ namespace sygaldry { namespace sygsp {
 */
 /// \{
 
-/*! \defgroup sygsp-mimu_units MIMU Units
+/*! \defgroup sygsp-mimu_units sygsp-mimu_units: MIMU Units
 
 This software component defines several unit conversion factors.
 */

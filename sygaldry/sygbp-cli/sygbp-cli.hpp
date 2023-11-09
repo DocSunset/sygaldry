@@ -1,9 +1,9 @@
 #pragma once
 /*
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-(IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-(CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
@@ -15,8 +15,6 @@ SPDX-License-Identifier: MIT
 #include "sygah-consteval.hpp"
 #include "sygah-metadata.hpp"
 #include "sygbp-osc_match_pattern.hpp"
-#include "sygup-cstdio_logger.hpp"
-#include "sygbp-cstdio_reader.hpp"
 
 #include "commands/help.hpp"
 #include "commands/list.hpp"
@@ -24,6 +22,10 @@ SPDX-License-Identifier: MIT
 #include "commands/set.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp sygbp: Portable Bindings
+///\{
+///\defgroup sygbp-cli sygbp-cli: CLI Binding
+///\{
 
 template<typename Reader, typename Logger, typename Components, typename Commands>
 struct CustomCli : name_<"CLI">
@@ -67,7 +69,7 @@ struct CustomCli : name_<"CLI">
     }
     bool _is_whitespace(char c)
     {
-        if (c == ' ' || c == '\t' || c == '\n') return true;
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') return true;
         else return false;
     }
 
@@ -78,23 +80,26 @@ struct CustomCli : name_<"CLI">
 
     bool _overflow() const
     {
-        return argc == MAX_ARGS || write_pos == BUFFER_SIZE;
+        return argc == MAX_ARGS || write_pos == BUFFER_SIZE-1; // -1 so we can erase forward one as we write
     }
 
     void _prompt()
     {
-        log.print("> ");
+        log.print("\r> ");
+        for (int i = 0; i < argc - 1; ++i) log.print(argv[i], " ");
+        if (argc > 0) log.print(argv[argc - 1]);
     }
 
     void _reset()
     {
         argc = 0;
         write_pos = 0;
-        _prompt();
     }
 
     void _complain_about_command_failure(int retcode)
-    {} // TODO
+    {
+        log.println("command failed!");
+    } // TODO
 
     void process(const char c, Components& components)
     {
@@ -103,19 +108,15 @@ struct CustomCli : name_<"CLI">
         else
         {
             buffer[write_pos] = c;
+            buffer[write_pos+1] = 0;
             if (_new_arg())
                 argv[argc++] = &buffer[write_pos];
             write_pos++;
         }
 
-        #ifdef ESP_PLATFORM
-        char s[2] = {0,0};
-        s[0] = c;
-        log.print(s);
-        #endif
-
-        if (c == '\n')
+        if (c == '\n' || c == '\r')
         {
+            log.print("\r\n");
             _try_to_match_and_execute(components);
             _reset();
         }
@@ -125,6 +126,8 @@ struct CustomCli : name_<"CLI">
             log.println("CLI line buffer overflow!");
             _reset();
         }
+
+        _prompt();
     }
 
     void external_sources(Components& components)
@@ -144,7 +147,6 @@ struct DefaultCommands
 template<typename Reader, typename Logger, typename Components>
 using Cli = CustomCli<Reader, Logger, Components, DefaultCommands>;
 
-template<typename Components>
-using CstdioCli = Cli<CstdioReader, sygup::CstdioLogger, Components>;
-
+///\}
+///\}
 } }

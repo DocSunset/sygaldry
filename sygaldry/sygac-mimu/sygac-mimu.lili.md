@@ -1,4 +1,4 @@
-\page page-sygac-mimu MIMU Concepts
+\page page-sygac-mimu sygac-mimu: MIMU Concepts
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -283,6 +283,13 @@ SPDX-License-Identifier: MIT
 #include "sygac-components.hpp"
 
 namespace sygaldry {
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-mimu sygac-mimu: MIMU Concepts
+ */
+/// \{
 
 @{endpoints}
 
@@ -290,6 +297,8 @@ namespace sygaldry {
 
 @{MIMU accessors}
 
+/// \}
+/// \}
 }
 // @/
 
@@ -319,7 +328,6 @@ set(lib sygac-mimu)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygac-components)
-target_link_libraries(sygac INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

@@ -1,4 +1,4 @@
-\page page-sygac-functions Function Reflection
+\page page-sygac-functions sygac-functions: Function Reflection
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -286,6 +286,13 @@ SPDX-License-Identifier: MIT
 #include <concepts>
 
 namespace sygaldry {
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-functions sygac-functions: Function Reflection
+ */
+/// \{
 
 @{type list}
 
@@ -299,6 +306,8 @@ namespace sygaldry {
 
 @{function reflection}
 
+/// \}
+/// \}
 }
 // @/
 

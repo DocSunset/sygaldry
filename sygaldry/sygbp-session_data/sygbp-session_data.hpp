@@ -12,6 +12,10 @@ SPDX-License-Identifier: MIT
 #include "sygac-endpoints.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-session_data sygbp-session_data: Session Data
+///\{
 
 template<typename C>
 constexpr void for_each_session_datum(C& components, auto fn)
@@ -22,4 +26,6 @@ constexpr void for_each_session_datum(C& components, auto fn)
     });
 }
 
+///\}
+///\}
 } }

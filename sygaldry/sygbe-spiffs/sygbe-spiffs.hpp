@@ -17,6 +17,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-rapid_json.hpp"
 
 namespace sygaldry { namespace sygbe {
+///\addtogroup sygbe
+///\{
+///\defgroup sygbe-spiffs sygbe-spiffs: ESP32 SPIFFS Session Storage
+///\{
 
 struct SpiffsJsonOStream
 {
@@ -101,4 +105,6 @@ struct SpiffsSessionStorage
     }
 };
 
+///\}
+///\}
 } }

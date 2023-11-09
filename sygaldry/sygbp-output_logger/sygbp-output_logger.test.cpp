@@ -30,7 +30,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
 
 struct TestComponents
 {
-    sygaldry::components::TestComponent tc;
+    sygaldry::sygbp::TestComponent tc;
 };
 
 TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")

@@ -1,4 +1,4 @@
-\page page-sygbp-cstdio_reader C Standard Input/Output Reader
+\page page-sygbp-cstdio_reader sygbp-cstdio_reader: C Standard Input/Output Reader
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -33,7 +33,23 @@ SPDX-License-Identifier: MIT
 #include <stdlib.h>
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-cstdio_reader sygbp-cstdio_reader: C Standard Input/Output Reader
+///\{
 
+/*! \brief Command line input reader using standard IO calls
+
+This reader calls `getc` to get one character. There are some limitations to
+this implementation:
+
+- `ready()` needs to be called once before every call to `getchar()`, which doesn't actually
+  get any characters
+- on some platforms, `getc` is blocking, and this implementation cannot be used
+
+It remains as future work to resolve the latter issue, but the former is
+considered part of the API. Beware!
+*/
 struct CstdioReader
 {
     int last_read;
@@ -49,6 +65,8 @@ struct CstdioReader
     }
 };
 
+///\}
+///\}
 } }
 // @/
 ```

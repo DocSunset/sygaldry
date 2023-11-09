@@ -12,6 +12,9 @@ SPDX-License-Identifier: MIT
 #include "sygsp-icm20948_registers.hpp"
 
 namespace sygaldry { namespace sygsp {
+/// \addtogroup sygsp-icm20948
+/// \{
+/// \defgroup sygsp-icm20948_aux_serif sygsp-icm20948_aux_serif: ICM20948 Auxiliary I2C Bus Controller Serial Interface
 
 /*! Limited I2C serial interface using the ICM20948 aux bus
 
@@ -48,4 +51,7 @@ struct ICM20948AuxSerif
         Registers::I2C_SLV4_CTRL::I2C_SLV4_EN::trigger();
     }
 };
+
+/// \}
+/// \}
 } }

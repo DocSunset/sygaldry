@@ -14,12 +14,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-/*! \addtogroup sygsp
-*/
+/// \addtogroup sygsp
 /// \{
 
-/*! \addtogroup sygsp-mimu_fusion MIMU Sensor Fusion
-*/
+/// \addtogroup sygsp-complementary_mimu_fusion sygsp-complementary_mimu_fusion: MIMU Sensor Fusion
+/// Literate source code: \ref page-sygsp-complementary_mimu_fusion
 /// \{
 
 /// Inputs for the MIMU sensor fusion component

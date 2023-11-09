@@ -1,4 +1,4 @@
-\page page-sygup-cstdio_logger C Standard Input/Output Logger
+\page page-sygup-cstdio_logger sygup-cstdio_logger: C Standard Input/Output Logger
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -30,6 +30,10 @@ SPDX-License-Identifier: MIT
 #include "sygup-basic_logger.hpp"
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup
+/// \{
+/// \defgroup sygup-cstdio_logger sygup-cstdio_logger: C Standard Input/Output Logger
+/// \{
 
 struct CstdioPutter
 {
@@ -46,6 +50,8 @@ struct CstdioPutter
 
 using CstdioLogger = BasicLogger<CstdioPutter>;
 
+/// \}
+/// \}
 } }
 // @/
 ```

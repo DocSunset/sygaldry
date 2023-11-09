@@ -10,10 +10,16 @@ SPDX-License-Identifier: MIT
 #include "Arduino.h"
 
 namespace sygaldry { namespace sygsp {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-delay sygse-delay: Sygaldry Delay for ESP32
+///\{
 
 void delay(unsigned long ms)
 {
     ::delay(ms);
 }
 
+///\}
+///\}
 } }

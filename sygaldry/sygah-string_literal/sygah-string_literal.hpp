@@ -16,7 +16,7 @@ namespace sygaldry {
 /// \ingroup sygah Sygaldry Helpers
 /// \{
 
-/// \defgroup sygah-string_literal String Literal Template Parameter Wrapper
+/// \defgroup sygah-string_literal sygah-string_literal: String Literal Template Parameter Wrapper
 /// \{
 
 /// A wrapper around a string lteral that enables using strings as template parameters.

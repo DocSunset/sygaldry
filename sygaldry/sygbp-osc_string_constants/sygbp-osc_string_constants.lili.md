@@ -1,4 +1,4 @@
-\page page-sygbp-osc_string_constants OSC String Constants
+\page page-sygbp-osc_string_constants sygbp-osc_string_constants: OSC String Constants
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -263,6 +263,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-spelling.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-osc_string_constants sygbp-osc_string_constants: OSC String Constants
+///\{
 
 @{string length functions}
 
@@ -272,6 +276,8 @@ namespace sygaldry { namespace sygbp {
 
 //@{osc address pattern matching}
 
+///\}
+///\}
 } }
 // @/
 
@@ -304,13 +310,12 @@ using namespace sygaldry::sygbp;
 # @#'CMakeLists.txt'
 set(lib sygbp-osc_string_constants)
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib} INTERFACE .)
-    target_link_libraries(${lib}
-            INTERFACE sygac-components
-            INTERFACE sygac-endpoints
-            INTERFACE sygbp-spelling
-            )
-target_link_libraries(sygbp INTERFACE ${lib})
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+        INTERFACE sygac-components
+        INTERFACE sygac-endpoints
+        INTERFACE sygbp-spelling
+        )
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

@@ -22,65 +22,31 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <stdio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include "sygac-runtime.hpp"
-#include "sygah-metadata.hpp"
 #include "sygse-button.hpp"
 #include "sygse-adc.hpp"
 #include "sygsa-two_wire.hpp"
 #include "sygse-trill.hpp"
 #include "sygse-max17055.hpp"
 #include "sygsp-icm20948.hpp"
-#include "sygsa-icm20948-two_wire_serif.hpp"
+#include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
-#include "sygbe-spiffs.hpp"
-#include "sygbe-wifi.hpp"
-#include "sygbp-liblo.hpp"
-#include "sygbp-cli.hpp"
-#include "sygbp-output_logger.hpp"
+#include "sygbe-runtime.hpp"
 
 using namespace sygaldry;
 
 struct TStick
 {
-    struct Instrument {
-        sygsa::TwoWire<21,22,400000> i2c;
-        struct Sensors {
-            //sygse::Button<GPIO_NUM_15> button;
-            //sygse::OneshotAdc<33> adc;
-            //sygsa::TrillCraft touch;
-            sygsa::MAX17055 fuelgauge;
-            //sygsp::ICM20948< sygsa::ICM20948TwoWireSerif<sygsp::ICM20948_I2C_ADDRESS_0>
-            //               , sygsa::ICM20948TwoWireSerif<sygsp::AK09916_I2C_ADDRESS>
-            //               > mimu;
-            //sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
-        } sensors;
-        sygbe::WiFi wifi;
-        sygbp::LibloOsc<Sensors> osc;
-    };
+    sygse::Button<GPIO_NUM_15> button;
+    sygse::OneshotAdc<33> adc;
+    sygsa::TrillCraft touch;
+    sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                   , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
+                   > mimu;
+    sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
+};
 
-    sygbe::SpiffsSessionStorage<Instrument> session_storage;
-    Instrument instrument;
-    sygbp::CstdioCli<Instrument> cli;
-} tstick{};
-
-constexpr auto runtime = Runtime{tstick};
-
-extern "C" void app_main(void)
-{
-    printf("initializing\n");
-    runtime.init();
-    // give IDF processes time to finish up init business
-    vTaskDelay(pdMS_TO_TICKS(100));
-    printf("looping\n");
-    while (true)
-    {
-        runtime.tick();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
+sygbe::ESP32Instrument<TStick> tstick{};
+extern "C" void app_main(void) { tstick.app_main(); }
 // @/
 ```
 

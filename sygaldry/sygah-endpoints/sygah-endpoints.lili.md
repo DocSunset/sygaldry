@@ -1,4 +1,4 @@
-\page page-sygah-endpoints Endpoints Helpers
+\page page-sygah-endpoints sygah-endpoints: Endpoints Helpers
 
 This document is concerned with providing a convenient means for definine
 endpoints that adhere to certain concepts. The concepts themselves, along with
@@ -869,11 +869,11 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/*! \addtogroup sygah Sygaldry Helpers
+/*! \addtogroup sygah sygah: Sygaldry Helpers
 */
 /// \{
 
-/*! \defgroup sygah-endpoints Endpoints Helpers
+/*! \defgroup sygah-endpoints sygah-endpoints: Endpoints Helpers
 
 The endpoint helpers are intended to serve as value-like types. Users can
 declare instances of these templates in the `inputs` and `outputs` structures
@@ -883,7 +883,7 @@ library for numerous examples.
 */
 /// \{
 
-/*! \defgroup sygaldry-endpoints-helpers-bases Endpoints Bases
+/*! \defgroup sygah-endpoints-bases sygah-endpoints: Endpoints Bases
 
 Base classes for building endpoints. Advanced users may inherit from these
 classes to compose new endpoint types. This is how the canonical endpoint
@@ -932,7 +932,6 @@ add_library(${lib} INTERFACE)
 target_link_libraries(${lib} INTERFACE sygah-consteval)
 target_link_libraries(${lib} INTERFACE sygah-metadata)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(sygah INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

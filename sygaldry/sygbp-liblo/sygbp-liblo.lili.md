@@ -1,4 +1,4 @@
-\page page-sygbp-liblo Liblo OSC Binding
+\page page-sygbp-liblo sygbp-liblo: Liblo OSC Binding
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -604,6 +604,10 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 #include "sygbp-osc_string_constants.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-liblo sygbp-liblo: Liblo OSC Binding
+///\{
 
 template<typename Components>
 struct LibloOsc
@@ -640,6 +644,8 @@ struct LibloOsc
     @{tick}
 };
 
+///\}
+///\}
 } }
 // @/
 ```
@@ -666,7 +672,6 @@ using std::string;
 
 using namespace sygaldry;
 using namespace sygaldry::sygbp;
-using namespace sygaldry::components;
 
 @{tests}
 // @/

@@ -12,6 +12,10 @@ SPDX-License-Identifier: MIT
 #include "sygup-basic_logger.hpp"
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup
+/// \{
+/// \defgroup sygup-test_logger sygup-test_logger: Test Logger
+/// \{
 
 struct TestPutter
 {
@@ -24,4 +28,6 @@ struct TestPutter
 
 using TestLogger = BasicLogger<TestPutter>;
 
+/// \}
+/// \}
 } }

@@ -1,4 +1,4 @@
-\page page-sygbp-rapid_json RapidJSON Binding
+\page page-sygbp-rapid_json sygbp-rapid_json: RapidJSON Binding
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -420,6 +420,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-session_data.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-rapid_json sygbp-rapid_json: RapidJSON Binding
+///\{
 
 template<typename IStream, typename OStream, typename Components>
 struct RapidJsonSessionStorage
@@ -439,6 +443,8 @@ struct RapidJsonSessionStorage
     }
 };
 
+///\}
+///\}
 } }
 // @/
 
@@ -484,7 +490,6 @@ add_library(${lib} INTERFACE)
             INTERFACE sygbp-osc_string_constants
             INTERFACE sygbp-session_data
             )
-target_link_libraries(sygbp INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

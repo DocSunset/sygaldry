@@ -1,4 +1,4 @@
-\page page-sygsa-delay Sygaldry Delay for ESP32
+\page page-sygse-delay sygse-delay: Sygaldry Delay for ESP32
 
 Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
@@ -9,8 +9,8 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-Sygaldry portable `delay` implementation in terms of Arduino delay. See also
-\ref page-sygsp-delay.
+Sygaldry portable `delay` implementation in terms of Arduino delay on ESP32.
+See also \ref page-sygsp-delay.
 
 ```cpp
 // @#'sygse-delay.cpp'
@@ -26,12 +26,18 @@ SPDX-License-Identifier: MIT
 #include "Arduino.h"
 
 namespace sygaldry { namespace sygsp {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-delay sygse-delay: Sygaldry Delay for ESP32
+///\{
 
 void delay(unsigned long ms)
 {
     ::delay(ms);
 }
 
+///\}
+///\}
 } }
 // @/
 ```

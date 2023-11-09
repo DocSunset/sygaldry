@@ -15,6 +15,11 @@ SPDX-License-Identifier: MIT
 #include <charconv>
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup sygup: Portable Utilities
+/// \{
+/// \defgroup sygup-basic_logger sygup-basic_logger: Basic Logger
+/// Literate source code: page-sygup-basic_logger
+/// \{
 
 template<typename putter>
 struct BasicLogger
@@ -83,4 +88,6 @@ struct BasicLogger
     }
 };
 
+/// \}
+/// \}
 } }

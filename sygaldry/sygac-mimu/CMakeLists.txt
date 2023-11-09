@@ -2,7 +2,6 @@ set(lib sygac-mimu)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygac-components)
-target_link_libraries(sygac INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

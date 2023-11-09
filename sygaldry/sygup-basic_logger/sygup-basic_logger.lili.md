@@ -1,4 +1,4 @@
-\page page-sygup-basic_logger Basic Logger
+\page page-sygup-basic_logger sygup-basic_logger: Basic Logger
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -201,9 +201,16 @@ SPDX-License-Identifier: MIT
 @{basic logger includes}
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup sygup: Portable Utilities
+/// \{
+/// \defgroup sygup-basic_logger sygup-basic_logger: Basic Logger
+/// Literate source code: page-sygup-basic_logger
+/// \{
 
 @{basic logger plan}
 
+/// \}
+/// \}
 } }
 // @/
 ```

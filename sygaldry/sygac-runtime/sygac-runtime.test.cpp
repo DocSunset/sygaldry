@@ -50,10 +50,6 @@ struct testcomponent2_t : name_<"tc2">
         } out2;
     } outputs;
 
-    struct parts_t {
-        testcomponent1_t<"part"> part;
-    } parts;
-
     void init() {};
 
     void main(const testcomponent1_t<"tc1">::outputs_t& sources, testcomponent1_t<"tc1">& plugin)
@@ -69,20 +65,34 @@ struct components1_t
     testcomponent1_t<"tc1"> tc1;
     testcomponent2_t tc2;
 };
+
+struct components2_t
+{
+    testcomponent1_t<"tc1"> tc1;
+};
 constinit components1_t components{};
 constexpr auto runtime = Runtime{components};
 TEST_CASE("sygaldry runtime calls")
 {
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
-    CHECK(runtime.container.tc2.parts.part.inputs.in1.value == 0); // part inits are not called
     runtime.tick();
-    CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to main
+    CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to tick
     CHECK(runtime.container.tc1.outputs.out1.value == 43); // main routines are called
     CHECK(runtime.container.tc2.outputs.out1.value == 44); // throughpoints are propagated
     CHECK(runtime.container.tc2.outputs.out2.value == 44); // plugins are propagated
                                                             // calls proceed in tree order
-    CHECK(runtime.container.tc2.parts.part.outputs.out1.value == 0); // part mains are not called
+}
+
+constinit components2_t components2{};
+constexpr auto runtime2 = Runtime{components2};
+TEST_CASE("sygaldry runtime one component")
+{
+    runtime2.init();
+    CHECK(runtime2.container.tc1.inputs.in1.value == 42); // init routines are called
+    runtime2.tick();
+    CHECK(false == (bool)runtime2.container.tc1.outputs.bang_out); // out flags are clear after call to tick
+    CHECK(runtime2.container.tc1.outputs.out1.value == 43); // main routines are called
 }
 components1_t constinit main_runtime_components{};
 component_runtime<testcomponent2_t, components1_t> constinit main_component_runtime{main_runtime_components.tc2, main_runtime_components};

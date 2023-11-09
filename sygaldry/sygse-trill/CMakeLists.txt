@@ -12,5 +12,3 @@ target_link_libraries(${lib}
         PUBLIC sygse-arduino_hack
         PUBLIC sygsa-trill_craft
         )
-
-target_link_libraries(sygse INTERFACE ${lib})

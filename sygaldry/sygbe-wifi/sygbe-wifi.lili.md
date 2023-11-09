@@ -1,4 +1,4 @@
-\page page-sygbe-wifi WiFi
+\page page-sygbe-wifi sygbe-wifi: ESP32 WiFi
 
 Originally adapted from Puara Module Manager, itself adapted from the esp-idf
 wifi station and access point examples
@@ -464,6 +464,10 @@ SPDX-License-Identifier: MIT
 #include <sygup-cstdio_logger.hpp>
 
 namespace sygaldry { namespace sygbe {
+///\addtogroup sygbe
+///\{
+///\defgroup sygbe-wifi sygbe-wifi: ESP32 WiFi
+///\{
 
 struct WiFi
 : name_<"WiFi Manager">
@@ -495,6 +499,8 @@ struct WiFi
     void main() { return; }
 };
 
+///\}
+///\}
 } }
 // @/
 
@@ -506,16 +512,15 @@ struct WiFi
 set(lib sygbe-wifi)
 
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib} INTERFACE .)
-    target_link_libraries(${lib}
-        INTERFACE sygup-cstdio_logger
-        INTERFACE sygah-endpoints
-        INTERFACE sygah-metadata
-        INTERFACE idf::nvs_flash
-        INTERFACE idf::esp_wifi
-        INTERFACE idf::esp_common
-        INTERFACE idf::freertos
-        )
-target_link_libraries(sygbe INTERFACE ${lib})
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+    INTERFACE sygup-cstdio_logger
+    INTERFACE sygah-endpoints
+    INTERFACE sygah-metadata
+    INTERFACE idf::nvs_flash
+    INTERFACE idf::esp_wifi
+    INTERFACE idf::esp_common
+    INTERFACE idf::freertos
+    )
 # @/
 ```

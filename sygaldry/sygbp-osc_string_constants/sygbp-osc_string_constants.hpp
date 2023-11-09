@@ -16,6 +16,10 @@ SPDX-License-Identifier: MIT
 #include "sygbp-spelling.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-osc_string_constants sygbp-osc_string_constants: OSC String Constants
+///\{
 
 template<typename> struct osc_path_length : std::integral_constant<std::size_t, 0> {};
 template<template<typename...>typename L, typename ... Path>
@@ -97,4 +101,6 @@ template<typename T> constexpr const char * osc_type_string_v = osc_type_string<
 //    return osc_match_pattern(p, osc_path_v<T, Components>);
 //}
 
+///\}
+///\}
 } }

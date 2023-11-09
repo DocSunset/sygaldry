@@ -12,7 +12,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry {
-///\defgroup helpers_mimu_endpoints MIMU Endpoints Helpers
+
+///\addtogroup sygah
+///\{
+///\defgroup sygah-mimu sygah-mimu: MIMU Endpoints Helpers
 ///\{
 /*! \brief A MIMU data vector
 \tparam name The name of the vector, e.g. "accelerometer"
@@ -51,5 +54,6 @@ struct vec3_message
     /// Immutable vector component access
     constexpr const auto& z() const noexcept { return Parent::state[2]; }
 };
+///\}
 ///\}
 }

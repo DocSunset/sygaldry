@@ -17,10 +17,9 @@ namespace {
     };
 }
 
-namespace sygaldry { namespace sygse {
+namespace sygaldry { namespace sygse { namespace detail {
 
-template<int gpio_num>
-void OneshotAdc<gpio_num>::init()
+void OneshotAdcImpl::init(int gpio_num, outputs_t& outputs)
 {
     auto& state = *(new State_{});
     adc_oneshot_unit_init_cfg_t unit_config{};
@@ -36,20 +35,10 @@ void OneshotAdc<gpio_num>::init()
     pimpl = static_cast<void*>(&state);
 }
 
-template<int gpio_num>
-void OneshotAdc<gpio_num>::main()
+void OneshotAdcImpl::main(outputs_t& outputs)
 {
     auto& state = *static_cast<State_*>(pimpl);
     ESP_ERROR_CHECK(adc_oneshot_read(state.adc_handle, state.channel, &outputs.raw.value));
 }
 
-template struct OneshotAdc<ADC1_CHANNEL_0>;
-template struct OneshotAdc<ADC1_CHANNEL_1>;
-template struct OneshotAdc<ADC1_CHANNEL_2>;
-template struct OneshotAdc<ADC1_CHANNEL_3>;
-template struct OneshotAdc<ADC1_CHANNEL_4>;
-template struct OneshotAdc<ADC1_CHANNEL_5>;
-template struct OneshotAdc<ADC1_CHANNEL_6>;
-template struct OneshotAdc<ADC1_CHANNEL_7>;
-
-} }
+} } }

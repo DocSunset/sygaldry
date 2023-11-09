@@ -1,4 +1,4 @@
-\page page-sygbp-test_component Bindings Test Component
+\page page-sygbp-test_component sygbp-test_component: Bindings Test Component
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -27,7 +27,11 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
-namespace sygaldry { namespace components {
+namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-test_component sygbp-test_component: Bindings Test Component
+///\{
 
 struct TestComponent : name_<"Test Component 1">
 {
@@ -63,23 +67,20 @@ struct TestComponent : name_<"Test Component 1">
     }
 };
 
+///\}
+///\}
 } } // namespaces
 // @/
 ```
 
 ```cmake
 # @#'CMakeLists.txt'
-if (SYGALDRY_BUILD_TESTS)
-
 set(lib sygbp-test_component)
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib} INTERFACE .)
-    target_link_libraries(${lib}
-            INTERFACE sygah-metadata
-            INTERFACE sygah-endpoints
-            )
-target_link_libraries(sygbp INTERFACE ${lib})
-
-endif()
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+        INTERFACE sygah-metadata
+        INTERFACE sygah-endpoints
+        )
 # @/
 ```

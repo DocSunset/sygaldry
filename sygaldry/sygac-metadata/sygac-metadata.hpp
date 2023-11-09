@@ -13,6 +13,14 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-metadata sygac-metadata: Text Metadata Reflection
+ */
+/// \{
+
 #define text_concept(CONCEPT_NAME) template<typename T> \
 concept has_##CONCEPT_NAME = requires \
 { \
@@ -38,4 +46,7 @@ text_concept(date);
 
 #undef text_concept
 
+/// \}
+/// \}
 }
+

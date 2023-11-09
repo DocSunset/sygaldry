@@ -1,4 +1,4 @@
-\page page-sygse-arduino_hack ESP32 Arduino Hack
+\page page-sygse-arduino_hack sygse-arduino_hack: ESP32 Arduino Hack
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology

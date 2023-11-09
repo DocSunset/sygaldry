@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/env sh
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 # Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -7,8 +7,24 @@
 
 # SPDX-License-Identifier: MIT
 
-./sh/lili.sh || exit 1
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 
-cd "sygaldry-instruments/$1"
+export IDF_TOOLS_PATH="$SYGALDRY_ROOT/nixenv/esp-idf-tools"
+mkdir -p "$IDF_TOOLS_PATH"
+export IDF_PATH="$SYGALDRY_ROOT/nixenv/esp-idf"
+echo "idf.sh -- IDF_PATH: $IDF_PATH    IDF_TOOLS_PATH: $IDF_TOOLS_PATH"
+
+[ -d "$IDF_PATH" ] || {
+    echo "idf.sh -- IDF_PATH '$IDF_PATH' is not a directory; installing esp-idf..."
+    git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+    pushd "$IDF_PATH"
+        git fetch -a
+        git checkout v5.1
+    popd
+    "$IDF_PATH/install.sh"
+}
+source "$IDF_PATH/export.sh"
+
+cd "$SYGALDRY_ROOT/sygaldry-instruments/$1"
 shift
 idf.py $@

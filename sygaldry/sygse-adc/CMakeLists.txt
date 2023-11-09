@@ -10,8 +10,7 @@ target_include_directories(${lib}
 target_link_libraries(${lib}
         PUBLIC sygah-endpoints
         PUBLIC sygah-metadata
+        PUBLIC syghe-pins
         PRIVATE idf::esp_adc
         PRIVATE idf::esp_common
         )
-
-target_link_libraries(sygse INTERFACE ${lib})

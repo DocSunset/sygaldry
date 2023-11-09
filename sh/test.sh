@@ -1,17 +1,17 @@
-#!/bin/sh -e
+#!/bin/env sh
 
 # create the build directory if necessary, then build and test the project
 
-# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
-# (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
-# (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
-# Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+# Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
+# Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
+# Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
+# Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 # SPDX-License-Identifier: MIT
 
-./sh/lili.sh || exit 1
+"$SYGALDRY_ROOT/sh/lili.sh" || exit 1
 [ "$#" -gt 0 ] && dir="$1" || dir='_build_debug'
-[ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen' # && cd _build_doxygen/latex && make pdf'
+[ "$dir" = "_build_doxygen" ] && exec sh -c 'doxygen'
 [ -d "$dir" ] || {
     [ "$dir" == "_build_release" ] && mode=RelWithDebInfo ||
     [ "$dir" == "_build_debug" ]   && mode=Debug ||

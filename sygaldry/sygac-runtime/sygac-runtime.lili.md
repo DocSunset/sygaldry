@@ -1,4 +1,4 @@
-\page page-sygac-runtime Runtime
+\page page-sygac-runtime sygac-runtime: Sygaldry Runtime
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -12,12 +12,14 @@ SPDX-License-Identifier: MIT
 The runtime describes the expected behavior of the host platform of an
 assemblage of components. The runtime must first call every component's `init`
 method, if it has one. Then, in an endless loop, each component's main
-subroutine must be called, in node-tree-order, except for components which are
-parts in a subassembly with its own main subroutine. Between main ticks, all of
-the clearable flag endpoints should be cleared appropriately: input flags
-should be cleared before beginning the tick, and output flags should be cleared
-after it has resolved. Plugins and throughpoints should be automatically
-propagated to components that need them by extracting them from the assemblage.
+subroutine must be called, in node-tree-order. Before main subroutines,
+external input subroutines should be called. After main subroutines, external
+output subroutines should be called. This sequence of external input, main,
+external output is termed as a tick. Between ticks, all of the clearable flag
+endpoints should be cleared appropriately: input flags should be cleared before
+beginning the tick, and output flags should be cleared after it has resolved.
+Plugins and throughpoints should be automatically propagated to components that
+need them by extracting them from the assemblage.
 
 # Design Rationale
 
@@ -25,15 +27,31 @@ Originally planned as further overloads of the the `init` and `activate`
 functions in [the components concepts library](concepts/components.lili.md),
 the runtime class below allows the plugins and throughpoints of components
 having them to be automatically extracted by type from a component container
-when calling the `init` and `activate` methods of components. The decision was
+when calling the `init` and `main` methods of components. The decision was
 made to construct this as a class in order to ensure that the compiler would
 have the best chance of computing the argument extraction at compile time. It
 is a kind of ultimate binding that is meant to drive all other components,
 including binding components. The runtime is included in the concepts library
 so that components in the components library may make use of it to simplify
-their implementation using parts.
+their implementation using parts, although this is may be unwise at the
+time of writing due to compile time limitations of the runtime.
 
 # Example
+
+The following example illustrates the main requirements of the runtime,
+including its flag clearing behavior, throughpoint and plugin propagation, and
+the order of subroutines.
+
+`testcomponent1_t` has an output bang that should be clear on entry to main
+every tick. It always activates this bang. `testcomponent2_t` takes
+`testcomponent1_t`'s outputs via an input throughpoint, and the whole
+`testcomponent1_t` as a plugin component, as declared by `testcomponent2_t`'s
+main subroutine arguments. It checks that `testcomponent1_t`'s output bang is
+correctly propagated through the tick, and sets its outputs depending on the
+state of `testcomponent1_t`.
+
+The test case verifies that subroutines are called in the expected order, and
+that flags and values propagate as expected.
 
 ```cpp
 // @+'tests'
@@ -74,10 +92,6 @@ struct testcomponent2_t : name_<"tc2">
         } out2;
     } outputs;
 
-    struct parts_t {
-        testcomponent1_t<"part"> part;
-    } parts;
-
     void init() {};
 
     void main(const testcomponent1_t<"tc1">::outputs_t& sources, testcomponent1_t<"tc1">& plugin)
@@ -93,6 +107,11 @@ struct components1_t
     testcomponent1_t<"tc1"> tc1;
     testcomponent2_t tc2;
 };
+
+struct components2_t
+{
+    testcomponent1_t<"tc1"> tc1;
+};
 // @/
 
 // @+'tests'
@@ -102,14 +121,23 @@ TEST_CASE("sygaldry runtime calls")
 {
     runtime.init();
     CHECK(runtime.container.tc1.inputs.in1.value == 42); // init routines are called
-    CHECK(runtime.container.tc2.parts.part.inputs.in1.value == 0); // part inits are not called
     runtime.tick();
-    CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to main
+    CHECK(false == (bool)runtime.container.tc1.outputs.bang_out); // out flags are clear after call to tick
     CHECK(runtime.container.tc1.outputs.out1.value == 43); // main routines are called
     CHECK(runtime.container.tc2.outputs.out1.value == 44); // throughpoints are propagated
     CHECK(runtime.container.tc2.outputs.out2.value == 44); // plugins are propagated
                                                             // calls proceed in tree order
-    CHECK(runtime.container.tc2.parts.part.outputs.out1.value == 0); // part mains are not called
+}
+
+constinit components2_t components2{};
+constexpr auto runtime2 = Runtime{components2};
+TEST_CASE("sygaldry runtime one component")
+{
+    runtime2.init();
+    CHECK(runtime2.container.tc1.inputs.in1.value == 42); // init routines are called
+    runtime2.tick();
+    CHECK(false == (bool)runtime2.container.tc1.outputs.bang_out); // out flags are clear after call to tick
+    CHECK(runtime2.container.tc1.outputs.out1.value == 43); // main routines are called
 }
 // @/
 ```
@@ -135,23 +163,29 @@ TEST_CASE("sygaldry example test")
 }
 ```
 
+We'll start by extracting the arguments needed to call just one subroutine
+(`main`), and then generalise to include `init` and eventually other
+subroutines.
+
 ### Use a fold
 
-My first attempt resembled the following. We define template struct whose type parameters give
-the arguments a component needs for its main subroutine to be activated . In the `activate`
+My first attempt resembled the following. We define a template struct whose type parameters give
+the arguments a component needs for its main subroutine to be activated. In the `activate`
 method of this structure, these type parameters are unpacked to into `find` to locate
 the entities with the given types in the component tree. This `runtime_impl` struct is
 then instantiated with the appropriate arguments using our function reflection facilities
 and a bit of template metaprogramming provided by `mp11`.
 
 ```cpp
-template<typename ... Args>
+template<typename ... Args> // Args is a parameter pack corresponding to the arguments of the component main subroutine
 struct runtime_impl
 {
     template <typename Component, typename ComponentContainer>
-    static void activate(Component& component, ComponentContainer& container)
+    static void activate(Component& component, ComponentContainer& container) // user passes the component and the assembly
     {
         if constexpr (requires {&Component::operator();})
+            // we unpack the parameter pack into find calls; resolves to something like a call to the main routine:
+            // component(arg1, arg2, arg3, ... argN);
             component(find<Args>(container) ...);
         else if constexpr (requires {&Component::main;})
             component.main(find<Args>(container) ...);
@@ -161,7 +195,8 @@ struct runtime_impl
 template<typename Component, typename ComponentContainer>
 void activate(Component& component, ComponentContainer& container)
 {
-    using args = typename main_subroutine_reflection<Component>::arguments;
+    using args = typename main_subroutine_reflection<Component>::arguments; // get the argument type list
+    // change from a tuple to a runtime_impl
     using runtime = boost::mp11::mp_rename<boost::mp11::mp_transform<std::remove_cvref_t, args>, runtime_impl>;
     runtime::activate(component, container);
 }
@@ -174,17 +209,21 @@ component tree implied by the multiple calls to `find` in this implementation.
 We need some way of declaring this traversal `constexpr`, or perhaps
 `constinit`. This lead to the following implementation. Roughly the same
 metaprogramming pattern is used to enable the arguments of the function to be
-extracted by expanding a parameter pack with a fold expression over calls to
+extracted, by expanding a parameter pack with a fold expression over calls to
 `find`. However, instead of doing so in a function call context, a tuple is
-declared initialized which holds the arguments until call time. So that this
+initialized which holds the arguments until call time. So that this
 traversal can happen at compile time, the constructor that initializes the tuple
 is declared `constexpr`.
 
 ```cpp
 // @='component_runtime 1 tuple'
+// unpack the Args parameter pack into a fold of find calls
+// resolves to a call to `forward_as_tuple(arg1, arg2, arg3, ..., argN)`
+// we get that type, and declare a const tuple with it
 using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
 const arg_pack_t arg_pack;
 
+// then when we construct the runtime impl, we constexpr instantiate the tuple
 constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
 // @/
 ```
@@ -235,17 +274,21 @@ struct component_runtime_impl
 
 All that's left then, essentially, is the metaprogram that determines the
 appropriate type for the tuple, seen below in the sequence of `using`
-declarations.
+declarations: we extract the arguments list, remove constant, volatile, and
+reference qualifiers from the types in the list, prepend the component and
+assembly types to the list, and then swap whatever tuple container contains
+the type list with the component runtime implementation type so that we
+can easily instantiate it.
 
 ```cpp
 // @+'component_runtime 1'
 template<typename Component, typename ComponentContainer>
 struct component_runtime
 {
-    using args = typename main_subroutine_reflection<Component>::arguments;
-    using cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, args>;
-    using prepended = boost::mp11::mp_push_front<cvref_less_args, Component, ComponentContainer>;
-    using impl_t = boost::mp11::mp_rename<prepended, component_runtime_impl>;
+    using args = typename main_subroutine_reflection<Component>::arguments; // get args list
+    using cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, args>; // remove cvref qualifiers
+    using prepended = boost::mp11::mp_push_front<cvref_less_args, Component, ComponentContainer>; // prepend component and assembly types
+    using impl_t = boost::mp11::mp_rename<prepended, component_runtime_impl>; // rename from tuple<...> to component_runtime_impl<...>
 
     Component& component;
     const impl_t impl;
@@ -286,28 +329,15 @@ struct impl_arg_pack
 // @/
 ```
 
-Having this class allows us to get rid of the inner `impl` structure and makes
-it easier to generalize the component runtime so that it can initialize or
-activate a component, accepting argument packs for both of these subroutines,
-as well as others such as `external_destinations` that were added later. We can
-now test the runtime's ability to run the init method.
-
-```cpp
-// @+'tests'
-components1_t constinit init_runtime_components{};
-component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
-TEST_CASE("sygaldry component runtime init")
-{
-    init_runtime_components.tc1.inputs.in1.value = 0;
-    init_component_runtime.init();
-    CHECK(init_runtime_components.tc1.inputs.in1.value == 42);
-}
-// @/
-```
+Having this class allows us to get rid of the inner `impl` structure (e.g.
+`component_runtime_impl` above) and makes it easier to generalize the component
+runtime so that it can initialize or activate a component, accepting argument
+packs for both of these subroutines, as well as others such as
+`external_destinations` that were added later.
 
 The full implementation now resembles the following, which essentially simply
 gets the types of the `arg_pack` tuples, and applies them to the component's
-subroutines.:
+subroutines:
 
 ```cpp
 // @='component_runtime 2'
@@ -319,6 +349,7 @@ struct component_runtime
     using init_prepended = boost::mp11::mp_push_front<init_cvref_less_args, ComponentContainer>;
     using init_arg_pack = boost::mp11::mp_rename<init_prepended, impl_arg_pack>;
 
+    // note the repeated metaprogramming sequence...
     using main_args = typename main_subroutine_reflection<Component>::arguments;
     using main_cvref_less_args = boost::mp11::mp_transform<std::remove_cvref_t, main_args>;
     using main_prepended = boost::mp11::mp_push_front<main_cvref_less_args, ComponentContainer>;
@@ -347,11 +378,27 @@ struct component_runtime
 // @/
 ```
 
+We can now test the runtime's ability to run the init method:
+
+```cpp
+// @+'tests'
+components1_t constinit init_runtime_components{};
+component_runtime<testcomponent1_t<"tc1">, components1_t> constinit init_component_runtime{init_runtime_components.tc1, init_runtime_components};
+TEST_CASE("sygaldry component runtime init")
+{
+    init_runtime_components.tc1.inputs.in1.value = 0;
+    init_component_runtime.init();
+    CHECK(init_runtime_components.tc1.inputs.in1.value == 42);
+}
+// @/
+```
+
 To avoid repeating the series of template metafunctions used to get the
 argument pack types, we define a helper template that takes a function
-reflection structure and returns an appropriate argument pack. We allow this to
-return a dummy arg pack in case a component lacks an init or main subroutine,
-so that components missing one or the other will not trigger a compiler error.
+reflection structure and returns an appropriate argument pack type. We allow
+this to return a dummy arg pack in case a component lacks an init or main
+subroutine, so that components missing one or the other will not trigger a
+compiler error.
 
 ```cpp
 // @='to_arg_pack'
@@ -390,6 +437,7 @@ general runtime for a single component that passes our tests.
 template<typename Component, typename ComponentContainer>
 struct component_runtime
 {
+    // no more repeated metafunction sequences
     using init_arg_pack = typename to_arg_pack<Component, ComponentContainer, init_subroutine_reflection<Component>>::pack_t;
     using main_arg_pack = typename to_arg_pack<Component, ComponentContainer, main_subroutine_reflection<Component>>::pack_t;
 
@@ -418,13 +466,14 @@ struct component_runtime
 
 ### Digression: Other Stages
 
-Thus far we have assumed that all our components would run in the order
-specified in the component tree, first all their initialization routines,
-then all their main subroutines in a loop forever, with input and output
-flags cleared in between loops.
+Thus far we have ignored external sources and destinations and more or less
+assumed that all our components would run in the order specified in the
+component tree, first all their initialization routines, then all their main
+subroutines in a loop forever, with input and output flags cleared in between
+loops.
 
 This sequence is adequate when considering only regular components, however,
-it fails to reasonably support binding components. Consider an protocol binding
+it fails to reasonably support binding components. Consider a protocol binding
 that can set the state of input endpoints and send changes in the state of output
 endpoints to external devices via its protocol. There is no way to order such
 a binding component so that external inputs can propagate to the bound components
@@ -513,10 +562,13 @@ template<typename ComponentContainer>
 constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
 {
     auto tup = component_filter_by_tag<node::component>(cont);
-    return boost::mp11::tuple_transform([&](auto& tagged_component)
-    {
-        return component_runtime{tagged_component.ref, cont};
-    }, tup);
+    if constexpr (is_tuple_v<decltype(tup)>)
+        return boost::mp11::tuple_transform([&](auto& tagged_component)
+        {
+            return component_runtime{tagged_component.ref, cont};
+        }, tup);
+    // if there's only one component, `component_filter_by_tag` returns the tagged component directly
+    else return std::make_tuple(component_runtime{tup.ref, cont});
 }
 // @/
 
@@ -659,11 +711,15 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry {
 
-/*! \defgroup sygac-runtime Runtime
+/*! \addtogroup sygac
+ */
+/// \{
+
+/*! \defgroup sygac-runtime sygac-runtime: Sygaldry Runtime
 */
 /// \{
 
-/*! \defgroup sygac-runtime-detail
+/*! \defgroup sygac-runtime-detail sygac-runtime: Runtime Implementation Details
 These entities are used in the implementation of the Runtime class and should
 be considered private implementation details.
 */
@@ -676,7 +732,7 @@ be considered private implementation details.
 @{Runtime}
 
 /// \}
-
+/// \}
 }
 // @/
 
@@ -708,7 +764,6 @@ target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygac-components)
 target_link_libraries(${lib} INTERFACE sygac-functions)
 target_link_libraries(${lib} INTERFACE Boost::mp11)
-target_link_libraries(sygac INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

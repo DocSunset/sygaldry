@@ -1,4 +1,4 @@
-\page page-sygbp-output_logger Output Logger
+\page page-sygbp-output_logger sygbp-output_logger Output Logger
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -48,7 +48,7 @@ void test_logger(auto& logger, auto& components, string expected_output, auto in
 
 struct TestComponents
 {
-    sygaldry::components::TestComponent tc;
+    sygaldry::sygbp::TestComponent tc;
 };
 
 TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
@@ -96,18 +96,17 @@ TEST_CASE("sygaldry Output Logger", "[bindings][output_logger]")
 # @#'CMakeLists.txt'
 set(lib sygbp-output_logger)
 add_library(${lib} INTERFACE)
-    target_include_directories(${lib} INTERFACE .)
-    target_link_libraries(${lib}
-            INTERFACE sygbp-spelling
-            INTERFACE sygac-metadata
-            INTERFACE sygac-components
-            INTERFACE sygah-metadata
-            INTERFACE sygbp-osc_string_constants
-            INTERFACE sygup-cstdio_logger
-            )
-target_link_libraries(sygbp INTERFACE ${lib})
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib}
+        INTERFACE sygbp-spelling
+        INTERFACE sygac-metadata
+        INTERFACE sygac-components
+        INTERFACE sygah-metadata
+        INTERFACE sygbp-osc_string_constants
+        INTERFACE sygup-cstdio_logger
+        )
 
-if (CMAKE_BUILD_TYPE)
+if(SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test
         PRIVATE Catch2::Catch2WithMain
@@ -141,6 +140,10 @@ SPDX-License-Identifier: MIT
 #include "sygup-cstdio_logger.hpp"
 
 namespace sygaldry { namespace sygbp {
+///\addtogroup sygbp
+///\{
+///\defgroup sygbp-output_logger sygbp-output_logger: Output Logger
+///\{
 
 template<typename Logger, typename Components>
 struct OutputLogger : name_<"Output Logger">
@@ -179,6 +182,8 @@ struct OutputLogger : name_<"Output Logger">
 
 template<typename Components> using CstdioOutputLogger = OutputLogger<sygup::CstdioLogger, Components>;
 
+///\}
+///\}
 } }
 // @/
 ```

@@ -1,4 +1,4 @@
-\page page-sygsp-debug_printer Debug Printer
+\page page-sygup-debug_printer sygup-debug_printer Debug Printer
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -17,7 +17,7 @@ to modify other components. It's subroutines simply print a message
 customized by a template parameter.
 
 ```cpp
-// @#'sygsp-debug_printer.hpp'
+// @#'sygup-debug_printer.hpp'
 #pragma once
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
@@ -31,6 +31,10 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 
 namespace sygaldry { namespace sygup {
+/// \addtogroup sygup
+/// \{
+/// \defgroup sygsp-debug_printer sygsp-debug_printer: Runtime Stage Printer for Debugging
+/// \{
 
 template<typename Logger, string_literal message>
 struct DebugPrinter
@@ -48,19 +52,19 @@ struct DebugPrinter
     void external_destinations() { log.println(message.value, " external_destinations"); }
 };
 
+/// \}
+/// \}
 } }
 // @/
 ```
 
 ```cmake
 # @#'CMakeLists.txt'
-set(lib sygsp-debug_printer)
+set(lib sygup-debug_printer)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib}
         INTERFACE sygah-metadata
         )
-
-target_link_libraries(sygsp INTERFACE ${lib})
 # @/
 ```

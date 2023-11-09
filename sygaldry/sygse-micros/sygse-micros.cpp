@@ -9,6 +9,11 @@ SPDX-License-Identifier: MIT
 #include "Arduino.h"
 
 namespace sygaldry { namespace sygsp {
+///\addtogroup sygse
+///\{
+///\defgroup sygse-micros sygse-micros: Portable Timestamp API for ESP32
+/// Literate source code: \ref page-sygse-micros
+///\{
 
 /// Get the number of microseconds elapsed since boot.
 unsigned long micros()
@@ -16,4 +21,6 @@ unsigned long micros()
     return ::micros();
 }
 
+///\}
+///\}
 } }

@@ -22,7 +22,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygac-runtime.hpp"
 #include "sygsp-button.hpp"
-#include "sygbp-cli.hpp"
+#include "sygbp-cstdio_cli.hpp"
 #include "sygbp-output_logger.hpp"
 
 using namespace sygaldry;

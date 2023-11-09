@@ -1,4 +1,4 @@
-\page page-sygah-mimu MIMU Endpoint Helpers
+\page page-sygah-mimu sygah-mimu: MIMU Endpoint Helpers
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -125,9 +125,13 @@ SPDX-License-Identifier: MIT
 #include "sygah-endpoints.hpp"
 
 namespace sygaldry {
-///\defgroup helpers_mimu_endpoints MIMU Endpoints Helpers
+
+///\addtogroup sygah
+///\{
+///\defgroup sygah-mimu sygah-mimu: MIMU Endpoints Helpers
 ///\{
 @{vec3_message}
+///\}
 ///\}
 }
 // @/
@@ -159,8 +163,6 @@ add_library(${lib} INTERFACE)
 target_link_libraries(${lib} INTERFACE sygah-metadata)
 target_link_libraries(${lib} INTERFACE sygah-endpoints)
 target_include_directories(${lib} INTERFACE .)
-
-target_link_libraries(sygah INTERFACE ${lib})
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
