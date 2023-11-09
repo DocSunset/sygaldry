@@ -21,7 +21,7 @@ using namespace sygaldry;
 struct TStick
 {
     sygse::Button<GPIO_NUM_15> button;
-    sygse::OneshotAdc<33> adc;
+    sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
     sygsa::TrillCraft touch;
     sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                    , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>

@@ -24,11 +24,11 @@ namespace sygaldry { namespace syghe {
 */
 /// \{
 #if defined SYGALDRY_ESP32
-constexpr int I2C_MAIN_SCL = 21;
-constexpr int I2C_MAIN_SDA = 22;
+constexpr int I2C_MAIN_SDA = 21;
+constexpr int I2C_MAIN_SCL = 22;
 #elif defined SYGALDRY_ESP32S3
-constexpr int I2C_MAIN_SCL = 9;
 constexpr int I2C_MAIN_SDA = 8;
+constexpr int I2C_MAIN_SCL = 9;
 #endif
 /// \}
 
