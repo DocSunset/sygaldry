@@ -164,8 +164,6 @@ struct MAX17055
 
         // Battery Status
         toggle<"present"> status;
-        toggle<"removed"> removed;
-        toggle<"inserted"> inserted;
 
         text_message<"error message"> error_message;
 
@@ -221,6 +219,8 @@ namespace sygaldry { namespace sygsa {
     }
 
     @{wire}
+
+    @{helpers}
 }
 } 
 // @/
@@ -403,15 +403,6 @@ outputs.status = !bat_status; // battery status 0 when present, must invert
 if (!outputs.status) {
   outputs.error_message = "No Battery Present";
 }
-// Get insertion
-outputs.inserted = raw_status&0x0800; // Get the 11th bit
-// Get removed
-outputs.removed = raw_status&0x8000;  // get the 15th bit
-
-// Reset Insertion bit
-writeVerifyReg16Bit(STATUS_REG, raw_status&0xF7F);
-// Reset Removal bit
-writeVerifyReg16Bit(STATUS_REG, raw_status&0x7FFF);
 // @/
 ```
 
