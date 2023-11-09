@@ -515,7 +515,15 @@ void external_destinations(Components& components)
 The way in which an output endpoint should be converted to OSC depends on its
 type. Bangs and occasional values only need to be sent when they have been
 updated. We check these types of endpoints for readiness before allocating a
-message. Notice that the return statements here function as a way to continue
+message.
+
+For other types, if it's possible to perform an equality comparison, we only
+want to send data to the network with the value of the endpoint has changed. We
+take advantage of the fact that this is a template lambda and statically
+allocate a variable to hold the previous value of the endpoint with which to
+compare the current value.
+
+Notice that the return statements here function as a way to continue
 the loop over output endpoints; they don't short circuit the overall
 `external_destinations` subroutine.
 
@@ -525,6 +533,13 @@ if constexpr (OccasionalValue<T> || Bang<T>)
 {
     if (not flag_state_of(output))
         return;
+}
+else if constexpr (requires (T t) {t == output;})
+{
+    static T prev{};
+    if (output == prev)
+        return;
+    prev = output;
 }
 
 lo_message message = lo_message_new();
