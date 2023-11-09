@@ -159,7 +159,7 @@ namespace sygaldry { namespace sygsa {
                     outputs.ttf = time_multiplier_Hours * outputs.ttf_raw;
                     // Cycles
                     outputs.chargecycles_raw = readReg16Bit(CYCLES_REG);
-                    outputs.chargecycles = 0.01f * outputs.chargecyles_raw;
+                    outputs.chargecycles = 0.01f * outputs.chargecycles_raw;
                     // Parameters
                     outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
                     outputs.tempco = readReg16Bit(TEMPCO_REG);
