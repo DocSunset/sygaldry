@@ -333,9 +333,16 @@ bool MAX17055::restoreParameters() {
     outputs.status_message = "Restoring old parameters"
 
     // Write full capacity normalised, rcomp and tempco
-    writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco);
-    writeVerifyReg16Bit(RCOMP0_REG, outputs.rcomp);
-    writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw);
+    if (!writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco)) {
+        return false;
+    };
+    if (!writeVerifyReg16Bit(RCOMP0_REG, outputs.rcomp)) {
+        return false;
+    };
+    if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw)) {
+        return false;
+    }
+    ;
 
     // Delay from 350ms
     sygsp::delay(350);
@@ -343,8 +350,12 @@ bool MAX17055::restoreParameters() {
     // Write mixed capacity
     outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
     uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynorm_raw) / 25600;
-    writeVerifyReg16Bit(0x0F,mixcap);
-    writeVerifyReg16Bit(FULLCAP_REG, outputs.fullcapacity_raw);
+    if (!writeVerifyReg16Bit(0x0F,mixcap)) {
+        return false;
+    } 
+    if (!writeVerifyReg16Bit(FULLCAP_REG, outputs.fullcapacity_raw)) {
+        return false;
+    }
 
     // Set dQacc to 200% of capacity and dPacc to 200%
     writeReg16Bit(dQACC_REG, outputs.fullcapacity_raw / 16); //Write dQAcc
@@ -354,7 +365,12 @@ bool MAX17055::restoreParameters() {
     sygsp::delay(350);
 
     // Restore cycles
-    writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw);
+    if (!writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw)) {
+        return false;
+    }
+    
+    // Return true when finished
+    return true;
 };
 // @/
 ```
