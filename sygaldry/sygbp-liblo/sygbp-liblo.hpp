@@ -266,6 +266,13 @@ struct LibloOsc
                     if (not flag_state_of(output))
                         return;
                 }
+                else if constexpr (requires (T t) {t == output;})
+                {
+                    static T prev{};
+                    if (output == prev)
+                        return;
+                    prev = output;
+                }
 
                 lo_message message = lo_message_new();
                 if (!message)
