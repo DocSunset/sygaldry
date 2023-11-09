@@ -111,14 +111,14 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
-        slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
-        slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
-        slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
-        slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
+        slider_message<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
+        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
+        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
+        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
+        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
+        slider_message<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -307,20 +307,20 @@ In addition the restore parameter function restores the ModelGauge parameters af
 //@='helpers'
 // helper functions for reading properties
 /// Write design capacity
-void writeDesignCapacity() {
+void MAX17055::writeDesignCapacity() {
     uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
     writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
     writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
 };
 
 /// Write end of charge current
-void writeICHG() {
+void MAX17055::writeICHG() {
     uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
     writeReg16Bit(ICHTERM_REG, reg_ichg)
 };
 
 /// Write Vempty and recovery voltage
-void writeVoltage() {
+void MAX17055::writeVoltage() {
     uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
     uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
     uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
@@ -328,7 +328,7 @@ void writeVoltage() {
 };
 
 /// Restore old parameters
-bool restoreParameters() {
+bool MAX17055::restoreParameters() {
     // Output status message
     outputs.status_message = "Restoring old parameters"
 

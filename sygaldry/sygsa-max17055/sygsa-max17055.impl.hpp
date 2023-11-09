@@ -217,20 +217,20 @@ namespace sygaldry { namespace sygsa {
 
     // helper functions for reading properties
     /// Write design capacity
-    void writeDesignCapacity() {
+    void MAX17055::writeDesignCapacity() {
         uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
         writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
         writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
     };
 
     /// Write end of charge current
-    void writeICHG() {
+    void MAX17055::writeICHG() {
         uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
         writeReg16Bit(ICHTERM_REG, reg_ichg)
     };
 
     /// Write Vempty and recovery voltage
-    void writeVoltage() {
+    void MAX17055::writeVoltage() {
         uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
         uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
         uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
@@ -238,7 +238,7 @@ namespace sygaldry { namespace sygsa {
     };
 
     /// Restore old parameters
-    bool restoreParameters() {
+    bool MAX17055::restoreParameters() {
         // Output status message
         outputs.status_message = "Restoring old parameters"
 

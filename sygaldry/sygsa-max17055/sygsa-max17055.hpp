@@ -22,14 +22,14 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
-        slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
-        slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
-        slider<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
-        slider<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
+        slider_message<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
+        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
+        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
+        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
+        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
+        slider_message<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
