@@ -54,6 +54,9 @@ CYCLES_REG      = 0x17, // Register for learned parameter charge cycles
 FULLCAPNORM_REG = 0x23, // Register for learned parameter full capacity (normalised)
 };
 
+// Set Fuel Gauge I2C address
+static constexpr int i2c_addr = 0x36; // set fuel gauge i2c address as it is a constant
+
 //Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
 static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
 static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
@@ -93,12 +96,8 @@ SPDX-License-Identifier: MIT
 */
 #pragma once
 #include "sygah-metadata.hpp"
-#include "sygsp-delay.hpp"
-#include "sygsp-micros.hpp"
 #include "sygah-endpoints.hpp"
 #include "sygsa-max17055-helpers.hpp"
-#include <iostream>
-#include "Wire.h"
 
 namespace sygaldry { namespace sygsa {
 
@@ -112,7 +111,6 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider<"i2c_addr","int",int,0,127,0x36> i2c_addr; // i2c address of the fuel guage
         slider<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
         slider<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
         slider<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
@@ -166,6 +164,7 @@ struct MAX17055
         toggle<"present"> status;
 
         text_message<"error message"> error_message;
+        text_message<"status message"> status_message;
 
         toggle<"running"> running;
     } outputs;
@@ -184,6 +183,18 @@ struct MAX17055
     
     // Write and verify to 16 bit register
     bool writeVerifyReg16Bit(uint8_t reg, uint16_t value);
+
+    // Write design capacity
+    void writeDesignCapacity();
+
+    // Write end of charge current
+    void writeICHG();
+
+    // Write Vempty and recovery voltage
+    void writeVoltage();
+
+    // Restore old parameters
+    bool restoreParameters();
 };
 
 } }
@@ -202,6 +213,11 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
+#include "sygsp-delay.hpp"
+#include "sygsp-micros.hpp"
+#include "sygsa-max17055-helpers.hpp"
+#include <iostream>
+#include "Wire.h"
 #include "sygsa-max17055.hpp"
 #include "sygsp-delay.hpp"
 
@@ -235,11 +251,11 @@ Reading and writing to the registers use pretty standard application of read/wri
 uint16_t MAX17055::readReg16Bit(uint8_t reg)
 {
     uint16_t value = 0;  
-    Wire.beginTransmission(inputs.i2c_addr); 
+    Wire.beginTransmission(i2c_addr); 
     Wire.write(reg);
     Wire.endTransmission(false);
     
-    Wire.requestFrom(inputs.i2c_addr, (uint8_t) 2); 
+    Wire.requestFrom(i2c_addr, (uint8_t) 2); 
     value  = Wire.read();
     value |= (uint16_t)Wire.read() << 8;      // value low byte
     return value;
@@ -249,7 +265,7 @@ uint16_t MAX17055::readReg16Bit(uint8_t reg)
 void MAX17055::writeReg16Bit(uint8_t reg, uint16_t value)
 {
     //Write order is LSB first, and then MSB. Refer to AN635 pg 35 figure 1.12.2.5
-    Wire.beginTransmission(inputs.i2c_addr);
+    Wire.beginTransmission(i2c_addr);
     Wire.write(reg);
     Wire.write( value       & 0xFF); // value low byte
     Wire.write((value >> 8) & 0xFF); // value high byte
@@ -262,7 +278,6 @@ bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
     int attempt = 0;
     // Verify that the value has been written before moving on
     while ((value != readReg16Bit(reg)) && (attempt < 10)) {
-        std::cout << "    Resetting Status ... attempt " << attempt << std::endl;
         //Write the value to the register
         writeReg16Bit(reg, value);
         // Wait a bit
@@ -274,12 +289,73 @@ bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
     
     if (attempt > 10) {
         return false;
-        std::cout << "    Failed to write value" <<std::endl;
+        outputs.error_message = "Failed to write value";
     } else {
-        std::cout << "    Value successfully written" << std::endl;
+        outputs.status_message = "Value successfully written";
         return true;
     }
 }
+// @/
+```
+
+## Helper Functions
+In addition to functions for reading and writing to registers. Functions for writing specific properties to the fuel gauge were also written. This allows us to update the properties from the command line without having to restart the device.
+
+In addition the restore parameter function restores the ModelGauge parameters after a power loss event.
+
+```cpp
+//@='helpers'
+// helper functions for reading properties
+/// Write design capacity
+void writeDesignCapacity() {
+    uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
+    writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
+    writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+};
+
+/// Write end of charge current
+void writeICHG() {
+    uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
+    writeReg16Bit(ICHTERM_REG, reg_ichg)
+};
+
+/// Write Vempty and recovery voltage
+void writeVoltage() {
+    uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
+    uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
+    uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
+    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+};
+
+/// Restore old parameters
+bool restoreParameters() {
+    // Output status message
+    outputs.status_message = "Restoring old parameters"
+
+    // Write full capacity normalised, rcomp and tempco
+    writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco);
+    writeVerifyReg16Bit(RCOMP0_REG, outputs.rcomp);
+    writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw);
+
+    // Delay from 350ms
+    sygsp::delay(350);
+
+    // Write mixed capacity
+    outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
+    uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynorm_raw) / 25600;
+    writeVerifyReg16Bit(0x0F,mixcap);
+    writeVerifyReg16Bit(FULLCAP_REG, outputs.fullcapacity_raw);
+
+    // Set dQacc to 200% of capacity and dPacc to 200%
+    writeReg16Bit(dQACC_REG, outputs.fullcapacity_raw / 16); //Write dQAcc
+    writeReg16Bit(dPACC_REG, 0x0C80); //Write dQAcc
+
+    // Delay for 350ms
+    sygsp::delay(350);
+
+    // Restore cycles
+    writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw);
+};
 // @/
 ```
 
@@ -290,7 +366,6 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 ```cpp
 //@='init'
 // Initialise all the slider variables
-inputs.i2c_addr = inputs.i2c_addr.init();
 inputs.designcap = inputs.designcap.init();
 inputs.ichg = input.ichg.init();
 inputs.rsense = inputs.rsense.init();
@@ -301,9 +376,9 @@ inputs.pollrate = inputs.pollrate.init();
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
-std::cout << "    Checking status " << "\n"
-        << "    Status read: " << STATUS << "\n"
-        << "    POR flag: " << POR << std::endl;
+std::cout << "Checking status " << "\n"
+        << "Status read: " << STATUS << "\n"
+        << "POR flag: " << POR << std::endl;
 // @/
 ```
 
@@ -314,12 +389,12 @@ When resetting the fuel gauge we initially make sure to make sure the fuel gauge
 // Reset the Fuel Gauge
 if (POR)
 {
-    std::cout << "    Initialising Fuel Gauge" << std::endl;
+    std::cout << "Initialising Fuel Gauge" << std::endl;
     while(readReg16Bit(0x3D)&1) {
         sygsp::delay(10);
     }
 
-    std::cout << "    Start up complete" << std::endl;
+    std::cout << "Start up complete" << std::endl;
     //Initialise Configuration
     uint16_t HibCFG = readReg16Bit(0xBA);
     // Exit hibernate mode
@@ -334,21 +409,15 @@ The design capacity, empty voltage, recovery voltage, and end of charge current 
 //@+'init'
    //EZ Config
     // Write Battery capacity
-    std::cout << "    Writing Capacity" << std::endl;
-    uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
-    uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-    writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
-    writeReg16Bit(ICHTERM_REG, reg_ichg); // End of charge current
-    writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+    std::cout << "Writing Capacity" << std::endl;
+    writeDesignCapacity(); //Write Design Cap
+    writeICHG(); // End of charge current
     writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
 
     // Set empty voltage and recovery voltage
     // Empty voltage in increments of 10mV
-    std::cout << "    Writing Voltage" << std::endl;
-    uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
-    uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
-    uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+    std::cout << "Writing Voltage" << std::endl;
+    writeVoltage();
 // @/
 ```
 
@@ -364,7 +433,14 @@ Once the values have been written, Status flag is reset to prepare for a new har
         sygsp::delay(10);
     }
     //Reload original HbCFG value
-    writeReg16Bit(0xBA,HibCFG);    
+    writeReg16Bit(0xBA,HibCFG); 
+
+    // Restore old parameters
+    if (outputs.fullcapacitynorm_raw != 0) {
+        if (!restoreParameters()) {
+            outputs.error_message = "Parameters were not successfully restored"
+        };
+    }   
 } else {
     std::cout << "    Loading old config" << std::endl;
 }
@@ -416,6 +492,18 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
 //@='main'
         static auto prev = sygsp::micros();
         auto now = sygsp::micros();
+        // Check if properties have been updated
+        if (inputs.designcap.updated) {
+            writeDesignCapacity(); //Write Design Cap
+        }
+        if (inputs.ichg.updated) {
+            writeICHG(); // End of charge current
+        }
+        if (inputs.vempty.updated || inputs.recovery_voltage.updated) {
+            writeVoltage();
+        }
+
+        // Poll at fixed interval
         if (now-prev > (inputs.pollrate*1e3)) {
             prev = now;
             // BATTERY INFO
