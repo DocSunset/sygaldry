@@ -65,8 +65,8 @@ struct MAX17055
         slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0> chargecyles_raw;
-        slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecyles;
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0> chargecycles_raw;
+        slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
         slider<"rcomp", "LSB", int, 0, 65535, 0> rcomp;
         slider<"tempco", "LSB", int, 0, 65535, 0> tempco;

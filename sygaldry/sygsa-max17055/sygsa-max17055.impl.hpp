@@ -20,7 +20,7 @@ namespace sygaldry { namespace sygsa {
     {
         // Initialise all the slider variables
         inputs.designcap = inputs.designcap.init();
-        inputs.ichg = input.ichg.init();
+        inputs.ichg = inputs.ichg.init();
         inputs.rsense = inputs.rsense.init();
         inputs.vempty = inputs.vempty.init();
         inputs.recovery_voltage = inputs.recovery_voltage.init();
@@ -71,7 +71,7 @@ namespace sygaldry { namespace sygsa {
             // Restore old parameters
             if (outputs.fullcapacitynorm_raw != 0) {
                 if (!restoreParameters()) {
-                    outputs.error_message = "Parameters were not successfully restored"
+                    outputs.error_message = "Parameters were not successfully restored";
                 };
             }   
         } else {
@@ -158,8 +158,8 @@ namespace sygaldry { namespace sygsa {
                     outputs.tte = time_multiplier_Hours * outputs.tte_raw;
                     outputs.ttf = time_multiplier_Hours * outputs.ttf_raw;
                     // Cycles
-                    outputs.chargecyles_raw = readReg16Bit(CYCLES_REG);
-                    outputs.chargecyles = 0.01f * outputs.chargecyles_raw;
+                    outputs.chargecycles_raw = readReg16Bit(CYCLES_REG);
+                    outputs.chargecycles = 0.01f * outputs.chargecyles_raw;
                     // Parameters
                     outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
                     outputs.tempco = readReg16Bit(TEMPCO_REG);
@@ -226,7 +226,7 @@ namespace sygaldry { namespace sygsa {
     /// Write end of charge current
     void MAX17055::writeICHG() {
         uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-        writeReg16Bit(ICHTERM_REG, reg_ichg)
+        writeReg16Bit(ICHTERM_REG, reg_ichg);
     };
 
     /// Write Vempty and recovery voltage
@@ -240,13 +240,13 @@ namespace sygaldry { namespace sygsa {
     /// Restore old parameters
     bool MAX17055::restoreParameters() {
         // Output status message
-        outputs.status_message = "Restoring old parameters"
+        outputs.status_message = "Restoring old parameters";
 
         // Write full capacity normalised, rcomp and tempco
         if (!writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco)) {
             return false;
         };
-        if (!writeVerifyReg16Bit(RCOMP0_REG, outputs.rcomp)) {
+        if (!writeVerifyReg16Bit(RCOMPP0_REG, outputs.rcomp)) {
             return false;
         };
         if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw)) {
@@ -278,7 +278,7 @@ namespace sygaldry { namespace sygsa {
         if (!writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw)) {
             return false;
         }
-        
+
         // Return true when finished
         return true;
     };
