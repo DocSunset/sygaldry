@@ -64,10 +64,10 @@ struct MAX17055
         slider<"tempco", "LSB", int, 0, 65535, 0> tempco;
 
         // Battery Status
-        toggle<"present"> status;
+        toggle<"present", "Shows if battery is present"> status;
 
-        text_message<"error message"> error_message;
-        text_message<"status message"> status_message;
+        text_message<"error message", "Error message from fuel gauge"> error_message;
+        text_message<"status message", "Status message from fuel gauge"> status_message;
 
         toggle<"running", "Indicate if fuel gauge is running"> running;
     } outputs;
