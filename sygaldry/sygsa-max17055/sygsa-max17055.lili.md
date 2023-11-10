@@ -141,8 +141,6 @@ struct MAX17055
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
         slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
         // Time to full (TTF), Time to empty (TTE), age
-        slider<"raw Time to full", "LSB", int, 0, 65535, 0> ttf_raw; // LSB
-        slider<"raw Time to empty", "LSB", int, 0, 65535, 0> tte_raw; // LSB
         slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
