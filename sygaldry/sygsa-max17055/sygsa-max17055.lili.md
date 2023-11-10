@@ -141,8 +141,8 @@ struct MAX17055
         slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (norm)
-        slider<"raw full capacity normalised", "LSB", int, 0, 65535, 0> fullcapacitynorm_raw;
-        slider<"full capacity percentage", "%", float, 0.0f, 255.9961f, 0.0f> fullcapacitynorm;
+        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0> fullcapacitynom_raw;
+        slider<"full capacity nominal", "mAh", int, 0, 32000, 0> fullcapacitynom;
         // SOC, Age
         slider<"raw state of charge", "LSB", int, 0, 65535, 0> soc_raw; // LSB
         slider<"raw battery age", "LSB",  int, 0, 65535, 0> age_raw; // LSB
@@ -332,14 +332,14 @@ bool MAX17055::restoreParameters() {
     // Output status message
     outputs.status_message = "Restoring old parameters";
 
-    // Write full capacity normalised, rcomp and tempco
+    // Write nominal full capacity, rcomp and tempco
     if (!writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco)) {
         return false;
     };
     if (!writeVerifyReg16Bit(RCOMPP0_REG, outputs.rcomp)) {
         return false;
     };
-    if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw)) {
+    if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynom_raw)) {
         return false;
     }
     ;
@@ -347,9 +347,9 @@ bool MAX17055::restoreParameters() {
     // Delay from 350ms
     sygsp::delay(350);
 
-    // Write mixed capacity
-    outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
-    uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynorm_raw) / 25600;
+    // Write calculated remaining capacity and percentage of cell
+    outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
+    uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynom_raw) / 25600;
     if (!writeVerifyReg16Bit(0x0F,mixcap)) {
         return false;
     } 
@@ -452,7 +452,7 @@ Once the values have been written, Status flag is reset to prepare for a new har
     writeReg16Bit(0xBA,HibCFG); 
 
     // Restore old parameters
-    if (outputs.fullcapacitynorm_raw != 0) {
+    if (outputs.fullcapacitynom_raw != 0) {
         if (!restoreParameters()) {
             outputs.error_message = "Parameters were not successfully restored";
         };
@@ -548,10 +548,10 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
             // Capacity
             outputs.capacity_raw = readReg16Bit(REPCAP_REG);
             outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
-            outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
+            outputs.m_raw = readReg16Bit(FULLCAPNORM_REG);
             outputs.capacity = cap_multiplier * outputs.capacity_raw;
             outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
-            outputs.fullcapacitynorm = percentage_multiplier * outputs.fullcapacitynorm_raw;
+            outputs.fullcapacitynom = cap_multiplier* outputs.fullcapacitynom_raw;
             // SOC, Age
             outputs.age_raw = readReg16Bit(AGE_REG);
             outputs.soc_raw = readReg16Bit(REPSOC_REG);

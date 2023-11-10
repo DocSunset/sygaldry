@@ -69,7 +69,7 @@ namespace sygaldry { namespace sygsa {
             writeReg16Bit(0xBA,HibCFG); 
 
             // Restore old parameters
-            if (outputs.fullcapacitynorm_raw != 0) {
+            if (outputs.fullcapacitynom_raw != 0) {
                 if (!restoreParameters()) {
                     outputs.error_message = "Parameters were not successfully restored";
                 };
@@ -143,10 +143,10 @@ namespace sygaldry { namespace sygsa {
                     // Capacity
                     outputs.capacity_raw = readReg16Bit(REPCAP_REG);
                     outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
-                    outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
+                    outputs.m_raw = readReg16Bit(FULLCAPNORM_REG);
                     outputs.capacity = cap_multiplier * outputs.capacity_raw;
                     outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
-                    outputs.fullcapacitynorm = percentage_multiplier * outputs.fullcapacitynorm_raw;
+                    outputs.fullcapacitynom = cap_multiplier* outputs.fullcapacitynom_raw;
                     // SOC, Age
                     outputs.age_raw = readReg16Bit(AGE_REG);
                     outputs.soc_raw = readReg16Bit(REPSOC_REG);
@@ -242,14 +242,14 @@ namespace sygaldry { namespace sygsa {
         // Output status message
         outputs.status_message = "Restoring old parameters";
 
-        // Write full capacity normalised, rcomp and tempco
+        // Write nominal full capacity, rcomp and tempco
         if (!writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco)) {
             return false;
         };
         if (!writeVerifyReg16Bit(RCOMPP0_REG, outputs.rcomp)) {
             return false;
         };
-        if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynorm_raw)) {
+        if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynom_raw)) {
             return false;
         }
         ;
@@ -257,9 +257,9 @@ namespace sygaldry { namespace sygsa {
         // Delay from 350ms
         sygsp::delay(350);
 
-        // Write mixed capacity
-        outputs.fullcapacitynorm_raw = readReg16Bit(FULLCAPNORM_REG);
-        uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynorm_raw) / 25600;
+        // Write calculated remaining capacity and percentage of cell
+        outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
+        uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynom_raw) / 25600;
         if (!writeVerifyReg16Bit(0x0F,mixcap)) {
             return false;
         } 
