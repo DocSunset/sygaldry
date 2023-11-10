@@ -53,7 +53,7 @@ struct MAX17055
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (norm)
         slider<"raw full capacity normalised", "LSB", int, 0, 65535, 0> fullcapacitynorm_raw;
-        slider<"full capacity", "%", float, 0.0f, 255.9961f, 0.0f> fullcapacitynorm;
+        slider<"full capacity percentage", "%", float, 0.0f, 255.9961f, 0.0f> fullcapacitynorm;
         // SOC, Age
         slider<"raw state of charge", "LSB", int, 0, 65535, 0> soc_raw; // LSB
         slider<"raw battery age", "LSB",  int, 0, 65535, 0> age_raw; // LSB
