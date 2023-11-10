@@ -124,28 +124,20 @@ struct MAX17055
     struct outputs_t {
         // ANALOG MEASUREMENTS
         // Current
-        slider<"raw instantaneous current", "LSB", int, -32768, 32767, 0> inst_curr_raw;
-        slider<"raw average current", "LSB", int, -32768, 32767, 0> avg_curr_raw;
         slider<"instantaneous current", "mA", float, -5.12f, 5.12f, 0.0f> inst_curr;
         slider<"average current", "mA", float, -5.12f, 5.12f, 0.0f> avg_curr;
         // Voltage
-        slider<"raw instantaneous voltage", "LSB", int, 0, 65535, 0> inst_voltage_raw;
-        slider<"raw average voltage", "LSB", int, 0, 65535, 0> avg_voltage_raw;
         slider<"instantaneous voltage", "V", float, 0.0f, 5.11992f, 0.0f> inst_voltage;
         slider<"average voltage", "V", float, 0.0f, 5.11992f, 0.0f> avg_voltage;
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw capacity", "LSB", int, 0, 65535, 0> capacity_raw;
         slider<"raw full capacity", "LSB", int, 0, 65535, 0> fullcapacity_raw;
         slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (norm)
         slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0> fullcapacitynom_raw;
-        slider<"full capacity nominal", "mAh", int, 0, 32000, 0> fullcapacitynom;
         // SOC, Age
-        slider<"raw state of charge", "LSB", int, 0, 65535, 0> soc_raw; // LSB
-        slider<"raw battery age", "LSB",  int, 0, 65535, 0> age_raw; // LSB
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
         slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
         // Time to full (TTF), Time to empty (TTE), age
@@ -535,33 +527,33 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
             
             // ANALOG MEASUREMENTS
             // Current
-            outputs.inst_curr_raw = readReg16Bit(CURRENT_REG);
-            outputs.avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
-            outputs.inst_curr = curr_multiplier * outputs.inst_curr;
-            outputs.avg_curr = curr_multiplier * outputs.avg_curr;
+            int16_t inst_curr_raw = readReg16Bit(CURRENT_REG);
+            int16_t avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
+            outputs.inst_curr = curr_multiplier * inst_curr;
+            outputs.avg_curr = curr_multiplier * avg_curr;
             // Voltage
-            outputs.inst_voltage_raw = readReg16Bit(VCELL_REG);
-            outputs.avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
-            outputs.inst_voltage = voltage_multiplier_V * outputs.inst_voltage_raw;
-            outputs.avg_voltage = voltage_multiplier_V * outputs.avg_voltage_raw;
+            uint16_t inst_voltage_raw = readReg16Bit(VCELL_REG);
+            uint16_t avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
+            outputs.inst_voltage = voltage_multiplier_V * inst_voltage_raw;
+            outputs.avg_voltage = voltage_multiplier_V * avg_voltage_raw;
             // MODEL OUTPUTS
             // Capacity
-            outputs.capacity_raw = readReg16Bit(REPCAP_REG);
+            uint16_t capacity_raw = readReg16Bit(REPCAP_REG);
             outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
             outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
-            outputs.capacity = cap_multiplier * outputs.capacity_raw;
+            outputs.capacity = cap_multiplier * capacity_raw;
             outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
-            outputs.fullcapacitynom = cap_multiplier* outputs.fullcapacitynom_raw;
+
             // SOC, Age
-            outputs.age_raw = readReg16Bit(AGE_REG);
-            outputs.soc_raw = readReg16Bit(REPSOC_REG);
-            outputs.age = percentage_multiplier * outputs.age_raw;
-            outputs.soc = percentage_multiplier * outputs.soc_raw;
+            uint16_t age_raw = readReg16Bit(AGE_REG);
+            uint16_t soc_raw = readReg16Bit(REPSOC_REG);
+            outputs.age = percentage_multiplier * age_raw;
+            outputs.soc = percentage_multiplier * soc_raw;
             // TTF,TTE
-            outputs.tte_raw = readReg16Bit(TTE_REG);
-            outputs.ttf_raw = readReg16Bit(TTF_REG);
-            outputs.tte = time_multiplier_Hours * outputs.tte_raw;
-            outputs.ttf = time_multiplier_Hours * outputs.ttf_raw;
+            uint16_t tte_raw = readReg16Bit(TTE_REG);
+            uint16_t ttf_raw = readReg16Bit(TTF_REG);
+            outputs.tte = time_multiplier_Hours * tte_raw;
+            outputs.ttf = time_multiplier_Hours * ttf_raw;
             // Cycles
             outputs.chargecycles_raw = readReg16Bit(CYCLES_REG);
             outputs.chargecycles = 0.01f * outputs.chargecycles_raw;

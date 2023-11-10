@@ -130,33 +130,33 @@ namespace sygaldry { namespace sygsa {
                     
                     // ANALOG MEASUREMENTS
                     // Current
-                    outputs.inst_curr_raw = readReg16Bit(CURRENT_REG);
-                    outputs.avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
-                    outputs.inst_curr = curr_multiplier * outputs.inst_curr;
-                    outputs.avg_curr = curr_multiplier * outputs.avg_curr;
+                    int16_t inst_curr_raw = readReg16Bit(CURRENT_REG);
+                    int16_t avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
+                    outputs.inst_curr = curr_multiplier * inst_curr;
+                    outputs.avg_curr = curr_multiplier * avg_curr;
                     // Voltage
-                    outputs.inst_voltage_raw = readReg16Bit(VCELL_REG);
-                    outputs.avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
-                    outputs.inst_voltage = voltage_multiplier_V * outputs.inst_voltage_raw;
-                    outputs.avg_voltage = voltage_multiplier_V * outputs.avg_voltage_raw;
+                    uint16_t inst_voltage_raw = readReg16Bit(VCELL_REG);
+                    uint16_t avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
+                    outputs.inst_voltage = voltage_multiplier_V * inst_voltage_raw;
+                    outputs.avg_voltage = voltage_multiplier_V * avg_voltage_raw;
                     // MODEL OUTPUTS
                     // Capacity
-                    outputs.capacity_raw = readReg16Bit(REPCAP_REG);
+                    uint16_t capacity_raw = readReg16Bit(REPCAP_REG);
                     outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
                     outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
-                    outputs.capacity = cap_multiplier * outputs.capacity_raw;
+                    outputs.capacity = cap_multiplier * capacity_raw;
                     outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
-                    outputs.fullcapacitynom = cap_multiplier* outputs.fullcapacitynom_raw;
+
                     // SOC, Age
-                    outputs.age_raw = readReg16Bit(AGE_REG);
-                    outputs.soc_raw = readReg16Bit(REPSOC_REG);
-                    outputs.age = percentage_multiplier * outputs.age_raw;
-                    outputs.soc = percentage_multiplier * outputs.soc_raw;
+                    uint16_t age_raw = readReg16Bit(AGE_REG);
+                    uint16_t soc_raw = readReg16Bit(REPSOC_REG);
+                    outputs.age = percentage_multiplier * age_raw;
+                    outputs.soc = percentage_multiplier * soc_raw;
                     // TTF,TTE
-                    outputs.tte_raw = readReg16Bit(TTE_REG);
-                    outputs.ttf_raw = readReg16Bit(TTF_REG);
-                    outputs.tte = time_multiplier_Hours * outputs.tte_raw;
-                    outputs.ttf = time_multiplier_Hours * outputs.ttf_raw;
+                    uint16_t tte_raw = readReg16Bit(TTE_REG);
+                    uint16_t ttf_raw = readReg16Bit(TTF_REG);
+                    outputs.tte = time_multiplier_Hours * tte_raw;
+                    outputs.ttf = time_multiplier_Hours * ttf_raw;
                     // Cycles
                     outputs.chargecycles_raw = readReg16Bit(CYCLES_REG);
                     outputs.chargecycles = 0.01f * outputs.chargecycles_raw;

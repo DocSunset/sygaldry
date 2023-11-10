@@ -35,28 +35,20 @@ struct MAX17055
     struct outputs_t {
         // ANALOG MEASUREMENTS
         // Current
-        slider<"raw instantaneous current", "LSB", int, -32768, 32767, 0> inst_curr_raw;
-        slider<"raw average current", "LSB", int, -32768, 32767, 0> avg_curr_raw;
         slider<"instantaneous current", "mA", float, -5.12f, 5.12f, 0.0f> inst_curr;
         slider<"average current", "mA", float, -5.12f, 5.12f, 0.0f> avg_curr;
         // Voltage
-        slider<"raw instantaneous voltage", "LSB", int, 0, 65535, 0> inst_voltage_raw;
-        slider<"raw average voltage", "LSB", int, 0, 65535, 0> avg_voltage_raw;
         slider<"instantaneous voltage", "V", float, 0.0f, 5.11992f, 0.0f> inst_voltage;
         slider<"average voltage", "V", float, 0.0f, 5.11992f, 0.0f> avg_voltage;
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw capacity", "LSB", int, 0, 65535, 0> capacity_raw;
         slider<"raw full capacity", "LSB", int, 0, 65535, 0> fullcapacity_raw;
         slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (norm)
         slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0> fullcapacitynom_raw;
-        slider<"full capacity nominal", "mAh", int, 0, 32000, 0> fullcapacitynom;
         // SOC, Age
-        slider<"raw state of charge", "LSB", int, 0, 65535, 0> soc_raw; // LSB
-        slider<"raw battery age", "LSB",  int, 0, 65535, 0> age_raw; // LSB
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
         slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
         // Time to full (TTF), Time to empty (TTE), age
