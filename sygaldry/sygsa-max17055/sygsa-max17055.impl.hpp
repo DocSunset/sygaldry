@@ -132,8 +132,8 @@ namespace sygaldry { namespace sygsa {
                     // Current
                     int16_t inst_curr_raw = readReg16Bit(CURRENT_REG);
                     int16_t avg_curr_raw = readReg16Bit(AVGCURRENT_REG);
-                    outputs.inst_curr = curr_multiplier * inst_curr;
-                    outputs.avg_curr = curr_multiplier * avg_curr;
+                    outputs.inst_curr = curr_multiplier * inst_curr_raw;
+                    outputs.avg_curr = curr_multiplier * avg_curr_raw;
                     // Voltage
                     uint16_t inst_voltage_raw = readReg16Bit(VCELL_REG);
                     uint16_t avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
