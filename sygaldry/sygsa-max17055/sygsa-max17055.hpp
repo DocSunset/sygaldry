@@ -77,7 +77,7 @@ struct MAX17055
         text_message<"error message"> error_message;
         text_message<"status message"> status_message;
 
-        toggle<"running"> running;
+        toggle<"running", "Indicate if fuel gauge is running"> running;
     } outputs;
 
     // initialize the MAX17055 for continuous reading
