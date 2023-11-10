@@ -548,7 +548,7 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
             // Capacity
             outputs.capacity_raw = readReg16Bit(REPCAP_REG);
             outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
-            outputs.m_raw = readReg16Bit(FULLCAPNORM_REG);
+            outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
             outputs.capacity = cap_multiplier * outputs.capacity_raw;
             outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
             outputs.fullcapacitynom = cap_multiplier* outputs.fullcapacitynom_raw;
