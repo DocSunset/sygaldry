@@ -135,10 +135,10 @@ void TwoWireByteSerif::write(uint8_t i2c_address, uint8_t register_address, uint
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygsa-two_wire_serif)
-add_library(${lib} STATIC)
-target_sources(${lib} PRIVATE ${lib}.cpp)
-target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
+add_library(${lib} INTERFACE)
+target_sources(${lib} INTERFACE ${lib}.cpp)
+target_include_directories(${lib} INTERFACE .)
+target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
 # @/
 ```
 

@@ -9,7 +9,6 @@ SPDX-License-Identifier: MIT
 
 #include "sygse-button.hpp"
 #include "sygse-adc.hpp"
-#include "sygsa-two_wire.hpp"
 #include "sygse-trill.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"
@@ -18,9 +17,18 @@ SPDX-License-Identifier: MIT
 
 using namespace sygaldry;
 
+extern template struct sygse::Button<GPIO_NUM_14>;
+extern template struct sygse::OneshotAdc<syghe::ADC1_CHANNEL_5>;
+extern template struct sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                               , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
+                               >;
+extern template struct sygsp::ComplementaryMimuFusion<sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                               , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
+                               >>;
+
 struct TStick
 {
-    sygse::Button<GPIO_NUM_15> button;
+    sygse::Button<GPIO_NUM_14> button;
     sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
     sygsa::TrillCraft touch;
     sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>

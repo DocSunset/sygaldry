@@ -136,13 +136,13 @@ using namespace sygaldry::sygsr;
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygsr-adc)
-add_library(${lib} STATIC)
-target_sources(${lib} PRIVATE ${lib}.cpp)
-target_include_directories(${lib} PUBLIC .)
+add_library(${lib} INTERFACE)
+target_sources(${lib} INTERFACE ${lib}.cpp)
+target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib}
-        PUBLIC sygah-endpoints
-        PUBLIC sygah-metadata
-        PRIVATE hardware_adc
+        INTERFACE sygah-endpoints
+        INTERFACE sygah-metadata
+        INTERFACE hardware_adc
         )
 
 if (SYGALDRY_BUILD_TESTS)

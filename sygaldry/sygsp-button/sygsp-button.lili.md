@@ -133,12 +133,12 @@ TODO: write tests for this component
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygsp-button)
-add_library(${lib} STATIC)
-target_include_directories(${lib} PUBLIC .)
-target_sources(${lib} PRIVATE ${lib}.cpp)
+add_library(${lib} INTERFACE)
+target_include_directories(${lib} INTERFACE .)
+target_sources(${lib} INTERFACE ${lib}.cpp)
 target_link_libraries(${lib}
-        PUBLIC sygah-consteval
-        PUBLIC sygah-endpoints
+        INTERFACE sygah-consteval
+        INTERFACE sygah-endpoints
         )
 
 if(SYGALDRY_BUILD_AVENDISH)

@@ -146,19 +146,19 @@ void OneshotAdcImpl::main(outputs_t& outputs)
 # @#'CMakeLists.txt'
 set(lib sygse-adc)
 
-add_library(${lib} STATIC)
+add_library(${lib} INTERFACE)
 target_sources(${lib}
-        PRIVATE ${lib}.cpp
+        INTERFACE ${lib}.cpp
         )
 target_include_directories(${lib}
-        PUBLIC .
+        INTERFACE .
         )
 target_link_libraries(${lib}
-        PUBLIC sygah-endpoints
-        PUBLIC sygah-metadata
-        PUBLIC syghe-pins
-        PRIVATE idf::esp_adc
-        PRIVATE idf::esp_common
+        INTERFACE sygah-endpoints
+        INTERFACE sygah-metadata
+        INTERFACE syghe-pins
+        INTERFACE idf::esp_adc
+        INTERFACE idf::esp_common
         )
 # @/
 ```
