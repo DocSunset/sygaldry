@@ -1,10 +1,10 @@
 set(lib sygsp-button)
-add_library(${lib} INTERFACE)
-target_include_directories(${lib} INTERFACE .)
-target_sources(${lib} INTERFACE ${lib}.cpp)
+add_library(${lib} STATIC)
+target_include_directories(${lib} PUBLIC .)
+target_sources(${lib} PRIVATE ${lib}.cpp)
 target_link_libraries(${lib}
-        INTERFACE sygah-consteval
-        INTERFACE sygah-endpoints
+        PUBLIC sygah-consteval
+        PUBLIC sygah-endpoints
         )
 
 if(SYGALDRY_BUILD_AVENDISH)
@@ -14,8 +14,8 @@ avnd_make_pd(TARGET ${lib}
         C_NAME sygsp_button
         )
 target_link_libraries(${lib}_pd
-        PUBLIC ${lib}
-        PUBLIC sygah-consteval
-        PUBLIC sygah-endpoints
+        PRIVATE ${lib}
+        PRIVATE sygah-consteval
+        PRIVATE sygah-endpoints
         )
 endif()

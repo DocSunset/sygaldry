@@ -100,16 +100,21 @@ struct function_type_reflection
 We then specialize the struct for the case where the argument *is* a function,
 making the return type and list of arguments seperately available as types in
 the scope of the template, as well as several flags describing the context and
-qualification of the function type. We `std::tuple` to carry around
-the list of argument types.
+qualification of the function type. We define a trivial type list template to
+carry around the list of argument types.
 
 ```cpp
+// @='type list'
+/// A trivial type list struct for carrying function argument type lists
+template<typename ... Ts> struct function_arg_list {};
+// @/
+
 // @='function type reflection function case'
 template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
     using exists = std::true_type;
     using return_type = Ret;
-    using arguments = std::tuple<Args...>;
+    using arguments = function_arg_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
     using parent_class = std::false_type;
@@ -122,7 +127,7 @@ struct function_type_reflection<Ret(Args...)> {
 // @+'tests'
 static_assert(function_type_reflection<decltype(free_func)>::exists::value);
 static_assert(std::same_as<void, function_type_reflection<decltype(free_func)>::return_type>);
-static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(free_func)>::arguments>);
+static_assert(std::same_as<function_arg_list<int>, function_type_reflection<decltype(free_func)>::arguments>);
 static_assert(function_type_reflection<decltype(free_func)>::is_free::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_member::value);
 static_assert(not function_type_reflection<decltype(free_func)>::is_const::value);
@@ -132,7 +137,7 @@ static_assert(not function_type_reflection<decltype(free_func)>::is_noexcept::va
 ```
 
 So that our reflection mechanism will also work with pointers to functions and
-member functions, we specialize the template for cases these cases, as well as
+member functions, we specialize the template for these cases, as well as
 adding additional information for cv-noexcept qualified member function. We are
 able to save ourselves a bit of repetition by inheriting the basic `exists`,
 `return_type`, and `arguments` type aliases from the base function case, shadowing
@@ -198,7 +203,7 @@ struct function_type_reflection<Ret(Class::*)(Args...) const volatile noexcept> 
 // @+'tests'
 static_assert(std::same_as<void_operator, function_type_reflection<decltype(&void_operator::operator())>::parent_class>);
 static_assert(std::same_as<void, function_type_reflection<decltype(&void_operator::operator())>::return_type>);
-static_assert(std::same_as<std::tuple<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
+static_assert(std::same_as<function_arg_list<>, function_type_reflection<decltype(&void_operator::operator())>::arguments>);
 static_assert(function_type_reflection<decltype(&void_operator::operator())>::is_member::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_free::value);
 static_assert(not function_type_reflection<decltype(&void_operator::operator())>::is_const::value);
@@ -207,7 +212,7 @@ static_assert(not function_type_reflection<decltype(&void_operator::operator())>
 
 static_assert(std::same_as<int_main, function_type_reflection<decltype(&int_main::main)>::parent_class>);
 static_assert(std::same_as<int, function_type_reflection<decltype(&int_main::main)>::return_type>);
-static_assert(std::same_as<std::tuple<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
+static_assert(std::same_as<function_arg_list<int>, function_type_reflection<decltype(&int_main::main)>::arguments>);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_member::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_const::value);
 static_assert(function_type_reflection<decltype(&int_main::main)>::is_volatile::value);
@@ -281,7 +286,6 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <tuple>
 #include <type_traits>
 #include <concepts>
 

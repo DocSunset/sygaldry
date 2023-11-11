@@ -77,7 +77,7 @@ TEST_CASE("sygaldry osc path")
 {
     struct root_t { static _consteval const char * name() {return "Root";} };
     struct leaf_t { static _consteval const char * name() {return "leaf";} };
-    using Path = std::tuple<root_t, leaf_t>;
+    using Path = tpl::tuple<root_t, leaf_t>;
     CHECK(string_view(osc_path<Path>::value.data()) == string_view("/Root/leaf"));
 }
 // @/
@@ -100,7 +100,7 @@ contains no special characters.
 template<typename> struct osc_path_length : std::integral_constant<std::size_t, 0> {};
 template<template<typename...>typename L, typename ... Path>
 struct osc_path_length<L<Path...>>
-: std::integral_constant<std::size_t, (name_length<Path>() + ...) + sizeof...(Path)> {};
+: std::integral_constant<std::size_t, (name_length<std::decay_t<Path>>() + ...) + sizeof...(Path)> {};
 // @/
 
 // @='osc paths'
@@ -108,10 +108,10 @@ template<typename> struct osc_path;
 template<template<typename...>typename L, typename ... Path>
 struct osc_path<L<Path...>>
 {
-    static constexpr size_t N = osc_path_length<L<Path...>>() + 1; // + 1 for null terminator
+    static constexpr size_t N = osc_path_length<L<std::decay_t<Path>...>>() + 1; // + 1 for null terminator
     static constexpr std::array<char, N> value = []()
     {
-        L<Path...> path;
+        L<std::decay_t<Path>...> path;
         std::array<char, N> ret;
         std::size_t write_pos = 0;
         auto copy_one = [&]<typename T>(T)
@@ -122,7 +122,7 @@ struct osc_path<L<Path...>>
                 ret[write_pos++] = snake_case_v<T>[i];
             }
         };
-        std::apply([&]<typename ... Ts>(Ts... ts)
+        tpl::apply([&]<typename ... Ts>(Ts... ts)
         {
             (copy_one(ts), ...);
         }, path);
@@ -256,8 +256,8 @@ SPDX-License-Identifier: MIT
 */
 
 #include <array>
-#include <tuple>
 #include <concepts>
+#include "sygac-tuple.hpp"
 #include "sygac-components.hpp"
 #include "sygac-endpoints.hpp"
 #include "sygbp-spelling.hpp"
@@ -312,6 +312,7 @@ set(lib sygbp-osc_string_constants)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib}
+        INTERFACE sygac-tuple
         INTERFACE sygac-components
         INTERFACE sygac-endpoints
         INTERFACE sygbp-spelling

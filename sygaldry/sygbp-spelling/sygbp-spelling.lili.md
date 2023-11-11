@@ -180,6 +180,7 @@ out of bounds access on the compile-time constant input.
 ```cpp
 // @='string length function'
 template<typename Device>
+    requires requires {Device::name();}
 _consteval auto name_length()
 {
     size_t ret = 0;

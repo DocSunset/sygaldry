@@ -30,17 +30,17 @@ be considered private implementation details.
 template<typename ComponentContainer, typename ... Args>
 struct impl_arg_pack
 {
-    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+    using arg_pack_t = decltype(tpl::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
     const arg_pack_t pack;
 
-    constexpr impl_arg_pack(ComponentContainer& container) : pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+    constexpr impl_arg_pack(ComponentContainer& container) : pack{tpl::forward_as_tuple(find<Args>(container) ...)} {}
 };
 
 template<typename...>
 struct to_arg_pack
 {
     struct dummy_t {
-        std::tuple<> pack;
+        tpl::tuple<> pack;
         constexpr dummy_t(auto&) : pack{} {};
     };
     using pack_t = dummy_t;
@@ -76,27 +76,27 @@ struct component_runtime
     void init() const
     {
         if constexpr (requires {&Component::init;})
-            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+            tpl::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
     }
 
     void external_sources() const
     {
         if constexpr (requires {&Component::external_sources;})
-            std::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
+            tpl::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
     }
 
     void main() const
     {
         if constexpr (requires {&Component::operator();})
-            std::apply(component, main_args.pack);
+            tpl::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+            tpl::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
     }
 
     void external_destinations() const
     {
         if constexpr (requires {&Component::external_destinations;})
-            std::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
+            tpl::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
     }
 };
 
@@ -105,12 +105,12 @@ constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
 {
     auto tup = component_filter_by_tag<node::component>(cont);
     if constexpr (is_tuple_v<decltype(tup)>)
-        return boost::mp11::tuple_transform([&](auto& tagged_component)
+        return tup.map([&](auto& tagged_component)
         {
             return component_runtime{tagged_component.ref, cont};
-        }, tup);
+        });
     // if there's only one component, `component_filter_by_tag` returns the tagged component directly
-    else return std::make_tuple(component_runtime{tup.ref, cont});
+    else return tpl::make_tuple(component_runtime{tup.ref, cont});
 }
 /// \}
 

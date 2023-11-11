@@ -8,7 +8,6 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include <tuple>
 #include <type_traits>
 #include <concepts>
 
@@ -21,6 +20,8 @@ namespace sygaldry {
  */
 /// \{
 
+/// A trivial type list struct for carrying function argument type lists
+template<typename ... Ts> struct function_arg_list {};
 
 template<typename NotAFunction>
 struct function_type_reflection
@@ -32,7 +33,7 @@ template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
     using exists = std::true_type;
     using return_type = Ret;
-    using arguments = std::tuple<Args...>;
+    using arguments = function_arg_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
     using parent_class = std::false_type;

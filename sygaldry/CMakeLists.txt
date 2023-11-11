@@ -14,6 +14,7 @@ add_library(sygaldry INTERFACE)
 
 syg_add_package_group(sygac)
 syg_add_component(sygac-runtime sygac)
+syg_add_component(sygac-tuple sygac)
 syg_add_component(sygac-components sygac)
 syg_add_component(sygac-endpoints sygac)
 syg_add_component(sygac-mimu sygac)
