@@ -43,8 +43,8 @@ struct MAX17055
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw;
-        slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
+        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum is based on the fuel gauge max reading
+        slider<"capacity", "mAh", int, 0, 32000, 0> capacity; // maximum is based on the fuel gauge max reading
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (nom)
         slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
@@ -58,8 +58,8 @@ struct MAX17055
         slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
         slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "LSB", int, 0, 65535, 0, tag_session_data> rcomp;
-        slider<"tempco", "LSB", int, 0, 65535, 0, tag_session_data> tempco;
+        slider<"rcomp", "voltage compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
+        slider<"tempco", "temperature compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;

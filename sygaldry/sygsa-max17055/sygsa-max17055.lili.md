@@ -128,8 +128,8 @@ struct MAX17055
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw;
-        slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
+        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum is based on the fuel gauge max reading
+        slider<"capacity", "mAh", int, 0, 32000, 0> capacity; // maximum is based on the fuel gauge max reading
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
         // Capacity (nom)
         slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
@@ -143,8 +143,8 @@ struct MAX17055
         slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
         slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "LSB", int, 0, 65535, 0, tag_session_data> rcomp;
-        slider<"tempco", "LSB", int, 0, 65535, 0, tag_session_data> tempco;
+        slider<"rcomp", "voltage compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
+        slider<"tempco", "temperature compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
@@ -287,7 +287,7 @@ bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
 ## Helper Functions
 In addition to functions for reading and writing to registers. Functions for writing specific properties to the fuel gauge were also written. This allows us to update the properties from the command line without having to restart the device.
 
-In addition the restore parameter function restores the ModelGauge parameters after a power loss event.
+In addition the restore parameter function restores the ModelGauge parameters after a power loss event. The MAX17055 slowly learns and adjust its state of charge prediction with time based on voltage, current and temperature information. After a power loss or major software change the fuelgauge IC resets, in order to retain past information from the battery (charge cycles, full capacity, etc.) they must be restored manually from previously stored values.
 
 ```cpp
 //@='helpers'
@@ -450,6 +450,7 @@ Once the values have been written, Status flag is reset to prepare for a new har
     } 
 } else {
     outputs.status_message = "Fuel Gauge configured, Loading old config";
+    outputs.running = true;
 }
 // @/
 ```

@@ -81,6 +81,7 @@ namespace sygaldry { namespace sygsa {
             } 
         } else {
             outputs.status_message = "Fuel Gauge configured, Loading old config";
+            outputs.running = true;
         }
     }
 
