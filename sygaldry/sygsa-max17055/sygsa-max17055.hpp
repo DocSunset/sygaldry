@@ -18,15 +18,15 @@ struct MAX17055
 , author_<"Albert Niyonsenga">
 , copyright_<"Copyright 2023 Sygaldry Contributors">
 , license_<"SPDX-License-Identifier: MIT">
-, version_<"1.0.0">
+, version_<"0.0.0">
 {
     struct inputs_t {
         // Initialisation Elements
-        slider_message<"capacity", "mAh", int, 0, 32000, 2600, tag_session_data> designcap; // Design capacity of the battery (mAh)
-        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50, tag_session_data> ichg; // End of charge current (mA)
-        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10, tag_session_data> rsense; // Resistance of current sense resistor (mOhm))
-        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // Empty voltage of the battery (V)
-        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // Recovery voltage of the battery (V)
+        slider_message<"capacity", "Design capacity of the battery (mAh)", int, 0, 32000, 2600, tag_session_data> designcap;
+        slider_message<"end-of-charge current", "End of charge current (mA)", int, 0, 32000, 50, tag_session_data> ichg;
+        slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // 
+        slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // 
+        slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // 
 
         // Other parameters
         slider_message<"poll rate", "ms", int, 0, 300000, 300000, tag_session_data> pollrate; // poll rate in milliseconds

@@ -77,7 +77,7 @@ namespace sygaldry { namespace sygsa {
             if (!outputs.running) {
                 outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
             } else {
-                outputs.status_message = "Fuel Gauge configured, with new config"
+                outputs.status_message = "Fuel Gauge configured, with new config";
             } 
         } else {
             outputs.status_message = "Fuel Gauge configured, Loading old config";
