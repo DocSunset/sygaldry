@@ -29,18 +29,13 @@ namespace sygaldry { namespace sygsa {
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
         uint16_t POR = STATUS&0x0002;
-        std::cout << "Checking status " << "\n"
-                << "Status read: " << STATUS << "\n"
-                << "POR flag: " << POR << std::endl;
         // Reset the Fuel Gauge
         if (POR)
         {
-            std::cout << "Initialising Fuel Gauge" << std::endl;
             while(readReg16Bit(0x3D)&1) {
                 sygsp::delay(10);
             }
 
-            std::cout << "Start up complete" << std::endl;
             //Initialise Configuration
             uint16_t HibCFG = readReg16Bit(0xBA);
             // Exit hibernate mode
@@ -49,14 +44,12 @@ namespace sygaldry { namespace sygsa {
             writeReg16Bit(0x60, 0x0);
            //EZ Config
             // Write Battery capacity
-            std::cout << "Writing Capacity" << std::endl;
             writeDesignCapacity(); //Write Design Cap
             writeICHG(); // End of charge current
             writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
 
             // Set empty voltage and recovery voltage
             // Empty voltage in increments of 10mV
-            std::cout << "Writing Voltage" << std::endl;
             writeVoltage();
             // Set Model Characteristic
             writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
@@ -73,21 +66,22 @@ namespace sygaldry { namespace sygsa {
                 if (!restoreParameters()) {
                     outputs.error_message = "Parameters were not successfully restored";
                 };
-            }   
-        } else {
-            std::cout << "    Loading old config" << std::endl;
-        }
-          // Reset Status Register when init function runs
-          std::cout << "    Resetting Status" << std::endl;
-          STATUS = readReg16Bit(STATUS_REG);
+            }  
 
-          // Get new status
-          uint16_t RESET_STATUS = STATUS&0xFFFD;
-          std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
-          outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
-          if (!outputs.running) {
-            outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
-          }
+            // Reset Status Register when init function runs
+            STATUS = readReg16Bit(STATUS_REG);
+
+            // Get new status
+            uint16_t RESET_STATUS = STATUS&0xFFFD;
+            outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
+            if (!outputs.running) {
+                outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
+            } else {
+                outputs.status_message = "Fuel Gauge configured, with new config"
+            } 
+        } else {
+            outputs.status_message = "Fuel Gauge configured, Loading old config";
+        }
     }
 
     // poll the MAX17055 for new data and update endpoints
@@ -234,7 +228,7 @@ namespace sygaldry { namespace sygsa {
         uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
         uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
         uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-        writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+        writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
     };
 
     /// Restore old parameters

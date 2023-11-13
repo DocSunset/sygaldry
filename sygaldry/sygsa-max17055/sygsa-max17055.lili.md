@@ -32,7 +32,7 @@ enum regAddr
 {
 STATUS_REG      = 0x00, ///< Maintains all flags related to alert thresholds and battery insertion or removal.
 AGE_REG         = 0x07, ///< calculated percentage value of capacity compared to original design capacity.
-TEMP_REG        = 0x08, ///<Temperature of MAX17055 chip
+TEMP_REG        = 0x08, ///< Temperature of MAX17055 chip
 VCELL_REG       = 0x09, ///< VCell reports the voltage measured between BATT and CSP.
 AVGVCELL_REG    = 0x19, ///< The AvgVCell register reports an average of the VCell register readings. 
 CURRENT_REG     = 0x0A, ///< Voltage between the CSP and CSN pins, and would need to convert to current
@@ -310,7 +310,7 @@ void MAX17055::writeVoltage() {
     uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
     uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
     uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty 
+    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
 };
 
 /// Restore old parameters
@@ -378,9 +378,6 @@ inputs.pollrate = inputs.pollrate.init();
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
-std::cout << "Checking status " << "\n"
-        << "Status read: " << STATUS << "\n"
-        << "POR flag: " << POR << std::endl;
 // @/
 ```
 
@@ -391,12 +388,10 @@ When resetting the fuel gauge we initially make sure to make sure the fuel gauge
 // Reset the Fuel Gauge
 if (POR)
 {
-    std::cout << "Initialising Fuel Gauge" << std::endl;
     while(readReg16Bit(0x3D)&1) {
         sygsp::delay(10);
     }
 
-    std::cout << "Start up complete" << std::endl;
     //Initialise Configuration
     uint16_t HibCFG = readReg16Bit(0xBA);
     // Exit hibernate mode
@@ -411,14 +406,12 @@ The design capacity, empty voltage, recovery voltage, and end of charge current 
 //@+'init'
    //EZ Config
     // Write Battery capacity
-    std::cout << "Writing Capacity" << std::endl;
     writeDesignCapacity(); //Write Design Cap
     writeICHG(); // End of charge current
     writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
 
     // Set empty voltage and recovery voltage
     // Empty voltage in increments of 10mV
-    std::cout << "Writing Voltage" << std::endl;
     writeVoltage();
 // @/
 ```
@@ -442,21 +435,22 @@ Once the values have been written, Status flag is reset to prepare for a new har
         if (!restoreParameters()) {
             outputs.error_message = "Parameters were not successfully restored";
         };
-    }   
-} else {
-    std::cout << "    Loading old config" << std::endl;
-}
-  // Reset Status Register when init function runs
-  std::cout << "    Resetting Status" << std::endl;
-  STATUS = readReg16Bit(STATUS_REG);
+    }  
 
-  // Get new status
-  uint16_t RESET_STATUS = STATUS&0xFFFD;
-  std::cout << "    Setting new status: " << RESET_STATUS << std::endl;
-  outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
-  if (!outputs.running) {
-    outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
-  }
+    // Reset Status Register when init function runs
+    STATUS = readReg16Bit(STATUS_REG);
+
+    // Get new status
+    uint16_t RESET_STATUS = STATUS&0xFFFD;
+    outputs.running = writeVerifyReg16Bit(STATUS_REG,RESET_STATUS); //reset POR Status  
+    if (!outputs.running) {
+        outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
+    } else {
+        outputs.status_message = "Fuel Gauge configured, with new config"
+    } 
+} else {
+    outputs.status_message = "Fuel Gauge configured, Loading old config";
+}
 // @/
 ```
 ## Main subroutine
@@ -567,7 +561,6 @@ set(lib sygsa-max17055)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygah-endpoints)
-# arguably this should be a different library, even in a different document
 target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
 # @/
 ```

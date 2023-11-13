@@ -12,7 +12,7 @@ enum regAddr
 {
 STATUS_REG      = 0x00, ///< Maintains all flags related to alert thresholds and battery insertion or removal.
 AGE_REG         = 0x07, ///< calculated percentage value of capacity compared to original design capacity.
-TEMP_REG        = 0x08, ///<Temperature of MAX17055 chip
+TEMP_REG        = 0x08, ///< Temperature of MAX17055 chip
 VCELL_REG       = 0x09, ///< VCell reports the voltage measured between BATT and CSP.
 AVGVCELL_REG    = 0x19, ///< The AvgVCell register reports an average of the VCell register readings. 
 CURRENT_REG     = 0x0A, ///< Voltage between the CSP and CSN pins, and would need to convert to current
