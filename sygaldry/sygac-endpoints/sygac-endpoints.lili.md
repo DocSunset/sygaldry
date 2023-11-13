@@ -65,15 +65,16 @@ concept that establishes T as being alike to certain other type or typical API
 is written the same, e.g. `tuple_like`. Finally, if a concept establishes that
 a certain T is, for all intents and purposes, an instance of a certain sort of
 object, we use camel case, as in `OccasionalValue` or `Component`. As in the
-rest of the project, a leading underscore is used to signify a private
-implementation detail that the user should likely not access.
+rest of the project, a trailing (or leading, but this should be changed to
+trailing) underscore is used to signify a private implementation detail that
+the user should likely not access.
 
 Recap:
 
 - has a: `has_name`
 - alike: `tuple_like`
 - is a: `PersistentValue`
-- private: `_not_yours`
+- private: `not_yours_`
 
 # Name and Other Text
 

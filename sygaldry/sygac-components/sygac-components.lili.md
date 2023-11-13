@@ -44,7 +44,7 @@ concept Component
 @{assembly_predicate}
 
 template<typename T>
-concept Assembly = detail::assembly_predicate<T>::value && not Component<T>;
+concept Assembly = detail::assembly_predicate<T>::value && not Component<T> && not Tuple<T>;
 // @/
 
 // @+'tests'
@@ -355,9 +355,13 @@ template<typename T>
     requires Component<T>
 struct assembly_predicate<T> : std::true_type {};
 
-/// Metafunction case where T satisfies `SimpleAggregate` (but not `Component`); checks if all its members are valid
 template<typename T>
-    requires SimpleAggregate<T> && (not Component<T>) && (not std::is_scalar_v<T>)
+    requires Tuple<T>
+struct assembly_predicate<T> : std::false_type {};
+
+/// Metafunction case where T satisfies `SimpleAggregate` (but not `Component` or `Tuple`); checks if all its members are valid
+template<typename T>
+    requires SimpleAggregate<T> && (not Component<T>) && (not std::is_scalar_v<T>) && (not Tuple<T>)
 struct assembly_predicate<T>
 {
     using tup = decltype(boost::pfr::structure_to_tuple(std::declval<T&>()));
@@ -524,19 +528,23 @@ enable tuple-like semantics for components and assemblies.
 In a first attempt, I used `boost::mp11` to first generate a type list from a
 general component. However, this turns out to provide very little use when it
 comes time to access the nodes of the component-tree. Instead, the first step
-is to generate the runtime tuple of references. This runtime structure can be
+is to generate a runtime tuple of references. This runtime structure can be
 manipulated more fluently using a combination of runtime programming and
 template metaprogramming, and if compile-time execution is required, the
 transformations can generally be `constexpr` or `constinit` and thus executed
 at compile-time, or easily converted into pure type-generating metaprograms
 using e.g. `std::declval` and `decltype`.
 
+## Non-standard Tuple Support
+
 ## Component Tree
 
 For starters, we define a function `component_to_tree` that generates a tuple
-of nested tuples that preserves the tree-like structure of a general component,
-augmenting our references with a node-type tag, as in the following expected
-output. Each element of the tree is a tuple whose first element is a node and
+of nested tuples that preserves the tree-like structure of an assembly,
+augmenting our references with a tag type that annotates what kind of object a
+node represents (e.g. component or endpoint), as in the following example.
+
+\attention Each element of the tree is a tuple whose first element is a node and
 subsequent elements are that node's subtrees as tuples of the same form. Leaf
 nodes are thus represented as tuples containing a single element.
 
@@ -567,23 +575,23 @@ using oc2   =          c2::outputs_t;
 using out2  =              oc2::out_t;
 
 static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
-, std::tuple< tagged<node::assembly,atc>
-            , std::tuple< tagged<node::component,c1>
-                        , std::tuple< tagged<node::inputs_container,ic1>
-                                    , std::tuple<tagged<node::input_endpoint,in11>>
-                                    , std::tuple<tagged<node::input_endpoint,in21>>
+, tpl::tuple< tagged<node::assembly,atc>
+            , tpl::tuple< tagged<node::component,c1>
+                        , tpl::tuple< tagged<node::inputs_container,ic1>
+                                    , tpl::tuple<tagged<node::input_endpoint,in11>>
+                                    , tpl::tuple<tagged<node::input_endpoint,in21>>
                                     >
-                        , std::tuple< tagged<node::outputs_container,oc1>
-                                    , std::tuple<tagged<node::output_endpoint,out1>>
+                        , tpl::tuple< tagged<node::outputs_container,oc1>
+                                    , tpl::tuple<tagged<node::output_endpoint,out1>>
                                     >
                         >
-            , std::tuple< tagged<node::component,c2>
-                        , std::tuple< tagged<node::inputs_container,ic2>
-                                    , std::tuple<tagged<node::input_endpoint,in12>>
-                                    , std::tuple<tagged<node::input_endpoint,in22>>
+            , tpl::tuple< tagged<node::component,c2>
+                        , tpl::tuple< tagged<node::inputs_container,ic2>
+                                    , tpl::tuple<tagged<node::input_endpoint,in12>>
+                                    , tpl::tuple<tagged<node::input_endpoint,in22>>
                                     >
-                        , std::tuple< tagged<node::outputs_container,oc2>
-                                    , std::tuple<tagged<node::output_endpoint,out2>>
+                        , tpl::tuple< tagged<node::outputs_container,oc2>
+                                    , tpl::tuple<tagged<node::output_endpoint,out2>>
                                     >
                         >
             >
@@ -592,7 +600,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
 TEST_CASE("sygaldry component_to_tree")
 {
     constexpr auto tree = component_to_tree(accessor_test_container);
-    auto& in1 = std::get<0>(std::get<1>(std::get<1>(std::get<1>(tree)))).ref;
+    auto& in1 = tpl::get<0>(tpl::get<1>(tpl::get<1>(tpl::get<1>(tree)))).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -606,8 +614,8 @@ First consider the case where we have been passed an assembly `T& component`.
 <subtree>, ...>` where the head of the tuple is simply the `component` tagged
 `node::assembly`, and each subtree in the tail of the tuple is the tree for one
 component or subassembly. To make the tail, we can get a tuple of references to
-the subcomponents using `boost::pfr::structure_tie`. Then using
-`boost::mp11::tuple_transform` we can turn each subcomponent reference into its
+the subcomponents using `structure_tie`. Then using
+`tuplet::tuple::map` we can turn each subcomponent reference into its
 corresponding subtree, completing the tail. We then must use `tuple_cat` to
 unpack the tail, which is one tuple containing all of the sublists, so that we
 will have `< head, <subtree>, <subtree> ... >` where the tail is zero or more
@@ -616,46 +624,19 @@ tail is a single tuple containing the subtree tuples.
 
 ```cpp
 // @='component container tree case'
-auto subcomponents = boost::pfr::structure_tie(component);
-auto head = std::make_tuple(tagged<node::assembly, T>{component});
-auto tail = tuple_transform([](auto& subcomponent)
+auto subcomponents = sygaldry::pfr::structure_tie(component);
+auto head = tpl::make_tuple(tagged<node::assembly, T>{component});
+auto tail = subcomponents.map([](auto& subcomponent)
 {
     return component_to_tree(subcomponent);
-}, subcomponents);
-return std::tuple_cat( head, tail);
+});
+return tpl::tuple_cat( head, tail);
 // @/
 ```
 
 We could access the head or tail with the following methods:
 
 ```cpp
-// @+'tuples of nodes'
-template<typename T> struct is_tuple : std::false_type {};
-template<typename ... Ts> struct is_tuple<std::tuple<Ts...>> : std::true_type {};
-template<typename T> constexpr const bool is_tuple_v = is_tuple<T>::value;
-template<typename T> concept Tuple = is_tuple_v<std::remove_cvref_t<T>>;
-
-template<Tuple T>
-constexpr auto tuple_head(T tup)
-{
-    if constexpr (std::tuple_size_v<T> == 0) return tup;
-    else return std::get<0>(tup);
-}
-
-template<Tuple T, size_t ... Ns>
-constexpr auto tuple_tail_impl(T tup, std::index_sequence<Ns...>)
-{
-    return std::make_tuple(std::get<Ns + 1>(tup)...);
-}
-
-template<Tuple T>
-constexpr auto tuple_tail(T tup)
-{
-    if constexpr (std::tuple_size_v<T> <= 1) return std::tuple<>{};
-    else return tuple_tail_impl(tup, std::make_index_sequence<std::tuple_size_v<T> - 1>{});
-}
-// @/
-
 // @+'tests'
 TEST_CASE("sygaldry tuple head and tail")
 {
@@ -665,12 +646,12 @@ TEST_CASE("sygaldry tuple head and tail")
         int c;
     } x = {0,0,0};
 
-    auto tup = boost::pfr::structure_tie(x);
+    auto tup = sygaldry::pfr::structure_tie(x);
     auto head = tuple_head(tup);
     static_assert(std::same_as<int, decltype(head)>);
     auto tail = tuple_head(tup);
 
-    auto empty_tuple = std::tuple<>{};
+    auto empty_tuple = tpl::tuple<>{};
     auto empty = tuple_head(empty_tuple);
 }
 // @/
@@ -681,12 +662,12 @@ head, <maybe inputs>, <maybe outputs>>`. We have to work around the possibility
 that inputs and outputs may not exist. Our strategy is to always `tuple_cat`
 several tuples, where the inputs and outputs tuples may be empty tuples, which
 will vanish during the `tuple_cat` operation. One awkward consequence of this
-strategy is that the `head` of the tree has to be a `std::tuple` before being
+strategy is that the `head` of the tree has to be a `tpl::tuple` before being
 passed to `tuple_cat`.
 
 ```cpp
 // @='component tree case'
-return std::tuple_cat( std::make_tuple(tagged<node::component, T>{component})
+return tpl::tuple_cat( tpl::make_tuple(tagged<node::component, T>{component})
                      , endpoint_subtree<node::input_endpoint>(component)
                      , endpoint_subtree<node::output_endpoint>(component)
                      );
@@ -708,20 +689,20 @@ constexpr auto endpoint_subtree(T& component)
 
     constexpr auto f = []<typename Container>(Container& container)
     {
-        auto endpoints = boost::pfr::structure_tie(container);
-        auto head = std::make_tuple(tagged<ContainerTag, Container>{container});
-        auto tail = tuple_transform([]<typename Ep>(Ep& endpoint)
+        auto endpoints = sygaldry::pfr::structure_tie(container);
+        auto head = tpl::make_tuple(tagged<ContainerTag, Container>{container});
+        auto tail = endpoints.map([]<typename Ep>(Ep& endpoint)
         {
-            return std::make_tuple(tagged<Tag, Ep>{endpoint});
-        }, endpoints);
-        return std::make_tuple(std::tuple_cat(head, tail));
+            return tpl::make_tuple(tagged<Tag, Ep>{endpoint});
+        });
+        return tpl::make_tuple(tpl::tuple_cat(head, tail));
     };
 
     constexpr bool inputs = std::same_as<Tag, node::input_endpoint> && has_inputs<T>;
     constexpr bool outputs = std::same_as<Tag, node::output_endpoint> && has_outputs<T>;
          if constexpr (inputs) return f(inputs_of(component));
     else if constexpr (outputs) return f(outputs_of(component));
-    else return std::tuple<>{};
+    else return tpl::tuple<>{};
 }
 
 template<typename T>
@@ -787,8 +768,8 @@ constexpr auto component_tree_to_node_list(T tree)
     if constexpr (std::tuple_size_v<T> == 0) return tree;
     auto head = tuple_head(tree);
     auto tail = tuple_tail(tree);
-    if constexpr (Tuple<decltype(head)>) return std::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
-    else return std::tuple_cat(std::make_tuple(head), component_tree_to_node_list(tail));
+    if constexpr (Tuple<decltype(head)>) return tpl::tuple_cat(component_tree_to_node_list(head), component_tree_to_node_list(tail));
+    else return tpl::tuple_cat(tpl::make_tuple(head), component_tree_to_node_list(tail));
 }
 // @/
 
@@ -796,9 +777,9 @@ constexpr auto component_tree_to_node_list(T tree)
 TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
-    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
+    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<tpl::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
 
-    auto& in1 = std::get<3>(flattened).ref;
+    auto& in1 = tpl::get<3>(flattened).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -823,29 +804,29 @@ constexpr auto component_to_node_list(T& component)
 ## Filtering the Node List
 
 A flat tuple is easy to filter. We can pass a predicate metafunction to the
-filter, and then use `tuple_transform` from `mp11` to transform the flat
+filter, and then use `tup.map` from `tuplet` to transform the flat
 tuple into one of wrapped values or empty tuples based on the predicate, then
-`std::apply` the result to `tuple_cat` to get a filtered tuple out.
+`tpl::apply` the result to `tuple_cat` to get a filtered tuple out.
 
 ```cpp
 // @+'tuples of nodes'
 template<template<typename>typename F>
 constexpr auto node_list_filter(Tuple auto tup)
 {
-    return std::apply([](auto...args)
+    return tpl::apply([](auto...args)
     {
-        auto ret = std::tuple_cat(args...);
+        auto ret = tpl::tuple_cat(args...);
         if constexpr (std::tuple_size_v<decltype(ret)> == 0)
             return;
         else if constexpr (std::tuple_size_v<decltype(ret)> == 1)
-            return std::get<0>(ret);
+            return tpl::get<0>(ret);
         else return ret;
     }
-    , tuple_transform([]<typename E>(E element)
+    , tup.map([]<typename E>(E element)
     {
-        if constexpr (F<E>::value) return std::make_tuple(element);
-        else return std::tuple<>{};
-    }, tup));
+        if constexpr (F<E>::value) return tpl::make_tuple(element);
+        else return tpl::tuple<>{};
+    }));
 }
 // @/
 ```
@@ -924,7 +905,7 @@ by first filtering the list.
 template<typename ... RequestedNodes>
 struct _search_by_tags
 {
-    template<typename Tag> using fn = boost::mp11::mp_contains<std::tuple<RequestedNodes...>, typename Tag::tag>;
+    template<typename Tag> using fn = boost::mp11::mp_contains<tpl::tuple<RequestedNodes...>, typename Tag::tag>;
 };
 
 template<typename ... RequestedNodes>
@@ -949,9 +930,9 @@ constexpr auto for_each_node_in_list(const Tuple auto node_list, auto callback)
     if constexpr (sizeof...(RequestedNodes) > 0)
     {
         constexpr auto filtered = node_list_filter_by_tag<RequestedNodes...>(node_list);
-        boost::mp11::tuple_for_each(filtered, f);
+        tuple_for_each(filtered, f);
     }
-    else boost::mp11::tuple_for_each(node_list, f);
+    else tuple_for_each(node_list, f);
 }
 // @/
 ```
@@ -966,7 +947,7 @@ node, and whose intervening elements are the named parents of the node in order.
 // @+'tests'
 auto in11_path = path_of<in11>(component_to_tree(accessor_test_container));
 static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
-                          , std::tuple< tagged<node::component,c1>
+                          , tpl::tuple< tagged<node::component,c1>
                                       , tagged<node::input_endpoint,in11>
                                       >
                           >);
@@ -985,12 +966,12 @@ struct deep_assembly {
 } deep;
 
 static_assert(std::same_as<decltype(component_to_tree(deep))
-, std::tuple< tagged<node::assembly,deep_assembly>
-            , std::tuple< tagged<node::assembly,deep_assembly::n1>
-                        , std::tuple< tagged<node::assembly,deep_assembly::n1::n2>
-                                    , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
-                                                , std::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
-                                                            , std::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
+, tpl::tuple< tagged<node::assembly,deep_assembly>
+            , tpl::tuple< tagged<node::assembly,deep_assembly::n1>
+                        , tpl::tuple< tagged<node::assembly,deep_assembly::n1::n2>
+                                    , tpl::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                                                , tpl::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
+                                                            , tpl::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
                                                             >
                                                 >
                                     >
@@ -1001,7 +982,7 @@ static_assert(std::same_as<decltype(component_to_tree(deep))
 using deep_input = deep_assembly::n1::n2::n3::inputs_t::in;
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
-        , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+        , tpl::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
                     , tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>
                     >
         >);
@@ -1036,23 +1017,23 @@ template<typename T, Tuple Tup>
 constexpr auto path_of(const Tup tree)
 {
     if constexpr (std::tuple_size_v<Tup> == 0) // tail of a leaf node
-        return std::tuple<>{};
+        return tpl::tuple<>{};
 
     // split the tuple into its head and its tail
     auto head = tuple_head(tree);
     auto tail_path = path_of<T>(tuple_tail(tree));
 
     if constexpr (Tuple<decltype(head)>) // search subtrees
-        return std::tuple_cat(path_of<T>(head), tail_path);
+        return tpl::tuple_cat(path_of<T>(head), tail_path);
     else if constexpr (std::same_as<typename decltype(head)::type, T>) // the node that we are looking for
-        return std::make_tuple(head);
+        return tpl::make_tuple(head);
     else if constexpr (std::tuple_size_v<decltype(tail_path)> > 0) // head is a parent
     {
         if constexpr (has_name<typename decltype(head)::type>) // prepend named parent
-            return std::tuple_cat(std::make_tuple(head), tail_path);
+            return tpl::tuple_cat(tpl::make_tuple(head), tail_path);
         else return tail_path; // return sub-path
     }
-    else return std::tuple<>{}; // node is in another subtree
+    else return tpl::tuple<>{}; // node is in another subtree
 }
 
 template<typename T, typename C>
@@ -1069,7 +1050,7 @@ constexpr auto path_of(C& component)
 ```cpp
 // @+'tests'
 auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
-static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
+static_assert(std::same_as<decltype(outputs), tpl::tuple<out1&, out2&>>);
 // @/
 
 // @+'tuples of nodes'
@@ -1079,8 +1060,7 @@ template<typename Tag> using untagged = typename Tag::type;
 template<Tuple T>
 constexpr auto remove_node_tags(T tup)
 {
-    using return_type = mp_transform<untagged, T>;
-    return std::make_from_tuple<return_type>(tuple_transform([](auto&& tagged) {return tagged.ref;}, tup));
+    return tup.map([](auto&& tagged) -> auto& {return tagged.ref;});
 }
 // @/
 ```
@@ -1088,7 +1068,7 @@ constexpr auto remove_node_tags(T tup)
 ## Common Type List Metafunctions
 
 Often it's not necessary to access a value instance of a node list, but rather
-it's `std::tuple` type, i.e. a type list. The following template type aliases
+it's `tpl::tuple` type, i.e. a type list. The following template type aliases
 are provided to facilitate direct access to useful type lists.
 
 ```cpp
@@ -1498,8 +1478,10 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
+#include <utility>
 #include <boost/pfr.hpp>
 #include <boost/mp11.hpp>
+#include "sygac-tuple.hpp"
 #include "sygac-metadata.hpp"
 #include "sygac-functions.hpp"
 #include "sygac-endpoints.hpp"
@@ -1507,8 +1489,6 @@ SPDX-License-Identifier: MIT
 namespace sygaldry {
 
 using boost::mp11::mp_transform;
-using boost::mp11::tuple_transform;
-using boost::mp11::tuple_for_each;
 
 /*! \addtogroup sygac sygac: Sygaldry Concepts
  */
@@ -1571,11 +1551,14 @@ using std::string;
 set(lib sygac-components)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(${lib} INTERFACE Boost::pfr)
-target_link_libraries(${lib} INTERFACE Boost::mp11)
-target_link_libraries(${lib} INTERFACE sygac-metadata)
-target_link_libraries(${lib} INTERFACE sygac-functions)
-target_link_libraries(${lib} INTERFACE sygac-endpoints)
+target_link_libraries( ${lib}
+        INTERFACE Boost::pfr
+        INTERFACE Boost::mp11
+        INTERFACE sygac-tuple
+        INTERFACE sygac-metadata
+        INTERFACE sygac-functions
+        INTERFACE sygac-endpoints
+        )
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

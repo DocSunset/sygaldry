@@ -28,30 +28,26 @@ struct OutputLogger : name_<"Output Logger">
 
     [[no_unique_address]] Logger log;
 
-    output_endpoints_t<Components> last_out_list{};
-
     void external_destinations(Components& components)
     {
-        tuple_for_each(last_out_list, [&]<typename T>(T& last_out)
+        for_each_output(components, [&]<typename T>(T& current_out)
         {
-            const T& current_out = find<T>(components);
-            if (value_of(current_out) != value_of(last_out))
+            if constexpr (Bang<T> || OccasionalValue<T>)
             {
-                if constexpr (Bang<T>)
-                {
-                    if (value_of(current_out))
-                        log.println(osc_path_v<T, Components>);
-                    return;
-                }
-                else
-                {
-                    last_out = current_out;
-                    log.print(osc_path_v<T, Components>);
-                    if constexpr (has_value<T>)
-                        log.print(" ", value_of(current_out));
-                    log.println();
-                }
+                if (not flag_state_of(current_out)) return;
+                log.println(osc_path_v<T, Components>);
             }
+            else if constexpr (requires (T t) {current_out == t;})
+            {
+                static T last_out{};
+                if (value_of(current_out) == value_of(last_out)) return;
+                last_out = current_out;
+                log.print(osc_path_v<T, Components>);
+                if constexpr (has_value<T>)
+                    log.print(" ", value_of(current_out));
+                log.println();
+            }
+            else return;
         });
     }
 };

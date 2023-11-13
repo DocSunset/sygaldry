@@ -22,10 +22,10 @@ API is provided.
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygse-arduino_hack)
-add_library(${lib} STATIC)
-target_link_libraries(${lib} PUBLIC sygsp-arduino_hack)
-target_link_libraries(${lib} PRIVATE idf::driver idf::esp_timer)
-target_sources(${lib} PRIVATE Arduino.cpp Wire.cpp)
+add_library(${lib} INTERFACE)
+target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
+target_link_libraries(${lib} INTERFACE idf::driver idf::esp_timer)
+target_sources(${lib} INTERFACE Arduino.cpp Wire.cpp)
 # @/
 ```
 

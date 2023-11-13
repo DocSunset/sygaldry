@@ -2,6 +2,7 @@ set(lib sygbp-osc_string_constants)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib}
+        INTERFACE sygac-tuple
         INTERFACE sygac-components
         INTERFACE sygac-endpoints
         INTERFACE sygbp-spelling

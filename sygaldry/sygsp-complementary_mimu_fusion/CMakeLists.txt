@@ -1,18 +1,18 @@
 set(lib sygsp-complementary_mimu_fusion)
-add_library(${lib} STATIC)
+add_library(${lib} INTERFACE)
 target_sources(${lib}
-        PRIVATE ${lib}.cpp
+        INTERFACE ${lib}.cpp
         )
 target_include_directories(${lib}
-        PUBLIC .
+        INTERFACE .
         )
 target_link_libraries(${lib}
-        PUBLIC sygah-endpoints
-        PUBLIC sygah-metadata
-        PUBLIC sygah-mimu
-        PUBLIC sygac-mimu
-        PUBLIC sygsp-mimu_units
-        PRIVATE Eigen3::Eigen
+        INTERFACE sygah-endpoints
+        INTERFACE sygah-metadata
+        INTERFACE sygah-mimu
+        INTERFACE sygac-mimu
+        INTERFACE sygsp-mimu_units
+        INTERFACE Eigen3::Eigen
         )
 
 # TODO: write tests

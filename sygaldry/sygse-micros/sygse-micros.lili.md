@@ -46,9 +46,9 @@ unsigned long micros()
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygse-micros)
-add_library(${lib} STATIC)
-target_sources(${lib} PRIVATE ${lib}.cpp)
-target_link_libraries(${lib} PUBLIC sygsp-micros sygse-arduino_hack)
+add_library(${lib} INTERFACE)
+target_sources(${lib} INTERFACE ${lib}.cpp)
+target_link_libraries(${lib} INTERFACE sygsp-micros sygse-arduino_hack)
 # @/
 ```
 

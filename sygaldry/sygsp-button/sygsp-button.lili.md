@@ -148,9 +148,9 @@ avnd_make_pd(TARGET ${lib}
         C_NAME sygsp_button
         )
 target_link_libraries(${lib}_pd
-        PUBLIC ${lib}
-        PUBLIC sygah-consteval
-        PUBLIC sygah-endpoints
+        PRIVATE ${lib}
+        PRIVATE sygah-consteval
+        PRIVATE sygah-endpoints
         )
 endif()
 # @/

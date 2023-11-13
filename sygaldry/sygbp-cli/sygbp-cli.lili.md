@@ -620,7 +620,7 @@ struct CustomCli : name_<"CLI">
 
     void init()
     {
-        log.println("CLI enabled. Write `help` for a list of available commands.");
+        log.println("CLI enabled. Write `/help` for a list of available commands.");
         _prompt();
     }
 

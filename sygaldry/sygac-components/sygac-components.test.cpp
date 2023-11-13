@@ -173,23 +173,23 @@ using oc2   =          c2::outputs_t;
 using out2  =              oc2::out_t;
 
 static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
-, std::tuple< tagged<node::assembly,atc>
-            , std::tuple< tagged<node::component,c1>
-                        , std::tuple< tagged<node::inputs_container,ic1>
-                                    , std::tuple<tagged<node::input_endpoint,in11>>
-                                    , std::tuple<tagged<node::input_endpoint,in21>>
+, tpl::tuple< tagged<node::assembly,atc>
+            , tpl::tuple< tagged<node::component,c1>
+                        , tpl::tuple< tagged<node::inputs_container,ic1>
+                                    , tpl::tuple<tagged<node::input_endpoint,in11>>
+                                    , tpl::tuple<tagged<node::input_endpoint,in21>>
                                     >
-                        , std::tuple< tagged<node::outputs_container,oc1>
-                                    , std::tuple<tagged<node::output_endpoint,out1>>
+                        , tpl::tuple< tagged<node::outputs_container,oc1>
+                                    , tpl::tuple<tagged<node::output_endpoint,out1>>
                                     >
                         >
-            , std::tuple< tagged<node::component,c2>
-                        , std::tuple< tagged<node::inputs_container,ic2>
-                                    , std::tuple<tagged<node::input_endpoint,in12>>
-                                    , std::tuple<tagged<node::input_endpoint,in22>>
+            , tpl::tuple< tagged<node::component,c2>
+                        , tpl::tuple< tagged<node::inputs_container,ic2>
+                                    , tpl::tuple<tagged<node::input_endpoint,in12>>
+                                    , tpl::tuple<tagged<node::input_endpoint,in22>>
                                     >
-                        , std::tuple< tagged<node::outputs_container,oc2>
-                                    , std::tuple<tagged<node::output_endpoint,out2>>
+                        , tpl::tuple< tagged<node::outputs_container,oc2>
+                                    , tpl::tuple<tagged<node::output_endpoint,out2>>
                                     >
                         >
             >
@@ -198,7 +198,7 @@ static_assert(std::same_as<decltype(component_to_tree(accessor_test_container))
 TEST_CASE("sygaldry component_to_tree")
 {
     constexpr auto tree = component_to_tree(accessor_test_container);
-    auto& in1 = std::get<0>(std::get<1>(std::get<1>(std::get<1>(tree)))).ref;
+    auto& in1 = tpl::get<0>(tpl::get<1>(tpl::get<1>(tpl::get<1>(tree)))).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -212,20 +212,20 @@ TEST_CASE("sygaldry tuple head and tail")
         int c;
     } x = {0,0,0};
 
-    auto tup = boost::pfr::structure_tie(x);
+    auto tup = sygaldry::pfr::structure_tie(x);
     auto head = tuple_head(tup);
     static_assert(std::same_as<int, decltype(head)>);
     auto tail = tuple_head(tup);
 
-    auto empty_tuple = std::tuple<>{};
+    auto empty_tuple = tpl::tuple<>{};
     auto empty = tuple_head(empty_tuple);
 }
 TEST_CASE("sygaldry component_tree_to_node_list")
 {
     constexpr auto flattened = component_tree_to_node_list(component_to_tree(accessor_test_container));
-    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<std::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
+    static_assert(std::tuple_size_v<decltype(flattened)> == std::tuple_size_v<tpl::tuple<atc, c1, ic1, in11, in21, oc1, out1, c2, ic2, in12, in22, oc2, out2>>);
 
-    auto& in1 = std::get<3>(flattened).ref;
+    auto& in1 = tpl::get<3>(flattened).ref;
     accessor_test_container.c1.inputs.in1.extra_value = 0.0;
     REQUIRE(accessor_test_container.c1.inputs.in1.extra_value == 0.0);
     in1.extra_value = 3.14f;
@@ -241,7 +241,7 @@ TEST_CASE("sygaldry node_list_filter")
 }
 auto in11_path = path_of<in11>(component_to_tree(accessor_test_container));
 static_assert(std::same_as< std::remove_cvref_t<decltype(in11_path)>
-                          , std::tuple< tagged<node::component,c1>
+                          , tpl::tuple< tagged<node::component,c1>
                                       , tagged<node::input_endpoint,in11>
                                       >
                           >);
@@ -260,12 +260,12 @@ struct deep_assembly {
 } deep;
 
 static_assert(std::same_as<decltype(component_to_tree(deep))
-, std::tuple< tagged<node::assembly,deep_assembly>
-            , std::tuple< tagged<node::assembly,deep_assembly::n1>
-                        , std::tuple< tagged<node::assembly,deep_assembly::n1::n2>
-                                    , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
-                                                , std::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
-                                                            , std::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
+, tpl::tuple< tagged<node::assembly,deep_assembly>
+            , tpl::tuple< tagged<node::assembly,deep_assembly::n1>
+                        , tpl::tuple< tagged<node::assembly,deep_assembly::n1::n2>
+                                    , tpl::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+                                                , tpl::tuple< tagged<node::inputs_container,deep_assembly::n1::n2::n3::inputs_t>
+                                                            , tpl::tuple<tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>>
                                                             >
                                                 >
                                     >
@@ -276,13 +276,13 @@ static_assert(std::same_as<decltype(component_to_tree(deep))
 using deep_input = deep_assembly::n1::n2::n3::inputs_t::in;
 auto deep_path = path_of<deep_input>(deep);
 static_assert(std::same_as< std::remove_cvref_t<decltype(deep_path)>
-        , std::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
+        , tpl::tuple< tagged<node::component,deep_assembly::n1::n2::n3>
                     , tagged<node::input_endpoint,deep_assembly::n1::n2::n3::inputs_t::in>
                     >
         >);
 
 auto outputs = remove_node_tags(node_list_filter_by_tag<node::output_endpoint>(component_tree_to_node_list(component_to_tree(accessor_test_container))));
-static_assert(std::same_as<decltype(outputs), std::tuple<out1, out2>>);
+static_assert(std::same_as<decltype(outputs), tpl::tuple<out1&, out2&>>);
 static_assert(std::same_as<decltype(outputs), output_endpoints_t<accessor_test_container_t>>);
 static_assert(std::same_as<decltype(remove_node_tags(deep_path)), path_t<deep_input, deep_assembly>>);
 // TODO: test the other ones as needed

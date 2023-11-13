@@ -220,11 +220,11 @@ is declared `constexpr`.
 // unpack the Args parameter pack into a fold of find calls
 // resolves to a call to `forward_as_tuple(arg1, arg2, arg3, ..., argN)`
 // we get that type, and declare a const tuple with it
-using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+using arg_pack_t = decltype(tpl::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
 const arg_pack_t arg_pack;
 
 // then when we construct the runtime impl, we constexpr instantiate the tuple
-constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+constexpr component_runtime_impl(ComponentContainer& container) : arg_pack{tpl::forward_as_tuple(find<Args>(container) ...)} {}
 // @/
 ```
 
@@ -264,9 +264,9 @@ struct component_runtime_impl
     void main(Component& component) const
     {
         if constexpr (requires {&Component::operator();})
-            std::apply(component, arg_pack);
+            tpl::apply(component, arg_pack);
         else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
+            tpl::apply([&](auto& ... args) {component.main(args...);}, arg_pack);
     }
 };
 // @/
@@ -321,10 +321,10 @@ First, we pull out the argument pack used in the inner implementation:
 template<typename ComponentContainer, typename ... Args>
 struct impl_arg_pack
 {
-    using arg_pack_t = decltype(std::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
+    using arg_pack_t = decltype(tpl::forward_as_tuple(find<Args>(std::declval<ComponentContainer&>())...));
     const arg_pack_t pack;
 
-    constexpr impl_arg_pack(ComponentContainer& container) : pack{std::forward_as_tuple(find<Args>(container) ...)} {}
+    constexpr impl_arg_pack(ComponentContainer& container) : pack{tpl::forward_as_tuple(find<Args>(container) ...)} {}
 };
 // @/
 ```
@@ -364,15 +364,15 @@ struct component_runtime
     void init(Component& component) const
     {
         if constexpr (requires {&Component::init;})
-            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+            tpl::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
     }
 
     void main(Component& component) const
     {
         if constexpr (requires {&Component::operator();})
-            std::apply(component, main_args.pack);
+            tpl::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+            tpl::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
     }
 };
 // @/
@@ -406,7 +406,7 @@ template<typename...>
 struct to_arg_pack
 {
     struct dummy_t {
-        std::tuple<> pack;
+        tpl::tuple<> pack;
         constexpr dummy_t(auto&) : pack{} {};
     };
     using pack_t = dummy_t;
@@ -450,15 +450,15 @@ struct component_runtime
     void init() const
     {
         if constexpr (requires {&Component::init;})
-            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+            tpl::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
     }
 
     void main() const
     {
         if constexpr (requires {&Component::operator();})
-            std::apply(component, main_args.pack);
+            tpl::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+            tpl::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
     }
 };
 // @/
@@ -524,27 +524,27 @@ struct component_runtime
     void init() const
     {
         if constexpr (requires {&Component::init;})
-            std::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
+            tpl::apply([&](auto& ... args) {component.init(args...);}, init_args.pack);
     }
 
     void external_sources() const
     {
         if constexpr (requires {&Component::external_sources;})
-            std::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
+            tpl::apply([&](auto& ... args) {component.external_sources(args...);}, ext_src_args.pack);
     }
 
     void main() const
     {
         if constexpr (requires {&Component::operator();})
-            std::apply(component, main_args.pack);
+            tpl::apply(component, main_args.pack);
         else if constexpr (requires {&Component::main;})
-            std::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
+            tpl::apply([&](auto& ... args) {component.main(args...);}, main_args.pack);
     }
 
     void external_destinations() const
     {
         if constexpr (requires {&Component::external_destinations;})
-            std::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
+            tpl::apply([&](auto& ... args) {component.external_destinations(args...);}, ext_dst_args.pack);
     }
 };
 // @/
@@ -563,12 +563,12 @@ constexpr auto component_to_runtime_tuple(ComponentContainer& cont)
 {
     auto tup = component_filter_by_tag<node::component>(cont);
     if constexpr (is_tuple_v<decltype(tup)>)
-        return boost::mp11::tuple_transform([&](auto& tagged_component)
+        return tup.map([&](auto& tagged_component)
         {
             return component_runtime{tagged_component.ref, cont};
-        }, tup);
+        });
     // if there's only one component, `component_filter_by_tag` returns the tagged component directly
-    else return std::make_tuple(component_runtime{tup.ref, cont});
+    else return tpl::make_tuple(component_runtime{tup.ref, cont});
 }
 // @/
 
@@ -577,9 +577,9 @@ components1_t constinit runtime_tuple_components{};
 constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
 TEST_CASE("sygaldry runtime tuple")
 {
-    std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
+    tpl::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called
-    std::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
+    tpl::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.outputs.out1.value == 43); // main routines are called
 }
 // @/

@@ -9,6 +9,7 @@ namespace sygaldry { namespace sygbp {
 ///\{
 
 template<typename Device>
+    requires requires {Device::name();}
 _consteval auto name_length()
 {
     size_t ret = 0;

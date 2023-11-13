@@ -1,11 +1,14 @@
 set(lib sygac-components)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(${lib} INTERFACE Boost::pfr)
-target_link_libraries(${lib} INTERFACE Boost::mp11)
-target_link_libraries(${lib} INTERFACE sygac-metadata)
-target_link_libraries(${lib} INTERFACE sygac-functions)
-target_link_libraries(${lib} INTERFACE sygac-endpoints)
+target_link_libraries( ${lib}
+        INTERFACE Boost::pfr
+        INTERFACE Boost::mp11
+        INTERFACE sygac-tuple
+        INTERFACE sygac-metadata
+        INTERFACE sygac-functions
+        INTERFACE sygac-endpoints
+        )
 
 if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)

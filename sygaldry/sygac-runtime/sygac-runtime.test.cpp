@@ -116,8 +116,8 @@ components1_t constinit runtime_tuple_components{};
 constexpr auto runtime_tuple = component_to_runtime_tuple(runtime_tuple_components);
 TEST_CASE("sygaldry runtime tuple")
 {
-    std::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
+    tpl::apply([](auto& ... runtime) {(runtime.init(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.inputs.in1.value == 42); // init routines are called
-    std::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
+    tpl::apply([](auto& ... runtime) {(runtime.main(), ...);}, runtime_tuple);
     CHECK(runtime_tuple_components.tc1.outputs.out1.value == 43); // main routines are called
 }

@@ -6,18 +6,18 @@ available for ESP32 builds.
 ```cmake
 # @#'CMakeLists.txt'
 set(lib sygse-trill)
-add_library(${lib} STATIC)
+add_library(${lib} INTERFACE)
 target_include_directories(${lib}
-        PUBLIC .
-        PRIVATE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino
+        INTERFACE .
+        INTERFACE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino
         )
 target_sources(${lib}
-        PRIVATE ${lib}.cpp
-        PRIVATE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp
+        INTERFACE ${lib}.cpp
+        INTERFACE ${SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp
         )
 target_link_libraries(${lib}
-        PUBLIC sygse-arduino_hack
-        PUBLIC sygsa-trill_craft
+        INTERFACE sygse-arduino_hack
+        INTERFACE sygsa-trill_craft
         )
 # @/
 ```

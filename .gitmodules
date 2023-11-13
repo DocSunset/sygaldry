@@ -20,3 +20,6 @@
 	path = dependencies/eigen
 	url = https://gitlab.com/libeigen/eigen.git
 
+[submodule "dependencies/tuplet"]
+	path = dependencies/tuplet
+	url = https://github.com/codeinred/tuplet.git
