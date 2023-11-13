@@ -1,6 +1,6 @@
 \page page-sygsa-max17055 MAX17055
 
-Copyright 2023 Travis J. West, Input Devices and Music Interaction Laboratory
+Copyright 2023 Albert-Ngabo Niyonsenga, Input Devices and Music Interaction Laboratory
 (IDMIL), Centre for Interdisciplinary Research in Music Media and Technology
 (CIRMMT), McGill University, Montréal, Canada, and Univ. Lille, Inria, CNRS,
 Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
@@ -30,28 +30,28 @@ SPDX-License-Identifier: MIT
 // Define registers for the MAX17055 fuel gauge
 enum regAddr
 {
-STATUS_REG      = 0x00, //Maintains all flags related to alert thresholds and battery insertion or removal.
-AGE_REG         = 0x07, //calculated percentage value of capacity compared to original design capacity.
-TEMP_REG        = 0x08, //Temperature of MAX17055 chip
-VCELL_REG       = 0x09, //VCell reports the voltage measured between BATT and CSP.
-AVGVCELL_REG    = 0x19, //The AvgVCell register reports an average of the VCell register readings. 
-CURRENT_REG     = 0x0A, //Voltage between the CSP and CSN pins, and would need to convert to current
-AVGCURRENT_REG  = 0x0B, //The AvgCurrent register reports an average of Current register readings
-REPSOC_REG      = 0x06, //The Reported State of Charge of connected battery.
-ICHTERM_REG     = 0x1E, // Register fo setting end of charge current 
-REPCAP_REG      = 0x05, //Reported Capacity.
-TTE_REG         = 0x11, //How long before battery is empty (in ms).
-TTF_REG         = 0x20, //How long until the battery is full (in ms)
-DESIGNCAP_REG   = 0x18, //Capacity of battery inserted, not typically used for user requested capacity
-VEMPTY_REG      = 0x3A, //Register for voltage when the battery is empty
-dQACC_REG       = 0x45, //Register for dQAcc
-dPACC_REG       = 0x46, //Register for dPAcc
-MODELCFG_REG    = 0xDB, // Register for MODELCFG
-RCOMPP0_REG     = 0x38, // Register for learned parameter rcomp0, open circuit voltage characterisation
-TEMPCO_REG      = 0x39, // Register for learned parameter tempco, temperature compensation information
-FULLCAP_REG     = 0x10, // Register for learned parameter full capacity
-CYCLES_REG      = 0x17, // Register for learned parameter charge cycles
-FULLCAPNORM_REG = 0x23, // Register for learned parameter full capacity (normalised)
+STATUS_REG      = 0x00, ///< Maintains all flags related to alert thresholds and battery insertion or removal.
+AGE_REG         = 0x07, ///< calculated percentage value of capacity compared to original design capacity.
+TEMP_REG        = 0x08, ///<Temperature of MAX17055 chip
+VCELL_REG       = 0x09, ///< VCell reports the voltage measured between BATT and CSP.
+AVGVCELL_REG    = 0x19, ///< The AvgVCell register reports an average of the VCell register readings. 
+CURRENT_REG     = 0x0A, ///< Voltage between the CSP and CSN pins, and would need to convert to current
+AVGCURRENT_REG  = 0x0B, ///< The AvgCurrent register reports an average of Current register readings
+REPSOC_REG      = 0x06, ///< The Reported State of Charge of connected battery.
+ICHTERM_REG     = 0x1E, ///< Register fo setting end of charge current 
+REPCAP_REG      = 0x05, ///< Reported Capacity.
+TTE_REG         = 0x11, ///< How long before battery is empty (in ms).
+TTF_REG         = 0x20, ///< How long until the battery is full (in ms)
+DESIGNCAP_REG   = 0x18, ///< Capacity of battery inserted, not typically used for user requested capacity
+VEMPTY_REG      = 0x3A, ///< Register for voltage when the battery is empty
+dQACC_REG       = 0x45, ///< Register for dQAcc
+dPACC_REG       = 0x46, ///< Register for dPAcc
+MODELCFG_REG    = 0xDB, ///< Register for MODELCFG
+RCOMPP0_REG     = 0x38, ///< Register for learned parameter rcomp0, open circuit voltage characterisation
+TEMPCO_REG      = 0x39, ///< Register for learned parameter tempco, temperature compensation information
+FULLCAP_REG     = 0x10, ///< Register for learned parameter full capacity
+CYCLES_REG      = 0x17, ///< Register for learned parameter charge cycles
+FULLCAPNORM_REG = 0x23, ///< Register for learned parameter full capacity (normalised)
 };
 
 // Set Fuel Gauge I2C address
@@ -70,10 +70,6 @@ static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Perc
 # Component
 
 To initialise the MAX17055 component we have several inputs. These are stored as sliders with explicit maximums and minimums as well as default values. 
-
-All capacity values are given in `mAh` this includes `inputs.designcap, outputs.capacity,outputs.fullcapacity`. Current values are given in `mA` this includes `inputs.ichg, outputs.inst_curr, outputs.avg_curr`. Resistance values for the current sense resist (`inputs.rsense`) are in `mOhm`. The voltage outputs and inputs are in `V`. This applies to `inputs.empty_voltage,inputs.recovery_voltage,outputs.inst_voltage,outputs.avg_voltage`
-
-The time values `outputs.tte,outputs.ttf` are in hours. The following outputs are given as percentages `outputs.soc, outputs.fullcapnorm, outputs.age`. 
 
 Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below.
 
@@ -111,14 +107,14 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider_message<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
-        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
-        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
-        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
-        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
+        slider_message<"capacity", "mAh", int, 0, 32000, 2600, tag_session_data> designcap; // Design capacity of the battery (mAh)
+        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50, tag_session_data> ichg; // End of charge current (mA)
+        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10, tag_session_data> rsense; // Resistance of current sense resistor (mOhm))
+        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // Empty voltage of the battery (V)
+        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider_message<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
+        slider_message<"poll rate", "ms", int, 0, 300000, 300000, tag_session_data> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -132,11 +128,11 @@ struct MAX17055
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0> fullcapacity_raw;
+        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw;
         slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
-        // Capacity (norm)
-        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0> fullcapacitynom_raw;
+        // Capacity (nom)
+        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
         // SOC, Age
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
         slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
@@ -144,11 +140,11 @@ struct MAX17055
         slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0> chargecycles_raw;
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
         slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "LSB", int, 0, 65535, 0> rcomp;
-        slider<"tempco", "LSB", int, 0, 65535, 0> tempco;
+        slider<"rcomp", "LSB", int, 0, 65535, 0, tag_session_data> rcomp;
+        slider<"tempco", "LSB", int, 0, 65535, 0, tag_session_data> tempco;
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;

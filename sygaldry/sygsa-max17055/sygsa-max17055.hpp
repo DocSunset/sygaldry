@@ -22,14 +22,14 @@ struct MAX17055
 {
     struct inputs_t {
         // Initialisation Elements
-        slider_message<"capacity", "mAh", int, 0, 32000, 2600> designcap; // Design capacity of the battery (mAh)
-        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50> ichg; // End of charge current (mA)
-        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10> rsense; // Resistance of current sense resistor (mOhm))
-        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f>  vempty; // Empty voltage of the battery (V)
-        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f> recovery_voltage; // Recovery voltage of the battery (V)
+        slider_message<"capacity", "mAh", int, 0, 32000, 2600, tag_session_data> designcap; // Design capacity of the battery (mAh)
+        slider_message<"end-of-charge current", "mA", int, 0, 32000, 50, tag_session_data> ichg; // End of charge current (mA)
+        slider_message<"current sense resistor", "mOhm", int, 0, 100, 10, tag_session_data> rsense; // Resistance of current sense resistor (mOhm))
+        slider_message<"Empty Voltage", "V", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // Empty voltage of the battery (V)
+        slider_message<"Recovery voltage", "V", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // Recovery voltage of the battery (V)
 
         // Other parameters
-        slider_message<"poll rate", "ms", int, 0, 300000, 300000> pollrate; // poll rate in milliseconds
+        slider_message<"poll rate", "ms", int, 0, 300000, 300000, tag_session_data> pollrate; // poll rate in milliseconds
     } inputs;
 
     struct outputs_t {
@@ -43,11 +43,11 @@ struct MAX17055
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0> fullcapacity_raw;
+        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw;
         slider<"capacity", "mAh", int, 0, 32000, 0> capacity;
         slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
-        // Capacity (norm)
-        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0> fullcapacitynom_raw;
+        // Capacity (nom)
+        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
         // SOC, Age
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
         slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
@@ -55,11 +55,11 @@ struct MAX17055
         slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0> chargecycles_raw;
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
         slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "LSB", int, 0, 65535, 0> rcomp;
-        slider<"tempco", "LSB", int, 0, 65535, 0> tempco;
+        slider<"rcomp", "LSB", int, 0, 65535, 0, tag_session_data> rcomp;
+        slider<"tempco", "LSB", int, 0, 65535, 0, tag_session_data> tempco;
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
