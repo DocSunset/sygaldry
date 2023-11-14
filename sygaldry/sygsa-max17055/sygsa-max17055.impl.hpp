@@ -19,7 +19,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::init()
     {
         // Set the inputs 
-        inputs.designcap = capacity;
+        inputs.designcap = design_capacity;
         inputs.rsense = current_sense_resistor;
         inputs.poll_rate = poll_rate;
         inputs.ichg = end_of_charge_current;
