@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 #include <iostream>
 #include "Wire.h"
 #include "sygsa-max17055.hpp"
+#include "sygsp-restart-agent.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
@@ -25,9 +26,14 @@ namespace sygaldry { namespace sygsa {
         inputs.vempty = empty_voltage;
         inputs.recovery_voltage = recovery_voltage_in;
 
+        // Configure restart agent
+        sygsp::RestartAgent.configureComponent(&this);
+
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
         uint16_t POR = STATUS&0x0002;
+        // Initialise the restart agent
+
         // Reset the Fuel Gauge
         if (POR)
         {
@@ -111,6 +117,9 @@ namespace sygaldry { namespace sygsa {
     // poll the MAX17055 for new data and update endpoints
     void MAX17055::main()
     {
+                // Check restart
+                sygsp::RestartAgent.pollComponent(&this);
+
                 static auto prev = sygsp::micros();
                 auto now = sygsp::micros();
                 // Check if properties have been updated

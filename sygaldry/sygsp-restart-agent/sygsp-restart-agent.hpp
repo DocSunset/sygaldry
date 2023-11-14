@@ -8,6 +8,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
+template<typename sygaldry_component>
 namespace sygaldry { namespace sygsp {
 
 /// \addtogroup sygsp
@@ -19,7 +20,6 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
-template<typename sygaldry_component, string_literal component_name_str>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
@@ -28,19 +28,11 @@ struct RestartAgent
 , license_<"SPDX-License-Identifier: MIT">
 , version_<"0.0.0">
 {
-    struct inputs_t {
-        text_message<"component name", "Name of the attached component"> component_name
-    } inputs;
+    void configureAgent(const sygaldry_component& component);
 
-    struct outputs_t {
-        toggle<"running", "indicator for if the restart agent is running"> agent_running;
-    } outputs;
+    void pollComponent(const sygaldry_component& component);
 
-    void init();
-
-    void main();
-
-    void restartComponent();
+    void restartComponent(const sygaldry_component& component);
 };
 
 /// \}

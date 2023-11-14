@@ -25,6 +25,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
+template<typename sygaldry_component>
 namespace sygaldry { namespace sygsp {
 
 /// \addtogroup sygsp
@@ -36,7 +37,6 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
-template<typename sygaldry_component, string_literal component_name_str>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
@@ -45,19 +45,11 @@ struct RestartAgent
 , license_<"SPDX-License-Identifier: MIT">
 , version_<"0.0.0">
 {
-    struct inputs_t {
-        text_message<"component name", "Name of the attached component"> component_name
-    } inputs;
+    void configureAgent(const sygaldry_component& component);
 
-    struct outputs_t {
-        toggle<"running", "indicator for if the restart agent is running"> agent_running;
-    } outputs;
+    void pollComponent(const sygaldry_component& component);
 
-    void init();
-
-    void main();
-
-    void restartComponent();
+    void restartComponent(const sygaldry_component& component);
 };
 
 /// \}
@@ -91,7 +83,7 @@ Given we have a stop signal it makes sense to also have a restart signal. `attem
 // Necessary Ouputs
 slider_message<"current attempt", "Current attempt for restarting component"> curr_attempt;
 
-// TODO: this agent would probably benefit from it's own custom endpoints, that MIGHT (doing a lot of heavy lifting here) make it would be possible then to just check for the enpoint in the component that is the type I'm expecting rather than have the name have to be identical
+// TODO: use concepts to allow for more flexible spellings
 ```
 
 For simplicity these endpoints should be defined by the component that is using the Restart Agent. You can check the MAX17055 component for an example. Except for the `restart_policy` endpoint the maximum and minimums of the slider endpoints can be whatever the user desires.
@@ -111,38 +103,38 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-void RestartAgent::init()
+void RestartAgent::configureAgent(const sygaldry_component& component)
 {
-    if (sygaldry_component::inputs.restart_policy == 0) {
+    if (component.inputs.restart_policy == 0) {
         // Set default values restart agent values for the component
         // Configure Restart Policy
-        sygaldry_component::inputs.restart_policy.min = 1;
-        sygaldry_component::inputs.restart_policy.max = 4;
-        sygaldry_component::inputs.restart_policy.value = 2; 
+        component.inputs.restart_policy.min = 1;
+        component.inputs.restart_policy.max = 4;
+        component.inputs.restart_policy.value = 2; 
 
         // Set max attempts and restart time
-        sygaldry_component::inputs.max_attempts = 5;
-        sygaldry_component::inputs.restart_time = 5000;
+        component.inputs.max_attempts = 5;
+        component.inputs.restart_time = 5000;
     }
-    component_name_str += ": ";
-    inputs.component_name = component_name_str;
     outputs.agent_running = true;
     return;
 }
 
-void RestartAgent::main()
+
+void RestartAgent::pollComponent(const sygaldry_component& component)
 {
     static auto prev = sygsp::micros();
     auto now = sygsp::micros();
     if (!outputs.agent_running) return;
 
     // Poll at component fixed interval
-    if (now-prev > (sygaldry_component::inputs.restart_time*1e3)) {
+    if (now-prev > (component.inputs.restart_time*1e3)) {
         prev = now;
         // Check if component needs to be restarted
-        restartComponent();
+        restartComponent(const sygaldry_component& component);
     }
 }
+
 
 // @/
 ```
@@ -151,42 +143,42 @@ We create `restartComponent()` In order to handle the logic for the restarting c
 
 ```cpp
 //@+'sygsp-restart-agent.cpp'
-void RestartAgent::restartComponent() {
+void RestartAgent::restartComponent(const sygaldry_component& component) {
     // Check validity of restart policy
-    if ((sygaldry_component::inputs.restart_policy > sygaldry_component::inputs.restart_policy.max) || (sygaldry_component::inputs.restart_policy < sygaldry_component::inputs.restart_policy.min)) {
-        sygaldry_component::outputs.error_message = inputs.component_name + ": Invalid restart policy set";
+    if ((component.inputs.restart_policy > component.inputs.restart_policy.max) || (component.inputs.restart_policy < component.inputs.restart_policy.min)) {
+        component.outputs.error_message = component.name() + ": Invalid restart policy set";
         return;
     }
 
     // Check if manual restart requested
-    if (sygaldry_component::inputs.attempt_restart) {
-        sygaldry_component::inputs.attempt_restart = false;
-        sygaldry_component::restart();
+    if (component.inputs.attempt_restart) {
+        component.inputs.attempt_restart = false;
+        component.restart();
         return;
     }
 
     // If the component is not running check restart policy
-    if (!sygaldry_component::outputs.running) {
-        if (sygaldry_component::inputs.restart_policy == 1) {    
+    if (!component.outputs.running) {
+        if (component.inputs.restart_policy == 1) {    
             // No auto restart
             return;
-        } else if ((sygaldry_component::inputs.restart_policy == 2) && (sygaldry_component::outputs.curr_attempt < sygaldry_component::inputs.max_attempts)) {
+        } else if ((component.inputs.restart_policy == 2) && (component.outputs.curr_attempt < component.inputs.max_attempts)) {
             // Restart for a max number of times
-            sygaldry_component::outputs.curr_attempt++;
-            sygaldry_component::restart();
+            component.outputs.curr_attempt++;
+            component.restart();
             return;
-        } else if (sygaldry_component::inputs.restart_policy == 3) {
+        } else if (component.inputs.restart_policy == 3) {
             // Always restart
-            sygaldry_component::restart();
+            component.restart();
             return;
-        } else if ((sygaldry_component::inputs.restart_policy ==4) && (!sygaldry_component::inputs.stop_signal)) {
+        } else if ((component.inputs.restart_policy ==4) && (!component.inputs.stop_signal)) {
             // Restart unless stopped by user
-            sygaldry_component::restart();
+            component.restart();
             return;
-        } else if (sygaldry_component::inputs.attempt_restart) {
+        } else if (component.inputs.attempt_restart) {
             // Restart if manual restart requested
-            sygaldry_component::inputs.attempt_restart = false;
-            sygaldry_component::restart();
+            component.inputs.attempt_restart = false;
+            component.restart();
             return;
         }
     }
@@ -194,6 +186,7 @@ void RestartAgent::restartComponent() {
 
 } 
 }
+
 // @/
 ```
 

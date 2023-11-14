@@ -179,7 +179,7 @@ struct MAX17055
     } outputs;
 
     // initialize the MAX17055 for continuous reading
-    void init();
+    void init(int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage);
 
     // poll the MAX17055 for new data and update endpoints
     void main();
@@ -231,6 +231,7 @@ SPDX-License-Identifier: MIT
 #include <iostream>
 #include "Wire.h"
 #include "sygsa-max17055.hpp"
+#include "sygsp-restart-agent.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
@@ -441,6 +442,9 @@ inputs.ichg = end_of_charge_current;
 inputs.vempty = empty_voltage;
 inputs.recovery_voltage = recovery_voltage_in;
 
+// Configure restart agent
+sygsp::RestartAgent.configureComponent(&this);
+
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
@@ -451,6 +455,8 @@ When resetting the fuel gauge we initially make sure to make sure the fuel gauge
 
 ```cpp
 //@+'init'
+// Initialise the restart agent
+
 // Reset the Fuel Gauge
 if (POR)
 {
@@ -577,6 +583,9 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
 
 ```cpp
 //@='main'
+        // Check restart
+        sygsp::RestartAgent.pollComponent(&this);
+
         static auto prev = sygsp::micros();
         auto now = sygsp::micros();
         // Check if properties have been updated
