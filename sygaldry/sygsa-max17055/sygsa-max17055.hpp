@@ -80,7 +80,7 @@ struct MAX17055
     } outputs;
 
     // initialize the MAX17055 for continuous reading
-    void init(int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage);
+    void init();
 
     // poll the MAX17055 for new data and update endpoints
     void main();

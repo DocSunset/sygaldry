@@ -176,7 +176,7 @@ struct MAX17055
     } outputs;
 
     // initialize the MAX17055 for continuous reading
-    void init(int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage);
+    void init();
 
     // poll the MAX17055 for new data and update endpoints
     void main();
@@ -232,7 +232,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
-    void MAX17055::init(int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage)
+    void MAX17055::init()
     {
         @{init}
     }
@@ -658,7 +658,7 @@ TODO: Tests
 set(lib sygsa-max17055)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygah-endpoints)
+target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygsp-restart-agent sygah-endpoints)
 target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
 # @/
 ```
