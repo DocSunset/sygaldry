@@ -6,7 +6,7 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "sygsp-arduino_hack.hpp"
+#include "Arduino.h"
 #include "sygsp-micros.hpp"
 #include "sygsa-max17055-helpers.hpp"
 #include <iostream>
@@ -17,9 +17,13 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
-        // Initialise vempty and recovery (Users should only be changing these if they experience inaccurate state of charge information)
-        inputs.vempty = inputs.vempty.init();
-        inputs.recovery_voltage = inputs.recovery_voltage.init();
+        // Set the inputs 
+        inputs.designcap = capacity;
+        inputs.rsense = current_sense_resistor;
+        inputs.poll_rate = poll_rate;
+        inputs.ichg = end_of_charge_current;
+        inputs.vempty = empty_voltage;
+        inputs.recovery_voltage = recovery_voltage_in;
 
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
@@ -39,22 +43,44 @@ namespace sygaldry { namespace sygsa {
             writeReg16Bit(0x60, 0x0);
            //EZ Config
             // Write Battery capacity
-            writeDesignCapacity(); //Write Design Cap
-            writeICHG(); // End of charge current
-            writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
+            outputs.status_message = "Set design capacity and current for fuel gauge"
+            if (!writeDesignCapacity()) {
+                outputs.running = false;
+                outputs.error_message = "Failed to write design capacity, disabling fuel gauge"
+                return; // 
+            } //Write Design Cap
+            if (!writeICHG()) {
+                outputs.running = false;
+                outputs.error_message = "Failed to write end of charge current, disabling fuel gauge"
+                return; // 
+            } // End of charge current
 
             // Set empty voltage and recovery voltage
             // Empty voltage in increments of 10mV
-            writeVoltage();
+            if (!writeVoltage()) {
+                outputs.running = false;
+                outputs.error_message = "Failed to recovery and empty voltage, disabling fuel gauge"
+                return; //         
+            }
             // Set Model Characteristic
-            writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
+            if (!writeVerifyReg16Bit(MODELCFG_REG, 0x8000)) {
+                outputs.running = false;
+                outputs.error_message = "Failed to write new model, disabling fuel gauge"
+                return; //         
+            }; //Write ModelCFG
 
             //Wait until model refresh
+            outputs.status_message = "Waiting for model refresh"
             while(readReg16Bit(MODELCFG_REG)&0x8000) {
                 delay(10);
             }
+            outputs.status_message = "Model refresh complete"
             //Reload original HbCFG value
-            writeReg16Bit(0xBA,HibCFG); 
+            if (!writeVerifyReg16Bit(0xBA,HibCFG)) {
+                outputs.running = false;
+                outputs.error_message = "Failed to set hibernation config";
+                return;
+            }
 
             // Restore old parameters
             if (outputs.fullcapacitynom_raw != 0) {
@@ -89,13 +115,13 @@ namespace sygaldry { namespace sygsa {
                 auto now = sygsp::micros();
                 // Check if properties have been updated
                 if (inputs.designcap.updated) {
-                    writeDesignCapacity(); //Write Design Cap
+                    outputs.running = writeDesignCapacity(); //Write Design Cap
                 }
                 if (inputs.ichg.updated) {
-                    writeICHG(); // End of charge current
+                    outputs.running = writeICHG(); // End of charge current
                 }
                 if (inputs.vempty.updated || inputs.recovery_voltage.updated) {
-                    writeVoltage();
+                    outputs.running = writeVoltage();
                 }
 
                 // Poll at fixed interval
@@ -109,7 +135,7 @@ namespace sygaldry { namespace sygsa {
                     bool bat_status = raw_status&0x0800;
                     outputs.status = !bat_status; // battery status 0 when present, must invert
                     if (!outputs.status) {
-                      outputs.error_message = "No Battery Present";
+                      outputs.status_message = "No Battery Present";
                     }
 
                     // Update outputs if there is no battery or the init failed don't read
@@ -156,6 +182,11 @@ namespace sygaldry { namespace sygsa {
                     outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
                     outputs.tempco = readReg16Bit(TEMPCO_REG);
                 }
+    }
+
+    // restart the MAX17055 fuel gauges
+    void MAX17055::restart() {
+        init();
     }
 
     /// Read 16 bit register
@@ -209,24 +240,32 @@ namespace sygaldry { namespace sygsa {
 
     // helper functions for reading properties
     /// Write design capacity
-    void MAX17055::writeDesignCapacity() {
+    bool MAX17055::writeDesignCapacity() {
         uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
-        writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
-        writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+        if (!writeVerifyReg16Bit(DESIGNCAP_REG, reg_cap)) {
+            return false;
+        } //Write Design Cap
+        if (!writeVerifyReg16Bit(dQACC_REG, reg_cap/32)) {
+            return false;
+        } //Write dQAcc
+        if (!writeVerifyReg16Bit(dPACC_REG, 44138/32)) {
+            return false;
+        } //Write dPAcc
+        return true;
     };
 
     /// Write end of charge current
-    void MAX17055::writeICHG() {
+    bool MAX17055::writeICHG() {
         uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-        writeReg16Bit(ICHTERM_REG, reg_ichg);
+        return writeVerifyReg16Bit(ICHTERM_REG, reg_ichg);
     };
 
     /// Write Vempty and recovery voltage
-    void MAX17055::writeVoltage() {
+    bool MAX17055::writeVoltage() {
         uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
         uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
         uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-        writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
+        return writeVerifyReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
     };
 
     /// Restore old parameters

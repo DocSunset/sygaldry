@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygse-adc.hpp"
 #include "sygse-trill.hpp"
 #include "sygse-max17055.hpp"
+#include "sygsp-restart-agent.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
@@ -33,6 +34,7 @@ struct TStick
     sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
     sygsa::TrillCraft touch;
     sygsa::MAX17055<2600, 10, 60000> fuelgauge;
+    sygsp::RestartAgent<decltype(MAX17055), "MAX17055"> fuelgauge_agent;
     sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                    , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;

@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
-template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, int empty_voltage = default_vempty, int default_recovery_voltage = default_recovery_voltage>
+template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -23,12 +23,20 @@ struct MAX17055
 {
     struct inputs_t {
         // Fuel gauge inputs
-        slider_message<"capacity", "Design capacity of the battery (mAh)", int, tag_session_data> designcap;
+        slider_message<"capacity", "Design capacity of the battery (mAh)", int, 0, 32000, 0, tag_session_data> designcap;
         slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // sense resistor values above 100Ohms lead to poor capacity and current resolution
         slider_message<"poll rate", "Fuel gauge poll rate (ms)", int, 10000, 300000, 60000, tag_session_data> pollrate; // should not poll fuel gauge to quickly
-        slider_message<"end-of-charge current", "End of charge current (mA)", int, tag_session_data> ichg;
+        slider_message<"end-of-charge current", "End of charge current (mA)", int,  0, 300, 50, tag_session_data> ichg;
         slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
         slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
+
+        // Restart policy parameters
+        slider_message<"restart policy","Set the restart policy for the component", 1, 4, 1, tag_session_data> restart_policy;
+        slider_message<"restart attempts","Set the max amount of restart attempts", 0, 10, 0, tag_session_data> max_attempts;
+        toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
+        toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
+        slider_message<"restart time","Set the time between restart attempts", 5000, 30000, 5000, tag_session_data> restart_time;
+
     } inputs;
 
     struct outputs_t {
@@ -63,10 +71,14 @@ struct MAX17055
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
 
+        // Error and status messages
         text_message<"error message", "Error message from fuel gauge"> error_message;
         text_message<"status message", "Status message from fuel gauge"> status_message;
 
+        // Toggles
         toggle<"running", "Indicate if fuel gauge is running"> running;
+
+        slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
     } outputs;
 
     // initialize the MAX17055 for continuous reading
@@ -74,6 +86,9 @@ struct MAX17055
 
     // poll the MAX17055 for new data and update endpoints
     void main();
+
+    // restart MAX17055
+    void restart();
 
     // Read 16 bit register
     uint16_t readReg16Bit(uint8_t reg);
@@ -85,13 +100,13 @@ struct MAX17055
     bool writeVerifyReg16Bit(uint8_t reg, uint16_t value);
 
     // Write design capacity
-    void writeDesignCapacity();
+    bool writeDesignCapacity();
 
     // Write end of charge current
-    void writeICHG();
+    bool writeICHG();
 
     // Write Vempty and recovery voltage
-    void writeVoltage();
+    bool writeVoltage();
 
     // Restore old parameters
     bool restoreParameters();

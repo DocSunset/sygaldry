@@ -113,7 +113,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
-template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, int empty_voltage = default_vempty, int default_recovery_voltage = default_recovery_voltage>
+template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -124,12 +124,16 @@ struct MAX17055
 {
     struct inputs_t {
         // Fuel gauge inputs
-        slider_message<"capacity", "Design capacity of the battery (mAh)", int, tag_session_data> designcap;
+        slider_message<"capacity", "Design capacity of the battery (mAh)", int, 0, 32000, 0, tag_session_data> designcap;
         slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // sense resistor values above 100Ohms lead to poor capacity and current resolution
         slider_message<"poll rate", "Fuel gauge poll rate (ms)", int, 10000, 300000, 60000, tag_session_data> pollrate; // should not poll fuel gauge to quickly
-        slider_message<"end-of-charge current", "End of charge current (mA)", int, tag_session_data> ichg;
+        slider_message<"end-of-charge current", "End of charge current (mA)", int,  0, 300, 50, tag_session_data> ichg;
         slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
         slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
+
+        // Restart policy parameters
+        @{restart-inputs}
+
     } inputs;
 
     struct outputs_t {
@@ -164,10 +168,14 @@ struct MAX17055
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
 
+        // Error and status messages
         text_message<"error message", "Error message from fuel gauge"> error_message;
         text_message<"status message", "Status message from fuel gauge"> status_message;
 
+        // Toggles
         toggle<"running", "Indicate if fuel gauge is running"> running;
+
+        @{restart-outputs}
     } outputs;
 
     // initialize the MAX17055 for continuous reading
@@ -175,6 +183,9 @@ struct MAX17055
 
     // poll the MAX17055 for new data and update endpoints
     void main();
+
+    // restart MAX17055
+    void restart();
 
     // Read 16 bit register
     uint16_t readReg16Bit(uint8_t reg);
@@ -186,13 +197,13 @@ struct MAX17055
     bool writeVerifyReg16Bit(uint8_t reg, uint16_t value);
 
     // Write design capacity
-    void writeDesignCapacity();
+    bool writeDesignCapacity();
 
     // Write end of charge current
-    void writeICHG();
+    bool writeICHG();
 
     // Write Vempty and recovery voltage
-    void writeVoltage();
+    bool writeVoltage();
 
     // Restore old parameters
     bool restoreParameters();
@@ -214,7 +225,7 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "sygsp-arduino_hack.hpp"
+#include "Arduino.h"
 #include "sygsp-micros.hpp"
 #include "sygsa-max17055-helpers.hpp"
 #include <iostream>
@@ -232,6 +243,11 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::main()
     {
         @{main}
+    }
+
+    // restart the MAX17055 fuel gauges
+    void MAX17055::restart() {
+        @{restart}
     }
 
     @{wire}
@@ -309,24 +325,32 @@ After a power loss or major software change the fuelgauge IC resets, in order to
 //@='helpers'
 // helper functions for reading properties
 /// Write design capacity
-void MAX17055::writeDesignCapacity() {
+bool MAX17055::writeDesignCapacity() {
     uint16_t reg_cap = (inputs.designcap * inputs.rsense) / base_capacity_multiplier_mAh;
-    writeReg16Bit(DESIGNCAP_REG, reg_cap); //Write Design Cap
-    writeReg16Bit(dQACC_REG, reg_cap/32); //Write dQAcc
+    if (!writeVerifyReg16Bit(DESIGNCAP_REG, reg_cap)) {
+        return false;
+    } //Write Design Cap
+    if (!writeVerifyReg16Bit(dQACC_REG, reg_cap/32)) {
+        return false;
+    } //Write dQAcc
+    if (!writeVerifyReg16Bit(dPACC_REG, 44138/32)) {
+        return false;
+    } //Write dPAcc
+    return true;
 };
 
 /// Write end of charge current
-void MAX17055::writeICHG() {
+bool MAX17055::writeICHG() {
     uint16_t reg_ichg = (inputs.ichg * inputs.rsense) / base_current_multiplier_mAh;
-    writeReg16Bit(ICHTERM_REG, reg_ichg);
+    return writeVerifyReg16Bit(ICHTERM_REG, reg_ichg);
 };
 
 /// Write Vempty and recovery voltage
-void MAX17055::writeVoltage() {
+bool MAX17055::writeVoltage() {
     uint16_t reg_vempty = inputs.vempty * 100; //empty voltage in 10mV
     uint16_t reg_recover = 3.88 *25; //recovery voltage in 40mV increments
     uint16_t voltage_settings = (reg_vempty << 7) | reg_recover; 
-    writeReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
+    return writeVerifyReg16Bit(VEMPTY_REG, voltage_settings); //Write Vempty session_data
 };
 
 /// Restore old parameters
@@ -377,12 +401,46 @@ bool MAX17055::restoreParameters() {
 // @/
 ```
 
+## Using the Restart Agent
+Occasionally temporary errors, may cause the component to not respond and the component to set to not running. We want to be able to set a restart policy for the component so that the system can try to ping the component again to see if it responds. We use the `sygsp-restart-agent` component to handle the restart logic. All we need to do is to make sure to initialise it in the init routine and have the appropriate inputs and outputs and define a restart function.
+
+```cpp
+//@='restart-inputs'
+slider_message<"restart policy","Set the restart policy for the component", 1, 4, 1, tag_session_data> restart_policy;
+slider_message<"restart attempts","Set the max amount of restart attempts", 0, 10, 0, tag_session_data> max_attempts;
+toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
+toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
+slider_message<"restart time","Set the time between restart attempts", 5000, 30000, 5000, tag_session_data> restart_time;
+// @/
+```
+
+```cpp
+//@='restart-outputs'
+slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
+// @/
+```
+
+For the restart function we just call the init routine of the MAX17055 fuel gauge again. Most errors of the fuel gauge are caused by failure to write to a configuration register, so we redo the init function to be safe.
+
+```cpp
+//@='restart'
+init();
+// @/
+```
 
 ## Init Subroutine
 The init subroutine applies the EZConfig implementation shown in MAX17055 Software Implementation Guide. The status register is read to check if a hardware/osftware event occured if it did then the fuel gauge must be initiliased.
 
 ```cpp
 //@='init'
+// Set the inputs 
+inputs.designcap = capacity;
+inputs.rsense = current_sense_resistor;
+inputs.poll_rate = poll_rate;
+inputs.ichg = end_of_charge_current;
+inputs.vempty = empty_voltage;
+inputs.recovery_voltage = recovery_voltage_in;
+
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
@@ -414,13 +472,25 @@ The design capacity, empty voltage, recovery voltage, and end of charge current 
 //@+'init'
    //EZ Config
     // Write Battery capacity
-    writeDesignCapacity(); //Write Design Cap
-    writeICHG(); // End of charge current
-    writeReg16Bit(dPACC_REG, 44138/32); //Write dPAcc
+    outputs.status_message = "Set design capacity and current for fuel gauge"
+    if (!writeDesignCapacity()) {
+        outputs.running = false;
+        outputs.error_message = "Failed to write design capacity, disabling fuel gauge"
+        return; // 
+    } //Write Design Cap
+    if (!writeICHG()) {
+        outputs.running = false;
+        outputs.error_message = "Failed to write end of charge current, disabling fuel gauge"
+        return; // 
+    } // End of charge current
 
     // Set empty voltage and recovery voltage
     // Empty voltage in increments of 10mV
-    writeVoltage();
+    if (!writeVoltage()) {
+        outputs.running = false;
+        outputs.error_message = "Failed to recovery and empty voltage, disabling fuel gauge"
+        return; //         
+    }
 // @/
 ```
 
@@ -429,14 +499,24 @@ Once the values have been written, Status flag is reset to prepare for a new har
 ```cpp
 //@+'init'
     // Set Model Characteristic
-    writeReg16Bit(MODELCFG_REG, 0x8000); //Write ModelCFG
+    if (!writeVerifyReg16Bit(MODELCFG_REG, 0x8000)) {
+        outputs.running = false;
+        outputs.error_message = "Failed to write new model, disabling fuel gauge"
+        return; //         
+    }; //Write ModelCFG
 
     //Wait until model refresh
+    outputs.status_message = "Waiting for model refresh"
     while(readReg16Bit(MODELCFG_REG)&0x8000) {
         delay(10);
     }
+    outputs.status_message = "Model refresh complete"
     //Reload original HbCFG value
-    writeReg16Bit(0xBA,HibCFG); 
+    if (!writeVerifyReg16Bit(0xBA,HibCFG)) {
+        outputs.running = false;
+        outputs.error_message = "Failed to set hibernation config";
+        return;
+    }
 
     // Restore old parameters
     if (outputs.fullcapacitynom_raw != 0) {
@@ -484,7 +564,7 @@ uint16_t raw_status = readReg16Bit(STATUS_REG);
 bool bat_status = raw_status&0x0800;
 outputs.status = !bat_status; // battery status 0 when present, must invert
 if (!outputs.status) {
-  outputs.error_message = "No Battery Present";
+  outputs.status_message = "No Battery Present";
 }
 // @/
 ```
@@ -501,13 +581,13 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
         auto now = sygsp::micros();
         // Check if properties have been updated
         if (inputs.designcap.updated) {
-            writeDesignCapacity(); //Write Design Cap
+            outputs.running = writeDesignCapacity(); //Write Design Cap
         }
         if (inputs.ichg.updated) {
-            writeICHG(); // End of charge current
+            outputs.running = writeICHG(); // End of charge current
         }
         if (inputs.vempty.updated || inputs.recovery_voltage.updated) {
-            writeVoltage();
+            outputs.running = writeVoltage();
         }
 
         // Poll at fixed interval
