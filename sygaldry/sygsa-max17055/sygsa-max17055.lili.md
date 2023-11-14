@@ -55,14 +55,30 @@ FULLCAPNORM_REG = 0x23, ///< Register for learned parameter full capacity (norma
 };
 
 // Set Fuel Gauge I2C address
-static constexpr int i2c_addr = 0x36; // set fuel gauge i2c address as it is a constant
+static constexpr int i2c_addr = 0x36; ///< set fuel gauge i2c address as it is a constant
 
-//Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
-static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
-static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
-static constexpr float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
-static constexpr float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
-static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+//Based on "Register Resolutions" from MAX17055 Technical Reference Table 6. 
+static constexpr float base_capacity_multiplier_mAh = 5.0f; ///< base capacity multiplier divide by rsense(mOhms) to get LSB
+static constexpr float base_current_multiplier_mAh = 1.5625f; ///< base current multiplier divide by rsense(mOhms) to get LSB
+static constexpr float voltage_multiplier_V = 7.8125e-5; ///< refer to row "Voltage"
+static constexpr float time_multiplier_Hours = 5.625f/3600.0f; ///< Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
+static constexpr float percentage_multiplier = 1.0f/256.0f; ///< refer to row "Percentage"
+
+// @/
+```
+
+In addition to the registers and multiplier information we also store useful defaults for battery operation that should be okay for most usecases. We do this as the defaults in the MAX17055 fuel gauge especially the empty voltage and the end of charge current are not appropriate for most use cases using a single cell Lithium-Ion/LiPo with a microcontroller.
+
+```cpp
+//@+'sygsa-max17055-helpers.hpp'
+
+// Default configuration
+static constexpr int default_capacity = 2000; ///< Default battery capacity standard 1 cell LiPo/Li-ion capacity (mAh)
+static constexpr int default_ichg = 50; ///< Default end of charge current, typical single cell linear charger end of charge current (mA)
+static constexpr int default_rsense = 10; ///< Default sense resistor value, decent sense resistor value
+static constexpr int default_vempty = 3; ///< Default empty voltage, good for 3.3V devices with low drop out LDO
+static constexpr int default_recovery_voltage = 3.8; ///< Recommened default by Analog Devices
+static constexpr int default_poll_rate = 60000; ///< Default poll rate of 60s
 
 // @/
 ```
@@ -71,7 +87,7 @@ static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Perc
 
 To initialise the MAX17055 component we have several inputs. These are stored as sliders with explicit maximums and minimums as well as default values. 
 
-Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below.
+Capacity and current rsolution is dependent on the current sensors resistance. As stated by the MAX17055 User Guide in Table 1.3. The resolutions are given below. Note that this means that for the capacity and current a high resistance sense resistor, lowers both the resolution and the maximum capacity/current values that the fuel gauge can measure.
 
 | **Register Type** | **LSB Size**     |
 |-------------------|------------------|
@@ -97,6 +113,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
+template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, int empty_voltage = default_vempty, int default_recovery_voltage = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -106,45 +123,43 @@ struct MAX17055
 , version_<"0.0.0">
 {
     struct inputs_t {
-        // Initialisation Elements
-        slider_message<"capacity", "Design capacity of the battery (mAh)", int, 0, 32000, 2600, tag_session_data> designcap;
-        slider_message<"end-of-charge current", "End of charge current (mA)", int, 0, 32000, 50, tag_session_data> ichg;
-        slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // 
-        slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // 
-        slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // 
-
-        // Other parameters
-        slider_message<"poll rate", "ms", int, 0, 300000, 300000, tag_session_data> pollrate; // poll rate in milliseconds
+        // Fuel gauge inputs
+        slider_message<"capacity", "Design capacity of the battery (mAh)", int, tag_session_data> designcap;
+        slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // sense resistor values above 100Ohms lead to poor capacity and current resolution
+        slider_message<"poll rate", "Fuel gauge poll rate (ms)", int, 10000, 300000, 60000, tag_session_data> pollrate; // should not poll fuel gauge to quickly
+        slider_message<"end-of-charge current", "End of charge current (mA)", int, tag_session_data> ichg;
+        slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
+        slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
     } inputs;
 
     struct outputs_t {
         // ANALOG MEASUREMENTS
         // Current
-        slider<"instantaneous current", "mA", float, -5.12f, 5.12f, 0.0f> inst_curr;
-        slider<"average current", "mA", float, -5.12f, 5.12f, 0.0f> avg_curr;
+        slider<"instantaneous current", "mA", float> inst_curr;
+        slider<"average current", "mA", float> avg_curr;
         // Voltage
         slider<"instantaneous voltage", "V", float, 0.0f, 5.11992f, 0.0f> inst_voltage;
         slider<"average voltage", "V", float, 0.0f, 5.11992f, 0.0f> avg_voltage;
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum is based on the fuel gauge max reading
-        slider<"capacity", "mAh", int, 0, 32000, 0> capacity; // maximum is based on the fuel gauge max reading
-        slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
+        slider<"raw full capacity", "full capacity of the battery", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum raw value for 16 bit integer
+        slider<"capacity", "current capacity (mAh)", int> capacity;
+        slider<"full capacity", "full capacity of the battery (mAh)", int> fullcapacity;
         // Capacity (nom)
-        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
+        slider<"raw full capacity nominal", "full capacity of the battery (no voltage/temperature compensation)", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw; // maximum raw value for 16 bit integer
         // SOC, Age
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
-        slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
+        slider<"battery age", "full battery capacity divided by design capacity (%)", float, 0.0f, 255.9961f, 0.0f> age; // percentage
         // Time to full (TTF), Time to empty (TTE), age
-        slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
+        slider<"time to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
-        slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw; // maximum raw value for 16 bit integer
+        slider<"charge cycles", "number of charge cycles", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "voltage compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
-        slider<"tempco", "temperature compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
+        slider<"rcomp", "voltage compensation parameter", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
+        slider<"tempco", "temperature compensation parameter", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
@@ -199,13 +214,12 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "sygsp-delay.hpp"
+#include "sygsp-arduino_hack.hpp"
 #include "sygsp-micros.hpp"
 #include "sygsa-max17055-helpers.hpp"
 #include <iostream>
 #include "Wire.h"
 #include "sygsa-max17055.hpp"
-#include "sygsp-delay.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
@@ -267,7 +281,7 @@ bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
         //Write the value to the register
         writeReg16Bit(reg, value);
         // Wait a bit
-        sygsp::delay(1);
+        delay(1);
 
         //Increase attempt
         attempt++;
@@ -287,7 +301,9 @@ bool MAX17055::writeVerifyReg16Bit(uint8_t reg, uint16_t value)
 ## Helper Functions
 In addition to functions for reading and writing to registers. Functions for writing specific properties to the fuel gauge were also written. This allows us to update the properties from the command line without having to restart the device.
 
-In addition the restore parameter function restores the ModelGauge parameters after a power loss event. The MAX17055 slowly learns and adjust its state of charge prediction with time based on voltage, current and temperature information. After a power loss or major software change the fuelgauge IC resets, in order to retain past information from the battery (charge cycles, full capacity, etc.) they must be restored manually from previously stored values.
+In addition the restore parameter function restores the ModelGauge parameters after a power loss event. The MAX17055 slowly learns and adjust its state of charge prediction with time based on voltage, current and temperature information. This is useful as it helps the fuel gauge become more accurate over time and account for changes in battery chemistry as the battery ages. However, if the fuel gauge is power cycled or it receives a software reset signal, we have to restore the old parameters. Power cycling events are not well described by Analog Device's documentation but seem to occur when the battery completely dies (ie: it goes below 3V) and not during regular operations such as unplugging the battery or having the device be asleep.
+
+After a power loss or major software change the fuelgauge IC resets, in order to retain past information from the battery (charge cycles, full capacity, etc.) they must be restored manually from previously stored values. 
 
 ```cpp
 //@='helpers'
@@ -331,7 +347,7 @@ bool MAX17055::restoreParameters() {
     ;
 
     // Delay from 350ms
-    sygsp::delay(350);
+    delay(350);
 
     // Write calculated remaining capacity and percentage of cell
     outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
@@ -348,7 +364,7 @@ bool MAX17055::restoreParameters() {
     writeReg16Bit(dPACC_REG, 0x0C80); //Write dQAcc
 
     // Delay for 350ms
-    sygsp::delay(350);
+    delay(350);
 
     // Restore cycles
     if (!writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw)) {
@@ -367,14 +383,6 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 
 ```cpp
 //@='init'
-// Initialise all the slider variables
-inputs.designcap = inputs.designcap.init();
-inputs.ichg = inputs.ichg.init();
-inputs.rsense = inputs.rsense.init();
-inputs.vempty = inputs.vempty.init();
-inputs.recovery_voltage = inputs.recovery_voltage.init();
-inputs.pollrate = inputs.pollrate.init();
-
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
@@ -389,7 +397,7 @@ When resetting the fuel gauge we initially make sure to make sure the fuel gauge
 if (POR)
 {
     while(readReg16Bit(0x3D)&1) {
-        sygsp::delay(10);
+        delay(10);
     }
 
     //Initialise Configuration
@@ -425,7 +433,7 @@ Once the values have been written, Status flag is reset to prepare for a new har
 
     //Wait until model refresh
     while(readReg16Bit(MODELCFG_REG)&0x8000) {
-        sygsp::delay(10);
+        delay(10);
     }
     //Reload original HbCFG value
     writeReg16Bit(0xBA,HibCFG); 
@@ -434,6 +442,8 @@ Once the values have been written, Status flag is reset to prepare for a new har
     if (outputs.fullcapacitynom_raw != 0) {
         if (!restoreParameters()) {
             outputs.error_message = "Parameters were not successfully restored";
+        } else {
+            outputs.status_message = "Parameters successfully restored";
         };
     }  
 

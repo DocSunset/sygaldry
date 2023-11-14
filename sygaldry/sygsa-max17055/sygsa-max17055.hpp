@@ -12,6 +12,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
+template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, int empty_voltage = default_vempty, int default_recovery_voltage = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -21,45 +22,43 @@ struct MAX17055
 , version_<"0.0.0">
 {
     struct inputs_t {
-        // Initialisation Elements
-        slider_message<"capacity", "Design capacity of the battery (mAh)", int, 0, 32000, 2600, tag_session_data> designcap;
-        slider_message<"end-of-charge current", "End of charge current (mA)", int, 0, 32000, 50, tag_session_data> ichg;
-        slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // 
-        slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; // 
-        slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage; // 
-
-        // Other parameters
-        slider_message<"poll rate", "ms", int, 0, 300000, 300000, tag_session_data> pollrate; // poll rate in milliseconds
+        // Fuel gauge inputs
+        slider_message<"capacity", "Design capacity of the battery (mAh)", int, tag_session_data> designcap;
+        slider_message<"current sense resistor", "Resistance of current sense resistor (mOhm))", int, 0, 100, 10, tag_session_data> rsense; // sense resistor values above 100Ohms lead to poor capacity and current resolution
+        slider_message<"poll rate", "Fuel gauge poll rate (ms)", int, 10000, 300000, 60000, tag_session_data> pollrate; // should not poll fuel gauge to quickly
+        slider_message<"end-of-charge current", "End of charge current (mA)", int, tag_session_data> ichg;
+        slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
+        slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
     } inputs;
 
     struct outputs_t {
         // ANALOG MEASUREMENTS
         // Current
-        slider<"instantaneous current", "mA", float, -5.12f, 5.12f, 0.0f> inst_curr;
-        slider<"average current", "mA", float, -5.12f, 5.12f, 0.0f> avg_curr;
+        slider<"instantaneous current", "mA", float> inst_curr;
+        slider<"average current", "mA", float> avg_curr;
         // Voltage
         slider<"instantaneous voltage", "V", float, 0.0f, 5.11992f, 0.0f> inst_voltage;
         slider<"average voltage", "V", float, 0.0f, 5.11992f, 0.0f> avg_voltage;
 
         // MODEL OUTPUTS
         // Capacity
-        slider<"raw full capacity", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum is based on the fuel gauge max reading
-        slider<"capacity", "mAh", int, 0, 32000, 0> capacity; // maximum is based on the fuel gauge max reading
-        slider<"full capacity", "mAh", int, 0, 32000, 0> fullcapacity;
+        slider<"raw full capacity", "full capacity of the battery", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum raw value for 16 bit integer
+        slider<"capacity", "current capacity (mAh)", int> capacity;
+        slider<"full capacity", "full capacity of the battery (mAh)", int> fullcapacity;
         // Capacity (nom)
-        slider<"raw full capacity nominal", "LSB", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw;
+        slider<"raw full capacity nominal", "full capacity of the battery (no voltage/temperature compensation)", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw; // maximum raw value for 16 bit integer
         // SOC, Age
         slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
-        slider<"battery age", "%", float, 0.0f, 255.9961f, 0.0f> age; // percentage
+        slider<"battery age", "full battery capacity divided by design capacity (%)", float, 0.0f, 255.9961f, 0.0f> age; // percentage
         // Time to full (TTF), Time to empty (TTE), age
-        slider<"rime to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
+        slider<"time to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
         // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw;
-        slider<"charge cycles", "num", float, 0.0f, 655.35f, 0.0f> chargecycles;
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw; // maximum raw value for 16 bit integer
+        slider<"charge cycles", "number of charge cycles", float, 0.0f, 655.35f, 0.0f> chargecycles;
         // Parameters
-        slider<"rcomp", "voltage compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
-        slider<"tempco", "temperature compensation parameter (LSB)", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
+        slider<"rcomp", "voltage compensation parameter", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
+        slider<"tempco", "temperature compensation parameter", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;

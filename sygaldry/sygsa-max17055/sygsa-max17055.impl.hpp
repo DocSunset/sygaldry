@@ -6,25 +6,20 @@ Media and Technology (CIRMMT), McGill University, Montréal, Canada
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "sygsp-delay.hpp"
+#include "sygsp-arduino_hack.hpp"
 #include "sygsp-micros.hpp"
 #include "sygsa-max17055-helpers.hpp"
 #include <iostream>
 #include "Wire.h"
 #include "sygsa-max17055.hpp"
-#include "sygsp-delay.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
-        // Initialise all the slider variables
-        inputs.designcap = inputs.designcap.init();
-        inputs.ichg = inputs.ichg.init();
-        inputs.rsense = inputs.rsense.init();
+        // Initialise vempty and recovery (Users should only be changing these if they experience inaccurate state of charge information)
         inputs.vempty = inputs.vempty.init();
         inputs.recovery_voltage = inputs.recovery_voltage.init();
-        inputs.pollrate = inputs.pollrate.init();
 
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
@@ -33,7 +28,7 @@ namespace sygaldry { namespace sygsa {
         if (POR)
         {
             while(readReg16Bit(0x3D)&1) {
-                sygsp::delay(10);
+                delay(10);
             }
 
             //Initialise Configuration
@@ -56,7 +51,7 @@ namespace sygaldry { namespace sygsa {
 
             //Wait until model refresh
             while(readReg16Bit(MODELCFG_REG)&0x8000) {
-                sygsp::delay(10);
+                delay(10);
             }
             //Reload original HbCFG value
             writeReg16Bit(0xBA,HibCFG); 
@@ -65,6 +60,8 @@ namespace sygaldry { namespace sygsa {
             if (outputs.fullcapacitynom_raw != 0) {
                 if (!restoreParameters()) {
                     outputs.error_message = "Parameters were not successfully restored";
+                } else {
+                    outputs.status_message = "Parameters successfully restored";
                 };
             }  
 
@@ -195,7 +192,7 @@ namespace sygaldry { namespace sygsa {
             //Write the value to the register
             writeReg16Bit(reg, value);
             // Wait a bit
-            sygsp::delay(1);
+            delay(1);
 
             //Increase attempt
             attempt++;
@@ -250,7 +247,7 @@ namespace sygaldry { namespace sygsa {
         ;
 
         // Delay from 350ms
-        sygsp::delay(350);
+        delay(350);
 
         // Write calculated remaining capacity and percentage of cell
         outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
@@ -267,7 +264,7 @@ namespace sygaldry { namespace sygsa {
         writeReg16Bit(dPACC_REG, 0x0C80); //Write dQAcc
 
         // Delay for 350ms
-        sygsp::delay(350);
+        delay(350);
 
         // Restore cycles
         if (!writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw)) {

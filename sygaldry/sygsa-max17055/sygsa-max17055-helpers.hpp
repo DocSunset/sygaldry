@@ -35,12 +35,21 @@ FULLCAPNORM_REG = 0x23, ///< Register for learned parameter full capacity (norma
 };
 
 // Set Fuel Gauge I2C address
-static constexpr int i2c_addr = 0x36; // set fuel gauge i2c address as it is a constant
+static constexpr int i2c_addr = 0x36; ///< set fuel gauge i2c address as it is a constant
 
-//Based on "Register Resolutions from MAX17055 Technical Reference" Table 6. 
-static constexpr float base_capacity_multiplier_mAh = 5.0f; // base capacity multiplier divide by rsense(mOhms) to get LSB
-static constexpr float base_current_multiplier_mAh = 1.5625f; // base current multiplier divide by rsense(mOhms) to get LSB
-static constexpr float voltage_multiplier_V = 7.8125e-5; //refer to row "Voltage"
-static constexpr float time_multiplier_Hours = 5.625f/3600.0f; //Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
-static constexpr float percentage_multiplier = 1.0f/256.0f; //refer to row "Percentage"
+//Based on "Register Resolutions" from MAX17055 Technical Reference Table 6. 
+static constexpr float base_capacity_multiplier_mAh = 5.0f; ///< base capacity multiplier divide by rsense(mOhms) to get LSB
+static constexpr float base_current_multiplier_mAh = 1.5625f; ///< base current multiplier divide by rsense(mOhms) to get LSB
+static constexpr float voltage_multiplier_V = 7.8125e-5; ///< refer to row "Voltage"
+static constexpr float time_multiplier_Hours = 5.625f/3600.0f; ///< Least Significant Bit= 5.625 seconds, 3600 converts it to Hours.
+static constexpr float percentage_multiplier = 1.0f/256.0f; ///< refer to row "Percentage"
+
+
+// Default configuration
+static constexpr int default_capacity = 2000; ///< Default battery capacity standard 1 cell LiPo/Li-ion capacity (mAh)
+static constexpr int default_ichg = 50; ///< Default end of charge current, typical single cell linear charger end of charge current (mA)
+static constexpr int default_rsense = 10; ///< Default sense resistor value, decent sense resistor value
+static constexpr int default_vempty = 3; ///< Default empty voltage, good for 3.3V devices with low drop out LDO
+static constexpr int default_recovery_voltage = 3.8; ///< Recommened default by Analog Devices
+static constexpr int default_poll_rate = 60000; ///< Default poll rate of 60s
 
