@@ -16,7 +16,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
-    void MAX17055::init()
+    void MAX17055::init(int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage)
     {
         // Set the inputs 
         inputs.designcap = design_capacity;

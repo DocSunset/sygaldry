@@ -172,9 +172,6 @@ struct MAX17055
         text_message<"error message", "Error message from fuel gauge"> error_message;
         text_message<"status message", "Status message from fuel gauge"> status_message;
 
-        // Toggles
-        toggle<"running", "Indicate if fuel gauge is running"> running;
-
         @{restart-outputs}
     } outputs;
 
@@ -235,7 +232,7 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
-    void MAX17055::init()
+    void MAX17055::init(int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage)
     {
         @{init}
     }
@@ -418,6 +415,7 @@ slider_message<"restart time","Set the time between restart attempts", int,  500
 ```cpp
 //@='restart-outputs'
 slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
+toggle<"running", "Indicate if fuel gauge is running"> running;
 // @/
 ```
 

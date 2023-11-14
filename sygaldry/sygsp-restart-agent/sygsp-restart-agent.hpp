@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
-template<typename sygaldry_component>
+
 namespace sygaldry { namespace sygsp {
 
 /// \addtogroup sygsp
@@ -20,6 +20,7 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
+template<typename sygaldry_component>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
@@ -28,6 +29,27 @@ struct RestartAgent
 , license_<"SPDX-License-Identifier: MIT">
 , version_<"0.0.0">
 {
+    struct inputs_t {
+        // Necessary Inputs
+        slider_message<"restart policy","Set the restart policy for the component", int, 1, 4, 1, tag_session_data> restart_policy;
+        slider_message<"restart attempts","Set the max amount of restart attempts", int,0, 10, 0, tag_session_data> max_attempts;
+        toggle<"stop signal", "Indicate that the component should stop running", 0, tag_session_data> stop_signal;
+        toggle<"attempt restart", "Indicates if the component attempts to restart when it failed."> attempt_restart;
+        slider_message<"restart time","Set the time between restart attempts", int,  5000, 30000, 5000, tag_session_data> restart_time;
+    } inputs;
+
+    struct outputs_t {
+        // Necessary Ouputs
+        slider_message<"current attempt", "Current attempt for restarting component"> curr_attempt;
+        toggle<"running", "Indicate if the component is running"> running;
+
+        // TODO: use concepts to allow for more flexible spellings
+    } outputs;
+
+    void init();
+
+    void restart();
+    
     void configureAgent(const sygaldry_component& component);
 
     void pollComponent(const sygaldry_component& component);

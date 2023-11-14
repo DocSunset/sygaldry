@@ -25,7 +25,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 
-template<typename sygaldry_component>
+
 namespace sygaldry { namespace sygsp {
 
 /// \addtogroup sygsp
@@ -37,6 +37,7 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
+template<typename sygaldry_component>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
@@ -45,6 +46,18 @@ struct RestartAgent
 , license_<"SPDX-License-Identifier: MIT">
 , version_<"0.0.0">
 {
+    struct inputs_t {
+        @{restart-inputs}
+    } inputs;
+
+    struct outputs_t {
+        @{restart-outputs}
+    } outputs;
+
+    void init();
+
+    void restart();
+    
     void configureAgent(const sygaldry_component& component);
 
     void pollComponent(const sygaldry_component& component);
@@ -70,20 +83,25 @@ We want to be able to set a restart policy for the component so that the system 
 Seperating between a component error and a manual stop is a bit of a pain, so I decided to go the simplest route, which is to add a new input for a stop signal alongside a couple more inputs. This is not as nice as being able to identify failure sources but it has the benefit of letting the user manually disable the component if they are trying to test another component.We set the restart policy as a number between 1-4, based on the corresponding restart policy. 
 
 ```cpp
+//@='restart-inputs'
 // Necessary Inputs
 slider_message<"restart policy","Set the restart policy for the component", int, 1, 4, 1, tag_session_data> restart_policy;
 slider_message<"restart attempts","Set the max amount of restart attempts", int,0, 10, 0, tag_session_data> max_attempts;
-toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
-toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
+toggle<"stop signal", "Indicate that the component should stop running", 0, tag_session_data> stop_signal;
+toggle<"attempt restart", "Indicates if the component attempts to restart when it failed."> attempt_restart;
 slider_message<"restart time","Set the time between restart attempts", int,  5000, 30000, 5000, tag_session_data> restart_time;
+// @/
 ```
 Given we have a stop signal it makes sense to also have a restart signal. `attempt_restart` is similar to `stop_signal` but works in reverse. When setting the `attempt_restart` to `1` the component will attempt a manual restart, regardless of the restart policy and then set `attempt_restart` back to `0`.
 
 ```cpp
+//@='restart-outputs'
 // Necessary Ouputs
 slider_message<"current attempt", "Current attempt for restarting component"> curr_attempt;
+toggle<"running", "Indicate if the component is running"> running;
 
 // TODO: use concepts to allow for more flexible spellings
+// @/
 ```
 
 For simplicity these endpoints should be defined by the component that is using the Restart Agent. You can check the MAX17055 component for an example. Except for the `restart_policy` endpoint the maximum and minimums of the slider endpoints can be whatever the user desires.
@@ -100,6 +118,7 @@ Copyright 2023 Albert-Ngabo Niyonsenga
 SPDX-License-Identifier: MIT
 */
 #include "sygsp-restart-agent.hpp"
+#include "sygsp-micros.hpp"
 
 namespace sygaldry { namespace sygsp {
 
@@ -205,7 +224,7 @@ if (SYGALDRY_BUILD_TESTS)
 add_executable(${lib}-test ${lib}.test.cpp)
 target_link_libraries(${lib}-test PRIVATE Catch2::Catch2WithMain)
 target_link_libraries(${lib}-test PRIVATE ${lib})
-#target_link_libraries(${lib}-test PRIVATE OTHERREQUIREDPACKAGESANDCOMPONENTSHERE)
+#target_link_libraries(${lib}-test PRIVATE sygsp-micros)
 catch_discover_tests(${lib}-test)
 endif()
 # @/

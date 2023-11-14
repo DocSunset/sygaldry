@@ -4,6 +4,7 @@ Copyright 2023 Albert-Ngabo Niyonsenga
 SPDX-License-Identifier: MIT
 */
 #include "sygsp-restart-agent.hpp"
+#include "sygsp-micros.hpp"
 
 namespace sygaldry { namespace sygsp {
 
