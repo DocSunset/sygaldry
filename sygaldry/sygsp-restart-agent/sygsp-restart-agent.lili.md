@@ -79,11 +79,11 @@ Seperating between a component error and a manual stop is a bit of a pain, so I 
 
 ```cpp
 // Necessary Inputs
-slider_message<"restart policy","The restart policy for the component", 1, 4, 1, tag_session_data> restart_policy;
-slider_message<"max attempts","The max amount of restart attempts", 0, 10, 0, tag_session_data> max_attempts;
-toggle<"stop signal", "Indicate that the component should stop running", 0, tag_session_data> stop_signal;
-toggle<"attempt restart", "Indicates if the component attempts to restart when it failed."> attempt_restart;
-slider_message<"restart time","Set the time between restart attempts", 5000, 30000, 5000, tag_session_data> restart_time;
+slider_message<"restart policy","Set the restart policy for the component", int, 1, 4, 1, tag_session_data> restart_policy;
+slider_message<"restart attempts","Set the max amount of restart attempts", int,0, 10, 0, tag_session_data> max_attempts;
+toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
+toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
+slider_message<"restart time","Set the time between restart attempts", int,  5000, 30000, 5000, tag_session_data> restart_time;
 ```
 Given we have a stop signal it makes sense to also have a restart signal. `attempt_restart` is similar to `stop_signal` but works in reverse. When setting the `attempt_restart` to `1` the component will attempt a manual restart, regardless of the restart policy and then set `attempt_restart` back to `0`.
 

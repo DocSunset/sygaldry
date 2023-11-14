@@ -31,11 +31,11 @@ struct MAX17055
         slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
 
         // Restart policy parameters
-        slider_message<"restart policy","Set the restart policy for the component", 1, 4, 1, tag_session_data> restart_policy;
-        slider_message<"restart attempts","Set the max amount of restart attempts", 0, 10, 0, tag_session_data> max_attempts;
+        slider_message<"restart policy","Set the restart policy for the component", int, 1, 4, 1, tag_session_data> restart_policy;
+        slider_message<"restart attempts","Set the max amount of restart attempts", int,0, 10, 0, tag_session_data> max_attempts;
         toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
         toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
-        slider_message<"restart time","Set the time between restart attempts", 5000, 30000, 5000, tag_session_data> restart_time;
+        slider_message<"restart time","Set the time between restart attempts", int,  5000, 30000, 5000, tag_session_data> restart_time;
 
     } inputs;
 
