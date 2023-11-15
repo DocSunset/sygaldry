@@ -1,0 +1,6 @@
+{
+    "idf.flashType": "UART",
+    "idf.portWin": "COM16",
+    "idf.adapterTargetName": "esp32",
+    "idf.ninjaArgs":["-j 4"]
+}

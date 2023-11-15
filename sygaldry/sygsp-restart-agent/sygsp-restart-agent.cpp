@@ -9,19 +9,19 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-void init() {
+void RestartAgent::init() {
     return;
 }
 
-void main() {
+void RestartAgent::main() {
     return;
 }
 
-void restart() {
+void RestartAgent::restart() {
     return;
 }
 
-void RestartAgent::configureAgent(const sygaldry_component& component)
+void RestartAgent::configureAgent(auto component)
 {
     if (component.inputs.restart_policy == 0) {
         // Set default values restart agent values for the component
@@ -39,7 +39,7 @@ void RestartAgent::configureAgent(const sygaldry_component& component)
 }
 
 
-void RestartAgent::pollComponent(const sygaldry_component& component)
+void RestartAgent::pollComponent(auto component)
 {
     static auto prev = sygsp::micros();
     auto now = sygsp::micros();
@@ -49,12 +49,12 @@ void RestartAgent::pollComponent(const sygaldry_component& component)
     if (now-prev > (component.inputs.restart_time*1e3)) {
         prev = now;
         // Check if component needs to be restarted
-        restartComponent(const sygaldry_component& component);
+        restartComponent(auto component);
     }
 }
 
 
-void RestartAgent::restartComponent(const sygaldry_component& component) {
+void RestartAgent::restartComponent(auto component) {
     // Check validity of restart policy
     if ((component.inputs.restart_policy > component.inputs.restart_policy.max) || (component.inputs.restart_policy < component.inputs.restart_policy.min)) {
         component.outputs.error_message = component.name() + ": Invalid restart policy set";

@@ -9,6 +9,7 @@ SPDX-License-Identifier: MIT
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
 #include "sygsa-max17055-helpers.hpp"
+#include "sygsp-restart-agent.hpp"
 
 namespace sygaldry { namespace sygsa {
 struct MAX17055
@@ -76,8 +77,6 @@ struct MAX17055
         slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
         toggle<"running", "Indicate if fuel gauge is running"> running;
     } outputs;
-
-    // Null pointer for restartagent
     void * pimpl = nullptr;
 
     // initialize the MAX17055 for continuous reading
