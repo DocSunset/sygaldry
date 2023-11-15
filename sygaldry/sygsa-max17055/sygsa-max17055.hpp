@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 #include "sygsa-max17055-helpers.hpp"
 
 namespace sygaldry { namespace sygsa {
+
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -76,10 +77,7 @@ struct MAX17055
         slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
         toggle<"running", "Indicate if fuel gauge is running"> running;
     } outputs;
-
-    // Null pointer for restartagent
-    void * pimpl = nullptr;
-
+    
     // initialize the MAX17055 for continuous reading
     void init();
 
