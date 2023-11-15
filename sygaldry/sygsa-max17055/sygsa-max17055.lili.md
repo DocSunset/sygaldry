@@ -480,15 +480,15 @@ The design capacity, empty voltage, recovery voltage, and end of charge current 
 //@+'init'
    //EZ Config
     // Write Battery capacity
-    outputs.status_message = "Set design capacity and current for fuel gauge"
+    outputs.status_message = "Set design capacity and current for fuel gauge";
     if (!writeDesignCapacity()) {
         outputs.running = false;
-        outputs.error_message = "Failed to write design capacity, disabling fuel gauge"
+        outputs.error_message = "Failed to write design capacity, disabling fuel gauge";
         return; // 
     } //Write Design Cap
     if (!writeICHG()) {
         outputs.running = false;
-        outputs.error_message = "Failed to write end of charge current, disabling fuel gauge"
+        outputs.error_message = "Failed to write end of charge current, disabling fuel gauge";
         return; // 
     } // End of charge current
 
@@ -496,7 +496,7 @@ The design capacity, empty voltage, recovery voltage, and end of charge current 
     // Empty voltage in increments of 10mV
     if (!writeVoltage()) {
         outputs.running = false;
-        outputs.error_message = "Failed to recovery and empty voltage, disabling fuel gauge"
+        outputs.error_message = "Failed to recovery and empty voltage, disabling fuel gauge";
         return; //         
     }
 // @/
@@ -509,16 +509,16 @@ Once the values have been written, Status flag is reset to prepare for a new har
     // Set Model Characteristic
     if (!writeVerifyReg16Bit(MODELCFG_REG, 0x8000)) {
         outputs.running = false;
-        outputs.error_message = "Failed to write new model, disabling fuel gauge"
+        outputs.error_message = "Failed to write new model, disabling fuel gauge";
         return; //         
     }; //Write ModelCFG
 
     //Wait until model refresh
-    outputs.status_message = "Waiting for model refresh"
+    outputs.status_message = "Waiting for model refresh";
     while(readReg16Bit(MODELCFG_REG)&0x8000) {
         delay(10);
     }
-    outputs.status_message = "Model refresh complete"
+    outputs.status_message = "Model refresh complete";
     //Reload original HbCFG value
     if (!writeVerifyReg16Bit(0xBA,HibCFG)) {
         outputs.running = false;
