@@ -6,6 +6,7 @@ target_link_libraries(${lib} INTERFACE
         sygah-endpoints
         sygah-metadata
         sygsp-micros
+        sygac-components
         )
 
 if (SYGALDRY_BUILD_TESTS)

@@ -7,6 +7,8 @@ SPDX-License-Identifier: MIT
 
 #include "sygah-metadata.hpp"
 #include "sygah-endpoints.hpp"
+#include "sygac-components.hpp"
+
 
 
 namespace sygaldry { namespace sygsp {
@@ -20,7 +22,6 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
-template<typename sygaldry_component>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
@@ -50,11 +51,11 @@ struct RestartAgent
 
     void restart();
     
-    void configureAgent(const sygaldry_component& component);
+    void configureAgent(const Component& component);
 
-    void pollComponent(const sygaldry_component& component);
+    void pollComponent(const Component& component);
 
-    void restartComponent(const sygaldry_component& component);
+    void restartComponent(const Component& component);
 };
 
 /// \}

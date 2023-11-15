@@ -5,6 +5,7 @@ SPDX-License-Identifier: MIT
 */
 #include "sygsp-restart-agent.hpp"
 #include "sygsp-micros.hpp"
+#include "sygac-components.hpp"
 
 namespace sygaldry { namespace sygsp {
 
