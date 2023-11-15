@@ -113,7 +113,6 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsa {
 
-template<int capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, int empty_voltage = default_vempty, int default_recovery_voltage = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -383,6 +382,15 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 
 ```cpp
 //@='init'
+if (inputs.designcap != 0) {
+    inputs.designcap = default_capacity;
+    inputs.rsense = default_ichg;
+    inputs.pollrate = default_poll_rate;
+    inputs.ichg = default_ichg;
+    inputs.vempty = default_vempty;
+    inputs.recovery_voltage = default_recovery_voltage;
+}
+
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
 uint16_t POR = STATUS&0x0002;
