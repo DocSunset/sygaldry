@@ -19,12 +19,14 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::init()
     {
         // Set the inputs 
-        inputs.designcap = design_capacity;
-        inputs.rsense = current_sense_resistor;
-        inputs.poll_rate = poll_rate;
-        inputs.ichg = end_of_charge_current;
-        inputs.vempty = empty_voltage;
-        inputs.recovery_voltage = recovery_voltage_in;
+        if (inputs.designcap != 0) {
+            inputs.designcap = default_capacity;
+            inputs.rsense = default_ichg;
+            inputs.poll_rate = default_poll_rate;
+            inputs.ichg = default_ichg;
+            inputs.vempty = default_vempty;
+            inputs.recovery_voltage = default_recovery_voltage;
+        }
 
         // Configure restart agent
         sygsp::RestartAgent.configureComponent(&this);

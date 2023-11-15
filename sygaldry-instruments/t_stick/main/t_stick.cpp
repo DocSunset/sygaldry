@@ -33,7 +33,7 @@ struct TStick
     sygse::Button<GPIO_NUM_15> button;
     sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
     sygsa::TrillCraft touch;
-    sygsa::MAX17055<2600, 10, 60000> fuelgauge;
+    sygsa::MAX17055 fuelgauge;
     sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                    , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;

@@ -215,9 +215,10 @@ set(lib sygsp-restart-agent)
 add_library(${lib} STATIC)
 target_sources(${lib} PRIVATE ${lib}.cpp)
 target_include_directories(${lib} PUBLIC .)
-target_link_libraries(${lib}
-        PUBLIC sygah-endpoints
-        PUBLIC sygah-metadata
+target_link_libraries(${lib} INTERFACE 
+        sygah-endpoints
+        sygah-metadata
+        sygsp-micros
         )
 
 if (SYGALDRY_BUILD_TESTS)

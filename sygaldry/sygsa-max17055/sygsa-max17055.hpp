@@ -11,8 +11,6 @@ SPDX-License-Identifier: MIT
 #include "sygsa-max17055-helpers.hpp"
 
 namespace sygaldry { namespace sygsa {
-
-template<int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">

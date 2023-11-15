@@ -73,7 +73,7 @@ In addition to the registers and multiplier information we also store useful def
 //@+'sygsa-max17055-helpers.hpp'
 
 // Default configuration
-static constexpr int default_capacity = 2000; ///< Default battery capacity standard 1 cell LiPo/Li-ion capacity (mAh)
+static constexpr int default_capacity = 2600; ///< Default battery capacity (mAh)
 static constexpr int default_ichg = 50; ///< Default end of charge current, typical single cell linear charger end of charge current (mA)
 static constexpr int default_rsense = 10; ///< Default sense resistor value, decent sense resistor value
 static constexpr int default_vempty = 3; ///< Default empty voltage, good for 3.3V devices with low drop out LDO
@@ -112,8 +112,6 @@ SPDX-License-Identifier: MIT
 #include "sygsa-max17055-helpers.hpp"
 
 namespace sygaldry { namespace sygsa {
-
-template<int design_capacity = default_capacity, int current_sense_resistor = default_rsense, int poll_rate = default_poll_rate, int end_of_charge_current = default_ichg, float empty_voltage = default_vempty, float recovery_voltage_in = default_recovery_voltage>
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -433,12 +431,14 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 ```cpp
 //@='init'
 // Set the inputs 
-inputs.designcap = design_capacity;
-inputs.rsense = current_sense_resistor;
-inputs.poll_rate = poll_rate;
-inputs.ichg = end_of_charge_current;
-inputs.vempty = empty_voltage;
-inputs.recovery_voltage = recovery_voltage_in;
+if (inputs.designcap != 0) {
+    inputs.designcap = default_capacity;
+    inputs.rsense = default_ichg;
+    inputs.poll_rate = default_poll_rate;
+    inputs.ichg = default_ichg;
+    inputs.vempty = default_vempty;
+    inputs.recovery_voltage = default_recovery_voltage;
+}
 
 // Configure restart agent
 sygsp::RestartAgent.configureComponent(&this);
