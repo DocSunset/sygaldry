@@ -18,18 +18,22 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
+        // Initialise restart agent
+        sygsp::RestartAgent agent;
+        agent.init();
+
         // Set the inputs 
         if (inputs.designcap != 0) {
             inputs.designcap = default_capacity;
             inputs.rsense = default_ichg;
-            inputs.poll_rate = default_poll_rate;
+            inputs.pollrate = default_poll_rate;
             inputs.ichg = default_ichg;
             inputs.vempty = default_vempty;
             inputs.recovery_voltage = default_recovery_voltage;
         }
 
         // Configure restart agent
-        sygsp::RestartAgent.configureComponent(&this);
+        agent.configureComponent(&this);
 
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
@@ -120,7 +124,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::main()
     {
                 // Check restart
-                sygsp::RestartAgent.pollComponent(&this);
+                agent.pollComponent(&this);
 
                 static auto prev = sygsp::micros();
                 auto now = sygsp::micros();

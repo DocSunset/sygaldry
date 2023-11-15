@@ -214,7 +214,7 @@ void RestartAgent::restartComponent(const sygaldry_component& component) {
 set(lib sygsp-restart-agent)
 add_library(${lib} STATIC)
 target_sources(${lib} PRIVATE ${lib}.cpp)
-target_include_directories(${lib} PUBLIC .)
+target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE 
         sygah-endpoints
         sygah-metadata
