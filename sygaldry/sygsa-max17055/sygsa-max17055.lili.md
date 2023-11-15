@@ -130,9 +130,6 @@ struct MAX17055
         slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
         slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
 
-        // Restart policy parameters
-        @{restart-inputs}
-
     } inputs;
 
     struct outputs_t {
@@ -170,8 +167,7 @@ struct MAX17055
         // Error and status messages
         text_message<"error message", "Error message from fuel gauge"> error_message;
         text_message<"status message", "Status message from fuel gauge"> status_message;
-
-        @{restart-outputs}
+        toggle<"running", "Indicitor for if the fuel gauge is running"> running;
     } outputs;
     
     // initialize the MAX17055 for continuous reading
@@ -179,9 +175,6 @@ struct MAX17055
 
     // poll the MAX17055 for new data and update endpoints
     void main();
-
-    // restart MAX17055
-    void restart();
 
     // Read 16 bit register
     uint16_t readReg16Bit(uint8_t reg);
@@ -227,7 +220,6 @@ SPDX-License-Identifier: MIT
 #include <iostream>
 #include "Wire.h"
 #include "sygsa-max17055.hpp"
-#include "sygsp-restart-agent.hpp"
 
 namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
@@ -240,11 +232,6 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::main()
     {
         @{main}
-    }
-
-    // restart the MAX17055 fuel gauges
-    void MAX17055::restart() {
-        @{restart}
     }
 
     @{wire}
@@ -398,34 +385,6 @@ bool MAX17055::restoreParameters() {
 // @/
 ```
 
-## Using the Restart Agent
-Occasionally temporary errors, may cause the component to not respond and the component to set to not running. We want to be able to set a restart policy for the component so that the system can try to ping the component again to see if it responds. We use the `sygsp-restart-agent` component to handle the restart logic. All we need to do is to make sure to initialise it in the init routine and have the appropriate inputs and outputs and define a restart function.
-
-```cpp
-//@='restart-inputs'
-slider_message<"restart policy","Set the restart policy for the component", int, 1, 4, 1, tag_session_data> restart_policy;
-slider_message<"restart attempts","Set the max amount of restart attempts", int,0, 10, 0, tag_session_data> max_attempts;
-toggle<"stop signal", "Indicate that the fuel gauge should stop running", 0, tag_session_data> stop_signal;
-toggle<"attempt restart", "Indicates if the fuel gauge attempts to restart when it failed."> attempt_restart;
-slider_message<"restart time","Set the time between restart attempts", int,  5000, 30000, 5000, tag_session_data> restart_time;
-// @/
-```
-
-```cpp
-//@='restart-outputs'
-slider_message<"current attempt", "Current attempt for restarting fuel guage"> curr_attempt; // Current restart attempt
-toggle<"running", "Indicate if fuel gauge is running"> running;
-// @/
-```
-
-For the restart function we just call the init routine of the MAX17055 fuel gauge again. Most errors of the fuel gauge are caused by failure to write to a configuration register, so we redo the init function to be safe.
-
-```cpp
-//@='restart'
-init();
-// @/
-```
-
 ## Init Subroutine
 The init subroutine applies the EZConfig implementation shown in MAX17055 Software Implementation Guide. The status register is read to check if a hardware/osftware event occured if it did then the fuel gauge must be initiliased.
 
@@ -450,8 +409,6 @@ When resetting the fuel gauge we initially make sure to make sure the fuel gauge
 
 ```cpp
 //@+'init'
-// Initialise the restart agent
-
 // Reset the Fuel Gauge
 if (POR)
 {
@@ -652,7 +609,7 @@ TODO: Tests
 set(lib sygsa-max17055)
 add_library(${lib} INTERFACE)
 target_include_directories(${lib} INTERFACE .)
-target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygsp-restart-agent sygah-endpoints)
+target_link_libraries(${lib} INTERFACE sygah-metadata sygsp-delay sygsp-micros sygah-endpoints)
 target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
 # @/
 ```
