@@ -448,7 +448,7 @@ if (inputs.designcap != 0) {
 }
 
 // Configure restart agent
-agent->configureComponent(this);
+agent->configureAgent(this);
 
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
