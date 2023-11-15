@@ -112,6 +112,7 @@ SPDX-License-Identifier: MIT
 #include "sygsa-max17055-helpers.hpp"
 
 namespace sygaldry { namespace sygsa {
+
 struct MAX17055
 : name_<"MAX17055 Fuel Gauge">
 , description_<"Simple driver for MAX17055 fuel gauge">
@@ -433,11 +434,6 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 
 ```cpp
 //@='init'
-// Initialise restart agent
-auto agent = new sygsp::RestartAgent();
-pimpl = static_cast<void*>(agent);
-
-// Set the inputs 
 if (inputs.designcap != 0) {
     inputs.designcap = default_capacity;
     inputs.rsense = default_ichg;
@@ -446,9 +442,6 @@ if (inputs.designcap != 0) {
     inputs.vempty = default_vempty;
     inputs.recovery_voltage = default_recovery_voltage;
 }
-
-// Configure restart agent
-agent->configureAgent(this);
 
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
