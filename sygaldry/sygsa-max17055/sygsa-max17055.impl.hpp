@@ -19,7 +19,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::init()
     {
         // Initialise restart agent
-        sygsp::RestartAgent agent;
+        auto agent = new sygsp::RestartAgent();
         agent.init();
 
         // Set the inputs 

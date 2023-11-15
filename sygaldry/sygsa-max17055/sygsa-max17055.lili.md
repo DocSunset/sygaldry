@@ -431,7 +431,7 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 ```cpp
 //@='init'
 // Initialise restart agent
-sygsp::RestartAgent agent;
+auto agent = new sygsp::RestartAgent();
 agent.init();
 
 // Set the inputs 
