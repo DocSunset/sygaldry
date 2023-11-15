@@ -17,9 +17,9 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
-        if (inputs.designcap != 0) {
+        if (inputs.designcap == 0) {
             inputs.designcap = default_capacity;
-            inputs.rsense = default_ichg;
+            inputs.rsense = default_rsense;
             inputs.pollrate = default_poll_rate;
             inputs.ichg = default_ichg;
             inputs.vempty = default_vempty;

@@ -49,7 +49,7 @@ static constexpr float percentage_multiplier = 1.0f/256.0f; ///< refer to row "P
 static constexpr int default_capacity = 2600; ///< Default battery capacity (mAh)
 static constexpr int default_ichg = 50; ///< Default end of charge current, typical single cell linear charger end of charge current (mA)
 static constexpr int default_rsense = 10; ///< Default sense resistor value, decent sense resistor value
-static constexpr int default_vempty = 3; ///< Default empty voltage, good for 3.3V devices with low drop out LDO
-static constexpr int default_recovery_voltage = 3.8; ///< Recommened default by Analog Devices
+static constexpr float default_vempty = 3.0f; ///< Default empty voltage, good for 3.3V devices with low drop out LDO
+static constexpr float default_recovery_voltage = 3.8f; ///< Recommened default by Analog Devices
 static constexpr int default_poll_rate = 60000; ///< Default poll rate of 60s
 
