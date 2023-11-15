@@ -1,5 +1,5 @@
 set(lib sygsp-restart-agent)
-add_library(${lib} STATIC)
+add_library(${lib} INTERFACE)
 target_sources(${lib} PRIVATE ${lib}.cpp)
 target_include_directories(${lib} INTERFACE .)
 target_link_libraries(${lib} INTERFACE 
