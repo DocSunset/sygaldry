@@ -434,7 +434,7 @@ The init subroutine applies the EZConfig implementation shown in MAX17055 Softwa
 ```cpp
 //@='init'
 // Initialise restart agent
-auto agent = new sygsp::RestartAgent();
+auto agent = sygsp::RestartAgent;
 pimpl = static_cast<void*>(agent);
 
 // Set the inputs 
@@ -589,7 +589,7 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
 ```cpp
 //@='main'
         // Check restart
-        auto agent = static_cast<sygsp::RestartAgent()*>(pimpl)
+        auto agent = static_cast<sygsp::RestartAgent*>(pimpl);
         agent.pollComponent(this);
 
         static auto prev = sygsp::micros();
