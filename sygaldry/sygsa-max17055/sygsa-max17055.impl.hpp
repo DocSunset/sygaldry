@@ -18,6 +18,10 @@ namespace sygaldry { namespace sygsa {
     /// initialize the MAX17055 for continuous reading
     void MAX17055::init()
     {
+        // Initialise restart agent
+        auto agent = sygsp::RestartAgent;
+        pimpl = static_cast<void*>(agent);
+
         // Set the inputs 
         if (inputs.designcap != 0) {
             inputs.designcap = default_capacity;
@@ -29,9 +33,7 @@ namespace sygaldry { namespace sygsa {
         }
 
         // Configure restart agent
-        auto agent = new sygsp::RestartAgent();
-        pimpl = static_cast<void*>(agent);
-        agent->configureAgent(this);
+        agent->configureComponent(this);
 
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);

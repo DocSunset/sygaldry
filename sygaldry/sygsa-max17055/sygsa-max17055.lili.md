@@ -448,7 +448,7 @@ if (inputs.designcap != 0) {
 }
 
 // Configure restart agent
-agent.configureComponent(this);
+agent->configureComponent(this);
 
 // Read the status registry and check for hardware/software reset
 uint16_t STATUS = readReg16Bit(STATUS_REG);
@@ -590,7 +590,7 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
 //@='main'
         // Check restart
         auto agent = static_cast<sygsp::RestartAgent*>(pimpl);
-        agent.pollComponent(this);
+        agent->pollComponent(this);
 
         static auto prev = sygsp::micros();
         auto now = sygsp::micros();

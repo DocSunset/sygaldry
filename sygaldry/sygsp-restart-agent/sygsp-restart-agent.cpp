@@ -49,7 +49,7 @@ void RestartAgent::pollComponent(auto component)
     if (now-prev > (component.inputs.restart_time*1e3)) {
         prev = now;
         // Check if component needs to be restarted
-        restartComponent(auto component);
+        restartComponent(const sygaldry_component& component);
     }
 }
 
