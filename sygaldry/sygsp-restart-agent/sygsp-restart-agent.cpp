@@ -8,6 +8,18 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
+void init() {
+    return;
+}
+
+void main() {
+    return;
+}
+
+void restart() {
+    return;
+}
+
 void RestartAgent::configureAgent(const sygaldry_component& component)
 {
     if (component.inputs.restart_policy == 0) {

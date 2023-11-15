@@ -77,6 +77,9 @@ struct MAX17055
         toggle<"running", "Indicate if fuel gauge is running"> running;
     } outputs;
 
+    // Null pointer for restartagent
+    void * pimpl = nullptr;
+
     // initialize the MAX17055 for continuous reading
     void init();
 

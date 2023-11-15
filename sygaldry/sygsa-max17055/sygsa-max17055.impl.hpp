@@ -19,8 +19,8 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::init()
     {
         // Initialise restart agent
-        auto agent = new sygsp::RestartAgent();
-        agent.init();
+        auto agent = new sygsp::RestartAgent(this);
+        pimpl = static_cast<void*>(agent);
 
         // Set the inputs 
         if (inputs.designcap != 0) {
@@ -33,7 +33,7 @@ namespace sygaldry { namespace sygsa {
         }
 
         // Configure restart agent
-        agent.configureComponent(&this);
+        agent.configureComponent(this);
 
         // Read the status registry and check for hardware/software reset
         uint16_t STATUS = readReg16Bit(STATUS_REG);
@@ -124,7 +124,8 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::main()
     {
                 // Check restart
-                agent.pollComponent(&this);
+                auto agent = static_cast<sygsp::RestartAgent*>(pimpl)
+                agent.pollComponent(this);
 
                 static auto prev = sygsp::micros();
                 auto now = sygsp::micros();
