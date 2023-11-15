@@ -22,7 +22,6 @@ namespace sygaldry { namespace sygsp {
 
 /*! \brief Component for handling the restart policies of other components
 */
-template <Component sygaldry_component>
 struct RestartAgent
 : name_<"Restart Agent">
 , description_<"Component for handling the restart policies of other components">
