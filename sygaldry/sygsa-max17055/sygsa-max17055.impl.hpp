@@ -19,7 +19,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::init()
     {
         // Initialise restart agent
-        auto agent = new sygsp::RestartAgent(this);
+        auto agent = new sygsp::RestartAgent();
         pimpl = static_cast<void*>(agent);
 
         // Set the inputs 
@@ -124,7 +124,7 @@ namespace sygaldry { namespace sygsa {
     void MAX17055::main()
     {
                 // Check restart
-                auto agent = static_cast<sygsp::RestartAgent*>(pimpl)
+                auto agent = static_cast<sygsp::RestartAgent()*>(pimpl)
                 agent.pollComponent(this);
 
                 static auto prev = sygsp::micros();
