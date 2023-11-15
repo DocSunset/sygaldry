@@ -62,7 +62,6 @@ SPDX-License-Identifier: MIT
 #include "sygse-adc.hpp"
 #include "sygse-trill.hpp"
 #include "sygse-max17055.hpp"
-#include "sygsp-restart-agent.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"

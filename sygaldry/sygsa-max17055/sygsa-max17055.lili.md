@@ -173,10 +173,7 @@ struct MAX17055
 
         @{restart-outputs}
     } outputs;
-
-    // Null pointer for restartagent
-    void * pimpl = nullptr;
-
+    
     // initialize the MAX17055 for continuous reading
     void init();
 
@@ -581,10 +578,6 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
 
 ```cpp
 //@='main'
-        // Check restart
-        auto agent = static_cast<sygsp::RestartAgent*>(pimpl);
-        agent->pollComponent(this);
-
         static auto prev = sygsp::micros();
         auto now = sygsp::micros();
         // Check if properties have been updated
