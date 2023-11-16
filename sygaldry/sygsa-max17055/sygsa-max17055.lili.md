@@ -592,7 +592,7 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
             int old_val = (inputs.chargecycles_raw >> 6) & 0x1;
             int cur_val = (cycles_raw >> 6) & 0x1;
             if (old_val != cur_val) {
-                outputs.status_message = "Saving modelgauge parameters"
+                outputs.status_message = "Saving modelgauge parameters";
                 inputs.fullcapacity_raw = fullcap_raw;
                 inputs.chargecycles_raw = cycles_raw;
                 inputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
@@ -602,9 +602,6 @@ Both the raw and reported values are stored as persistent outputs. This helps wi
         }
 // @/
 ```
-
-
-TODO: Tests
 
 ```cmake
 # @#'CMakeLists.txt'
