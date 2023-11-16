@@ -44,7 +44,6 @@ namespace sygaldry { namespace sygsa {
             writeReg16Bit(0x60, 0x0);
            //EZ Config
             // Write Battery capacity
-            outputs.status_message = "Set design capacity and current for fuel gauge";
             if (!writeDesignCapacity()) {
                 outputs.running = false;
                 outputs.error_message = "Failed to write design capacity, disabling fuel gauge";
@@ -71,11 +70,10 @@ namespace sygaldry { namespace sygsa {
             }; //Write ModelCFG
 
             //Wait until model refresh
-            outputs.status_message = "Waiting for model refresh";
             while(readReg16Bit(MODELCFG_REG)&0x8000) {
                 delay(10);
             }
-            outputs.status_message = "Model refresh complete";
+
             //Reload original HbCFG value
             if (!writeVerifyReg16Bit(0xBA,HibCFG)) {
                 outputs.running = false;
@@ -83,17 +81,14 @@ namespace sygaldry { namespace sygsa {
                 return;
             }
 
-            // Restore old parameters
-            if (outputs.fullcapacitynom_raw != 0) {
-                if (!restoreParameters()) {
+            // Restore old parameters if the charge cycles is less 0.64 (64% of a charge cycle)
+            bool param_restored = false;
+            if (inputs.chargecycles_raw < 0.64) {
+                param_restored = restoreParameters();
+                if (!param_restored) {
                     outputs.error_message = "Parameters were not successfully restored";
-                } else {
-                    outputs.status_message = "Parameters successfully restored";
-                };
+                }
             }  
-
-            // Reset Status Register when init function runs
-            STATUS = readReg16Bit(STATUS_REG);
 
             // Get new status
             uint16_t RESET_STATUS = STATUS&0xFFFD;
@@ -101,7 +96,11 @@ namespace sygaldry { namespace sygsa {
             if (!outputs.running) {
                 outputs.error_message = "Could not reset status flag, disabling reading fuel gauge";
             } else {
-                outputs.status_message = "Fuel Gauge configured, with new config";
+                if (param_restored) {
+                    outputs.status_message = "Fuel Gauge configured, with new config, old parameters restored.";
+                } else {
+                    outputs.status_message = "Fuel Gauge configured, with new config";
+                }
             } 
         } else {
             outputs.status_message = "Fuel Gauge configured, Loading old config";
@@ -158,30 +157,37 @@ namespace sygaldry { namespace sygsa {
                     uint16_t avg_voltage_raw = readReg16Bit(AVGVCELL_REG);
                     outputs.inst_voltage = voltage_multiplier_V * inst_voltage_raw;
                     outputs.avg_voltage = voltage_multiplier_V * avg_voltage_raw;
+                    
                     // MODEL OUTPUTS
-                    // Capacity
-                    uint16_t capacity_raw = readReg16Bit(REPCAP_REG);
-                    outputs.fullcapacity_raw = readReg16Bit(FULLCAP_REG);
-                    outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
-                    outputs.capacity = cap_multiplier * capacity_raw;
-                    outputs.fullcapacity = cap_multiplier * outputs.fullcapacity_raw;
-
-                    // SOC, Age
+                    // Read raw values
+                    uint16_t cycles_raw = readReg16Bit(CYCLES_REG);
+                    uint16_t cap_raw = readReg16Bit(REPCAP_REG);
+                    uint16_t fullcap_raw = readReg16Bit(FULLCAP_REG);
                     uint16_t age_raw = readReg16Bit(AGE_REG);
                     uint16_t soc_raw = readReg16Bit(REPSOC_REG);
-                    outputs.age = percentage_multiplier * age_raw;
-                    outputs.soc = percentage_multiplier * soc_raw;
-                    // TTF,TTE
                     uint16_t tte_raw = readReg16Bit(TTE_REG);
                     uint16_t ttf_raw = readReg16Bit(TTF_REG);
+
+                    // Convert to readable values
+                    outputs.capacity = cap_multiplier * cap_raw;
+                    outputs.fullcapacity = cap_multiplier * fullcap_raw;
+                    outputs.age = percentage_multiplier * age_raw;
+                    outputs.soc = percentage_multiplier * soc_raw;
                     outputs.tte = time_multiplier_Hours * tte_raw;
                     outputs.ttf = time_multiplier_Hours * ttf_raw;
-                    // Cycles
-                    outputs.chargecycles_raw = readReg16Bit(CYCLES_REG);
-                    outputs.chargecycles = 0.01f * outputs.chargecycles_raw;
-                    // Parameters
-                    outputs.rcomp =  readReg16Bit(RCOMPP0_REG);
-                    outputs.tempco = readReg16Bit(TEMPCO_REG);
+                    outputs.chargecycles = 0.01f * cycles_raw;
+
+                    // Only save model parameters every 64% change in battery (equal to when bit 6 changes)
+                    int old_val = (inputs.chargecycles_raw >> 6) & 0x1;
+                    int cur_val = (cycles_raw >> 6) & 0x1;
+                    if (old_val != cur_val) {
+                        outputs.status_message = "Saving modelgauge parameters"
+                        inputs.fullcapacity_raw = fullcap_raw;
+                        inputs.chargecycles_raw = cycles_raw;
+                        inputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
+                        inputs.rcomp =  readReg16Bit(RCOMPP0_REG);
+                        inputs.tempco = readReg16Bit(TEMPCO_REG);
+                    }
                 }
     }
 
@@ -270,13 +276,13 @@ namespace sygaldry { namespace sygsa {
         outputs.status_message = "Restoring old parameters";
 
         // Write nominal full capacity, rcomp and tempco
-        if (!writeVerifyReg16Bit(TEMPCO_REG, outputs.tempco)) {
+        if (!writeVerifyReg16Bit(TEMPCO_REG, inputs.tempco)) {
             return false;
         };
-        if (!writeVerifyReg16Bit(RCOMPP0_REG, outputs.rcomp)) {
+        if (!writeVerifyReg16Bit(RCOMPP0_REG, inputs.rcomp)) {
             return false;
         };
-        if (!writeVerifyReg16Bit(FULLCAPNORM_REG, outputs.fullcapacitynom_raw)) {
+        if (!writeVerifyReg16Bit(FULLCAPNORM_REG, inputs.fullcapacitynom_raw)) {
             return false;
         }
         ;
@@ -285,24 +291,24 @@ namespace sygaldry { namespace sygsa {
         delay(350);
 
         // Write calculated remaining capacity and percentage of cell
-        outputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
-        uint16_t mixcap = (readReg16Bit(0x0D)*outputs.fullcapacitynom_raw) / 25600;
+        inputs.fullcapacitynom_raw = readReg16Bit(FULLCAPNORM_REG);
+        uint16_t mixcap = (readReg16Bit(0x0D)*inputs.fullcapacitynom_raw) / 25600;
         if (!writeVerifyReg16Bit(0x0F,mixcap)) {
             return false;
         } 
-        if (!writeVerifyReg16Bit(FULLCAP_REG, outputs.fullcapacity_raw)) {
+        if (!writeVerifyReg16Bit(FULLCAP_REG, inputs.fullcapacity_raw)) {
             return false;
         }
 
         // Set dQacc to 200% of capacity and dPacc to 200%
-        writeReg16Bit(dQACC_REG, outputs.fullcapacity_raw / 16); //Write dQAcc
+        writeReg16Bit(dQACC_REG, inputs.fullcapacity_raw / 16); //Write dQAcc
         writeReg16Bit(dPACC_REG, 0x0C80); //Write dQAcc
 
         // Delay for 350ms
         delay(350);
 
         // Restore cycles
-        if (!writeVerifyReg16Bit(CYCLES_REG, outputs.chargecycles_raw)) {
+        if (!writeVerifyReg16Bit(CYCLES_REG, inputs.chargecycles_raw)) {
             return false;
         }
 

@@ -29,6 +29,12 @@ struct MAX17055
         slider_message<"Empty Voltage", "Empty voltage of the battery (V)", float, 0.0f, 4.2f, 3.0f, tag_session_data>  vempty; 
         slider_message<"Recovery voltage", "Recovery voltage of the battery (V)", float, 0.0f, 4.2f, 3.8f, tag_session_data> recovery_voltage;
 
+        // Parameters needed for parameter restoration
+        slider<"raw full capacity", "full capacity of the battery", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum raw value for 16 bit integer
+        slider<"raw full capacity nominal", "full capacity of the battery (no voltage/temperature compensation)", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw; // maximum raw value for 16 bit integer
+        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw; // maximum raw value for 16 bit integer
+        slider<"rcomp", "voltage compensation parameter", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
+        slider<"tempco", "temperature compensation parameter", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
     } inputs;
 
     struct outputs_t {
@@ -41,24 +47,14 @@ struct MAX17055
         slider<"average voltage", "V", float, 0.0f, 5.11992f, 0.0f> avg_voltage;
 
         // MODEL OUTPUTS
-        // Capacity
-        slider<"raw full capacity", "full capacity of the battery", int, 0, 65535, 0, tag_session_data> fullcapacity_raw; // maximum raw value for 16 bit integer
         slider<"capacity", "current capacity (mAh)", int> capacity;
         slider<"full capacity", "full capacity of the battery (mAh)", int> fullcapacity;
-        // Capacity (nom)
-        slider<"raw full capacity nominal", "full capacity of the battery (no voltage/temperature compensation)", int, 0, 65535, 0, tag_session_data> fullcapacitynom_raw; // maximum raw value for 16 bit integer
-        // SOC, Age
-        slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // percentage
+        slider<"state of charge", "%", float, 0.0f, 255.9961f, 0.0f> soc; // 
         slider<"battery age", "full battery capacity divided by design capacity (%)", float, 0.0f, 255.9961f, 0.0f> age; // percentage
-        // Time to full (TTF), Time to empty (TTE), age
         slider<"time to full", "h", float, 0.0f, 102.3984f, 0.0f> ttf; // hours
         slider<"time to empty", "h", float, 0.0f, 102.3984f, 0.0f> tte;  // hours
-        // Cycles
-        slider<"raw charge cycles", "LSB", int, 0, 65535, 0, tag_session_data> chargecycles_raw; // maximum raw value for 16 bit integer
         slider<"charge cycles", "number of charge cycles", float, 0.0f, 655.35f, 0.0f> chargecycles;
-        // Parameters
-        slider<"rcomp", "voltage compensation parameter", int, 0, 65535, 0, tag_session_data> rcomp; // will change as the battery ages, should be stored for parameter restoration
-        slider<"tempco", "temperature compensation parameter", int, 0, 65535, 0, tag_session_data> tempco; // will change as the battery ages, should be stored for parameter restoration
+
 
         // Battery Status
         toggle<"present", "Shows if battery is present"> status;
