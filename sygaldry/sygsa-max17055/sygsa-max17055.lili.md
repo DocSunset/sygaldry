@@ -472,7 +472,7 @@ Once the values have been written, Status flag is reset to prepare for a new har
 
     // Restore old parameters if the charge cycles is less 0.64 (64% of a charge cycle)
     bool param_restored = false;
-    if (inputs.chargecycles_raw < 0.64) {
+    if (inputs.chargecycles_raw > 0.64) {
         param_restored = restoreParameters();
         if (!param_restored) {
             outputs.error_message = "Parameters were not successfully restored";
