@@ -1,4 +1,4 @@
-idf_component_register(SRCS "t_stick.cpp"
+idf_component_register(SRCS "mubone_orientor.cpp"
         )
 add_subdirectory(../../../ sygbuild) # add sygaldry as a subdirectory
 target_compile_options(${COMPONENT_LIB} PRIVATE

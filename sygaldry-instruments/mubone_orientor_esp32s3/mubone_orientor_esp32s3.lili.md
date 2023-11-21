@@ -1,4 +1,4 @@
-\page page-sygin-t_stick_esp32s3 T-Stick on ESP32S3
+\page page-sygin-mubone_orientor_esp32s3 Mubone Orientor on ESP32S3
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -12,7 +12,7 @@ SPDX-License-Identifier: MIT
 ## Implementation
 
 ```cpp
-// @#'main/t_stick.cpp'
+// @#'main/mubone_orientor.cpp'
 /*
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -22,32 +22,24 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 
-#include "sygse-button.hpp"
-#include "sygse-adc.hpp"
 #include "sygsa-two_wire.hpp"
-#include "sygse-trill.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
 #include "sygbe-runtime.hpp"
-#include "sygup-debug_printer.hpp"
-#include "sygup-cstdio_logger.hpp"
 
 using namespace sygaldry;
 
-struct TStick
+struct Orientor
 {
-    sygse::Button<GPIO_NUM_21> button;
-    sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
-    sygsa::TrillCraft touch;
     sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
                    , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;
     sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
 };
 
-sygbe::ESP32Instrument<TStick> tstick{};
-extern "C" void app_main(void) { tstick.app_main(); }
+sygbe::ESP32Instrument<Orientor> orientor{};
+extern "C" void app_main(void) { orientor.app_main(); }
 // @/
 ```
 
@@ -65,7 +57,7 @@ project(t-stick)
 
 ```cmake
 # @#'main/CMakeLists.txt'
-idf_component_register(SRCS "t_stick.cpp"
+idf_component_register(SRCS "mubone_orientor.cpp"
         )
 add_subdirectory(../../../ sygbuild) # add sygaldry as a subdirectory
 target_compile_options(${COMPONENT_LIB} PRIVATE

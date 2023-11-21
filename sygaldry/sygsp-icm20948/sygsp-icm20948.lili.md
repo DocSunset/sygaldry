@@ -902,8 +902,8 @@ namespace sygaldry { namespace sygsp {
 /// \{
 
 static constexpr uint8_t AK09916_I2C_ADDRESS    = 0b0001100;
-static constexpr uint8_t ICM20948_I2C_ADDRESS_0 = 0b1101000;
-static constexpr uint8_t ICM20948_I2C_ADDRESS_1 = 0b1101001;
+static constexpr uint8_t ICM20948_I2C_ADDRESS_0 = 0b1101000; // 0x68
+static constexpr uint8_t ICM20948_I2C_ADDRESS_1 = 0b1101001; // 0x69
 
 template<typename Serif>
 struct ICM20948Registers

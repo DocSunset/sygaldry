@@ -127,7 +127,7 @@ struct CustomCli : name_<"CLI">
             _reset();
         }
 
-        _prompt();
+        //_prompt();
     }
 
     void external_sources(Components& components)

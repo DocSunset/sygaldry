@@ -77,6 +77,8 @@ struct ESP32Instrument
     void app_main()
     {
         constexpr auto runtime = Runtime{instrument};
+        // give electrical conditions a moment to settle in
+        vTaskDelay(pdMS_TO_TICKS(1000));
         printf("initializing\n");
         runtime.init();
         // give IDF processes time to finish up init business

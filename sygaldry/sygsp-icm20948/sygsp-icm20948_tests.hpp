@@ -52,7 +52,7 @@ struct ICM20948Tests
             uint8_t value_after_reset = Serif::read(pwr_mgmt_1_address);
             if (value_after_reset != expected_value_after_reset)
             {
-                printf(" unexpected value after reset?!\n");
+                printf(" unexpected value %x after reset?!\n", value_after_reset);
                 return false;
             }
 

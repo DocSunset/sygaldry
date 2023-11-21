@@ -471,7 +471,7 @@ void process(const char c, Components& components)
         _reset();
     }
 
-    _prompt();
+    //_prompt();
 }
 
 void external_sources(Components& components)
