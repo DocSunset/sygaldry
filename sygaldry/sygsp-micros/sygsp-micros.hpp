@@ -10,11 +10,10 @@ SPDX-License-Identifier: MIT
 
 namespace sygaldry { namespace sygsp {
 
-/*! \addtogroup sygsp
-*/
+/// \addtogroup sygsp
 /// \{
 
-/*! \defgroup sygsp-micros Portable Timestamp API
+/*! \defgroup sygsp-micros sygsp-micros: Portable Timestamp API
 
 This software component provides a portable API for a simple timestamp function,
 equivalent to the Arduino `micros` API, but with better encapsulation.
