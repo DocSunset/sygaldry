@@ -29,7 +29,7 @@ sygladry documentation repo's directory as argument, defaulting to
 
 ```sh
 # @#'update_docs.sh'
-#!/bin/env sh
+#!/usr/bin/env sh
 
 # Update the documentation repo at $1
 

@@ -32,7 +32,7 @@ The procedure is as follows:
 
 ```sh
 # @#'generate_components_cmake.sh'
-#!/bin/env sh
+#!/usr/bin/env sh
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 # Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music

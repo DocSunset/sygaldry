@@ -90,7 +90,7 @@ in pkgs.stdenvNoCC.mkDerivation {
             pkgs.catch2_3 # unit test library for portable tests
             pkgs.boost # required by Avendish
             pkgs.liblo # for building OSC bindings tests. TODO this should be optional
-            pkgs.puredata # for building pd externals with Avendish
+            #pkgs.puredata # for building pd externals with Avendish
         ];
         shellHook = ''
             export SYGALDRY_ROOT="${toString ./.}"

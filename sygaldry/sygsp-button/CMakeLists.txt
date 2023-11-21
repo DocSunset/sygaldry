@@ -7,15 +7,15 @@ target_link_libraries(${lib}
         PUBLIC sygah-endpoints
         )
 
-if(SYGALDRY_BUILD_AVENDISH)
-avnd_make_pd(TARGET ${lib}
-        MAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${lib}.hpp"
-        MAIN_CLASS sygaldry::sygsp::ButtonGestureModel
-        C_NAME sygsp_button
-        )
-target_link_libraries(${lib}_pd
-        PRIVATE ${lib}
-        PRIVATE sygah-consteval
-        PRIVATE sygah-endpoints
-        )
-endif()
+#if(SYGALDRY_BUILD_AVENDISH)
+#avnd_make_pd(TARGET ${lib}
+#        MAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${lib}.hpp"
+#        MAIN_CLASS sygaldry::sygsp::ButtonGestureModel
+#        C_NAME sygsp_button
+#        )
+#target_link_libraries(${lib}_pd
+#        PRIVATE ${lib}
+#        PRIVATE sygah-consteval
+#        PRIVATE sygah-endpoints
+#        )
+#endif()

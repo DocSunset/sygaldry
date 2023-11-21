@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # list all components in the sygaldry library
 
 find "$SYGALDRY_ROOT/sygaldry" -maxdepth 1 -name 'syg*-*' -type d | sed 's/^\/.*\///g'

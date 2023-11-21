@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env sh
 function usage() {
     cat <<USAGE
 $0 [options] - new component setup script

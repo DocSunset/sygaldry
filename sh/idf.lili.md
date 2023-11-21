@@ -15,7 +15,7 @@ and export the IDF if it is not already available.
 
 ```sh
 # @#'idf.sh'
-#!/bin/env sh
+#!/usr/bin/env sh
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 # Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music

@@ -29,7 +29,7 @@ of other convenience scripts.
 
 ```sh
 # @#'lili.sh'
-#!/bin/env sh
+#!/usr/bin/env sh
 # generate machine sources from literate source code
 
 # Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music Interaction Laboratory
