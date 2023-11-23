@@ -394,7 +394,7 @@ set_input(const char *path, const char *types
             fprintf(stderr, "liblo: wrong type; expected 'i', got '%c'\n", types[0]);
             return;
         }
-        value_of(in) = argv[0]->i;
+        set_value(in, argv[0]->i);
     }
     else if constexpr (std::floating_point<value_t<T>>)
     {
@@ -403,7 +403,7 @@ set_input(const char *path, const char *types
             fprintf(stderr, "liblo: wrong type; expected 'f', got '%c'\n", types[0]);
             return;
         }
-        value_of(in) = argv[0]->f;
+        set_value(in, argv[0]->f);
     }
     else if constexpr (string_like<value_t<T>>)
     {
@@ -412,9 +412,11 @@ set_input(const char *path, const char *types
             fprintf(stderr, "liblo: wrong type; expected 's', got '%c'\n", types[0]);
             return;
         }
-        value_of(in) = &argv[0]->s;
+        set_value(in, &argv[0]->s);
     }
-    else if constexpr (array_like<value_t<T>>) for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
+    else if constexpr (array_like<value_t<T>>)
+    {
+        for (std::size_t i = 0; i < size<value_t<T>>(); ++i)
     {
         auto& element = value_of(in)[i];
         if constexpr (std::integral<element_t<T>>)
@@ -445,6 +447,10 @@ set_input(const char *path, const char *types
             element = &argv[i]->s;
         }
     }
+        if constexpr (UpdatedFlag<T>) in.updated = true;
+    }
+    if constexpr (has_name<T>) fprintf(stdout, "liblo: set input %s\n", name_of(in));
+    else fprintf(stdout, "liblo: set unnamed input\n");
 };
 // @/
 ```
