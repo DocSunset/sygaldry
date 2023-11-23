@@ -14,6 +14,7 @@ SPDX-License-Identifier: MIT
 #include "sygsa-trill_craft.hpp"
 #include <algorithm>
 #include <Trill.h>
+#include <stdio.h>
 
 namespace sygaldry { namespace sygsa {
 
@@ -66,6 +67,15 @@ void TrillCraft::init()
         return;
     }
     else outputs.running = true;
+    trill->setMode(Trill::RAW);
+    trill->setScanSettings(inputs.speed, inputs.resolution);
+    delay(trill->interCommandDelay);
+    trill->setNoiseThreshold(inputs.noise_threshold);
+    delay(trill->interCommandDelay);
+    trill->setPrescaler(inputs.prescaler);
+    delay(trill->interCommandDelay);
+    trill->updateBaseline();
+    delay(trill->interCommandDelay);
 }
 
 void TrillCraft::main()
@@ -73,17 +83,6 @@ void TrillCraft::main()
     if (not outputs.running) return; // TODO: try to reconnect every so often
 
     auto trill = static_cast<Trill*>(pimpl);
-
-    // TODO: we should check and constrain boundary conditions
-    if (inputs.speed.updated || inputs.resolution.updated) trill->setScanSettings(inputs.speed, inputs.resolution);
-    if (inputs.noise_threshold.updated)                    trill->setNoiseThreshold(inputs.noise_threshold);
-    //if (inputs.autoscan_interval.updated)                trill->setAutoScanInterval(inputs.autoscan_interval);
-    if (inputs.prescaler.updated)                          trill->setPrescaler(inputs.prescaler);
-    if (inputs.resolution.updated || inputs.prescaler.updated || inputs.update_baseline)
-    {
-        for (auto& max : outputs.max_seen.value) max = 0;
-        trill->updateBaseline();
-    }
 
     trill->requestRawData();
     for (int i=0; i<30; i++) {
@@ -113,6 +112,39 @@ void TrillCraft::main()
     } else {
         outputs.any = 1;
     }
+
+    if (inputs.speed.updated || inputs.resolution.updated)
+    {
+        // note that the Trill arduino library already boundary constrains scan settings
+        delay(2000);
+        trill->setScanSettings(inputs.speed, inputs.resolution);
+        delay(trill->interCommandDelay);
+        printf("trill: set scan settings\n");
+        // TODO: these delays may not be acceptable in the main loop...
+    }
+    // TODO: we should check and constrain boundary conditions
+    if (inputs.noise_threshold.updated)
+    {
+        trill->setNoiseThreshold(inputs.noise_threshold);
+        delay(trill->interCommandDelay);
+        printf("trill: set scan settings\n");
+    }
+    //if (inputs.autoscan_interval.updated)                trill->setAutoScanInterval(inputs.autoscan_interval);
+    if (inputs.prescaler.updated)
+    {
+        delay(2000);
+        trill->setPrescaler(inputs.prescaler);
+        delay(trill->interCommandDelay);
+        printf("trill: set scan settings\n");
+    }
+    if (inputs.resolution.updated || inputs.prescaler.updated || inputs.update_baseline)
+    {
+        for (auto& max : outputs.max_seen.value) max = 0;
+        trill->updateBaseline();
+        delay(trill->interCommandDelay);
+        printf("trill: set scan settings\n");
+    }
+
 }
 
 } }
