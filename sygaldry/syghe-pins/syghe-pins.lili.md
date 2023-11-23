@@ -33,6 +33,7 @@ SPDX-License-Identifier: MIT
 
 #cmakedefine SYGALDRY_ESP32
 #cmakedefine SYGALDRY_ESP32S3
+#cmakedefine SYGALDRY_I2C_PINS
 
 namespace sygaldry { namespace syghe {
 
@@ -46,7 +47,10 @@ namespace sygaldry { namespace syghe {
 /*! \defgroup syghe-pins-i2c syghe-pins: I2C Pins
 */
 /// \{
-#if defined SYGALDRY_ESP32
+#if defined SYGALDRY_I2C_PINS
+constexpr int I2C_MAIN_SDA = ${SYGALDRY_SDA};
+constexpr int I2C_MAIN_SCL = ${SYGALDRY_SCL};
+#elif defined SYGALDRY_ESP32
 constexpr int I2C_MAIN_SDA = 21;
 constexpr int I2C_MAIN_SCL = 22;
 #elif defined SYGALDRY_ESP32S3
@@ -84,7 +88,7 @@ ADC1_CHANNEL_3 = 4 , ///< aka GPIO4
 ADC1_CHANNEL_4 = 5 , ///< aka GPIO5 
 ADC1_CHANNEL_5 = 6 , ///< aka GPIO6 
 ADC1_CHANNEL_6 = 7 , ///< aka GPIO7 
-ADC1_CHANNEL_7 = 8 , ///< aka GPIO8 
+ADC1_CHANNEL_7 = 8 , ///< aka GPIO8
 ADC1_CHANNEL_8 = 9 , ///< aka GPIO9 
 ADC1_CHANNEL_9 = 10, ///< aka GPIO10
 ADC2_CHANNEL_0 = 11, ///< aka GPIO11
@@ -115,6 +119,9 @@ ADC2_CHANNEL_9 = 20 ///< aka GPIO20
 idf_build_get_property(target IDF_TARGET)
 if(${target} MATCHES esp32s3)
     set(SYGALDRY_ESP32S3 1)
+    if(SYGALDRY_I2C_PINS)
+        message("Using SYGALDRY_SDA and SYGALDRY_SCL")
+     endif()
 elseif(${target} MATCHES esp32)
     set(SYGALDRY_ESP32 1)
 else()
