@@ -238,13 +238,15 @@ struct WiFi
                         );
          log.println("Registered WiFi station event handler");
 
-         log.println("Started WiFi.\nWaiting for WiFi connection...");
+         log.println("Starting WiFi...");
          ESP_ERROR_CHECK(esp_wifi_start());
+         log.println("Waiting for connection...");
 
          EventBits_t bits = xEventGroupWaitBits( handler_state.event_group
                                                , handler_state.connected_bit | handler_state.fail_bit
                                                , pdFALSE, pdFALSE, portMAX_DELAY
                                                );
+         log.println("Finished waiting...");
          if (bits & handler_state.connected_bit)
          {
              outputs.wifi_connected = 1;
