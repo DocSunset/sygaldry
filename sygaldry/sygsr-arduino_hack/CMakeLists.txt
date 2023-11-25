@@ -1,0 +1,5 @@
+set(lib sygsr-arduino_hack)
+add_library(${lib} INTERFACE)
+target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
+target_link_libraries(${lib} INTERFACE hardware_timer hardware_i2c)
+target_sources(${lib} INTERFACE Arduino.cpp Wire.cpp)
