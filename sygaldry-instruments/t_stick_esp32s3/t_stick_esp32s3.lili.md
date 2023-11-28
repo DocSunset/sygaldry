@@ -25,7 +25,7 @@ SPDX-License-Identifier: MIT
 #include "sygse-button.hpp"
 #include "sygse-adc.hpp"
 #include "sygsa-two_wire.hpp"
-#include "sygse-trill.hpp"
+#include "sygsa-trill_craft.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"
 #include "sygsp-complementary_mimu_fusion.hpp"
@@ -40,7 +40,7 @@ struct TStick
     sygse::Button<GPIO_NUM_21> button;
     sygse::OneshotAdc<syghe::ADC1_CHANNEL_5> adc;
     sygsa::TrillCraft touch;
-    sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+    sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_0>
                    , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
                    > mimu;
     sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
@@ -67,7 +67,12 @@ project(t-stick)
 # @#'main/CMakeLists.txt'
 idf_component_register(SRCS "t_stick.cpp"
         )
+
+set(SYGALDRY_I2C_PINS 1)
+set(SYGALDRY_SDA 12)
+set(SYGALDRY_SCL 11)
 add_subdirectory(../../../ sygbuild) # add sygaldry as a subdirectory
+
 target_compile_options(${COMPONENT_LIB} PRIVATE
         "-Wfatal-errors"
         "-Wno-error=unused-but-set-parameter"
@@ -86,7 +91,7 @@ to provide a custom partition table that declares a data partition with
 ```csv
 # @#'partitions.csv'
 # name,   type, subtype,   offset,     size,   flags
-nvs,      data, nvs,       0x9000,   0x4000,
+nvs,      data, nvs,       0x9000,   0x6000,
 phy_init, data, phy,       0xf000,   0x1000,
 main,     app,  factory,  0x10000, 0x290000,
 storage,  data, spiffs,  0x300000,       1M,

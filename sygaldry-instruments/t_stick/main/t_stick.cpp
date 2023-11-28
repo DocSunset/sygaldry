@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
 
 #include "sygse-button.hpp"
 #include "sygse-adc.hpp"
-#include "sygse-trill.hpp"
+#include "sygsa-trill_craft.hpp"
 #include "sygse-max17055.hpp"
 #include "sygsp-icm20948.hpp"
 #include "sygsa-two_wire_serif.hpp"

@@ -1,4 +1,5 @@
 set(lib sygsa-trill_craft)
 add_library(${lib} INTERFACE)
-target_include_directories(${lib} INTERFACE .)
+target_sources(${lib} INTERFACE ${lib}.cpp $ENV{SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp)
+target_include_directories(${lib} INTERFACE . $ENV{SYGALDRY_ROOT}/dependencies/Trill-Arduino)
 target_link_libraries(${lib} INTERFACE sygah)

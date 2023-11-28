@@ -161,7 +161,7 @@ struct TrillCraft
 } }
 // @/
 
-// @#'sygsa-trill_craft.impl.hpp'
+// @#'sygsa-trill_craft.cpp'
 /*
 Copyright 2021-2023 Edu Meneses https://www.edumeneses.com, Metalab - Société
 des Arts Technologiques (SAT), Input Devices and Music Interaction Laboratory
@@ -319,7 +319,8 @@ TODO: write tests. And documentation...
 # @#'CMakeLists.txt'
 set(lib sygsa-trill_craft)
 add_library(${lib} INTERFACE)
-target_include_directories(${lib} INTERFACE .)
+target_sources(${lib} INTERFACE ${lib}.cpp $ENV{SYGALDRY_ROOT}/dependencies/Trill-Arduino/Trill.cpp)
+target_include_directories(${lib} INTERFACE . $ENV{SYGALDRY_ROOT}/dependencies/Trill-Arduino)
 target_link_libraries(${lib} INTERFACE sygah)
 # @/
 ```
