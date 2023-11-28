@@ -8,78 +8,20 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include "Wire.h"
+#include <stdio.h>
 #include "hardware/i2c.h"
+#include "hardware/gpio.h"
 
 namespace
 {
-//    static constexpr i2c_port_t _port = I2C_NUM_0;
-//    static uint8_t _tx_address = 0;
-//    static uint8_t _tx_idx = 0;
-//    static uint8_t _tx_buffer[16] = {0};
-//    static uint8_t _rx_idx = 0;
-//    static uint8_t _rx_length = 0;
-//    static uint8_t _rx_buffer[BUFFER_LENGTH] = {0};
-//    static bool _repeated_start = false;
-//    static i2c_cmd_handle_t _cmd = nullptr;
-    //static constexpr TickType_t _timeout = pdMS_TO_TICKS(2000);
-
-//    bool cmd_link_error_check(esp_err_t err, const char * context)
-//    {
-//        switch (err)
-//        {
-//            case ESP_OK: return false;
-//            case ESP_ERR_INVALID_ARG:
-//                printf("%s: invalid argument\n", context);
-//                break;
-//            case ESP_ERR_NO_MEM:
-//                printf("%s: not enough memory in static buffer\n", context);
-//                break;
-//            case ESP_FAIL:
-//                printf("%s: not enough memory on heap\n", context);
-//                break;
-//        }
-//        return true;
-//    }
-//
-//    void start_cmd_list(auto address, auto readwrite)
-//    {
-//        _cmd = i2c_cmd_link_create();
-//        if (_cmd == nullptr)
-//        {
-//            printf("TwoWire::start_cmd_list: unable to allocated command link\n");
-//            return;
-//        }
-//        auto err = i2c_master_start(_cmd);
-//        if (cmd_link_error_check(err, "TwoWire::start_cmd_list start bit")) return;
-//        err = i2c_master_write_byte(_cmd, address << 1 | readwrite, true);
-//        if (cmd_link_error_check(err, "TwoWire::start_cmd_list write address")) return;
-//    }
-//
-//
-//    void send_cmd_list()
-//    {
-//        esp_err_t err = i2c_master_cmd_begin(_port, _cmd, _timeout);
-//        _rx_idx = 0;
-//        switch (err)
-//        {
-//            case ESP_OK:
-//                break;
-//            case ESP_ERR_INVALID_ARG:
-//                printf("TwoWire::send_cmd_list: invalid argument\n");
-//                break;
-//            case ESP_FAIL:
-//                printf("TwoWire::send_cmd_list: failure; no subnode NACK\n");
-//                break;
-//            case ESP_ERR_INVALID_STATE:
-//                printf("TwoWire::send_cmd_list: invalid state; was TwoWire::begin() called successfully?\n");
-//                break;
-//            case ESP_ERR_TIMEOUT:
-//                printf("TwoWire::send_cmd_list: i2c bus timeout\n");
-//                break;
-//        }
-//        i2c_cmd_link_delete(_cmd);
-//        _cmd = nullptr;
-//    }
+    static uint8_t _tx_address = 0;
+    static uint8_t _tx_idx = 0;
+    static uint8_t _tx_buffer[16] = {0};
+    static uint8_t _rx_idx = 0;
+    static uint8_t _rx_length = 0;
+    static uint8_t _rx_buffer[BUFFER_LENGTH] = {0};
+    static bool _repeated_start = false;
+    static constexpr unsigned int _timeout = 20*1000;
 }
 
 TwoWire::TwoWire()
@@ -95,138 +37,82 @@ void TwoWire::begin()
 
 void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
 {
-//    printf("Wire: begin(%d, %d, %ld)\n", sda_pin, scl_pin, frequency);
-//    if (frequency > 400000) frequency = 400000;
-//    i2c_config_t config = {
-//        .mode = I2C_MODE_MASTER,
-//        .sda_io_num = sda_pin,
-//        .scl_io_num = scl_pin,
-//        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-//        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-//        .master = { .clk_speed = frequency, },
-//        .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
-//    };
-//
-//    esp_err_t err = i2c_param_config(_port, &config);
-//    if (err != ESP_OK)
-//    {
-//        printf("Wire error: i2c_param_config invalid argument\n");
-//        return;
-//    }
-//
-//    err = i2c_driver_install(_port, config.mode, 0, 0, 0);
-//    if (err != ESP_OK) switch (err)
-//    {
-//        case ESP_ERR_INVALID_ARG:
-//            printf("Wire error: i2c_driver_install invalid argument\n");
-//            return;
-//        case ESP_FAIL:
-//            printf("Wire error: i2c_driver_install failure\n");
-//            return;
-//    }
-//
+    printf("Wire: begin(%d, %d, %ld)\n", sda_pin, scl_pin, frequency);
+    i2c_init(&i2c0_inst, frequency);
+    gpio_set_function(sda_pin, GPIO_FUNC_I2C);
+    gpio_set_function(scl_pin, GPIO_FUNC_I2C);
+    gpio_pull_up(sda_pin);
+    gpio_pull_up(scl_pin);
 }
 
 void TwoWire::beginTransmission(uint8_t address)
 {
-    //printf("beginTransmission %x\n", address);
-    //_tx_address = address;
+    printf("debug beginTransmission %x\n", address);
+    _tx_address = address;
 }
 
 void TwoWire::write(uint8_t b)
 {
-    //printf("write %x\n", b);
-    //_tx_buffer[_tx_idx++] = b;
+    printf("debug write %x\n", b);
+    _tx_buffer[_tx_idx++] = b;
 }
 
 void TwoWire::write(uint8_t * buffer, uint8_t length)
 {
-    //printf("write "); for (int i = 0; i < length; ++i) printf("%x ", buffer[i]); printf("\n");
-    //for (std::size_t i = 0; i < length; ++i) write(buffer[i]);
+    printf("debug write "); for (int i = 0; i < length; ++i) printf("%x ", buffer[i]); printf("\n");
+    for (std::size_t i = 0; i < length; ++i) write(buffer[i]);
 }
 
 void TwoWire::endTransmission(bool sendStop)
 {
-    //printf("endTransmission %d\n", sendStop);
-    //if (sendStop)
-    //{
-    //    _repeated_start = false;
-    //    esp_err_t err = i2c_master_write_to_device(_port, _tx_address, _tx_buffer, _tx_idx, _timeout);
-    //    //printf("justwrite: tx - ");
-    //    //for (int i = 0; i < _tx_idx; ++i)
-    //    //    printf("%d ", _tx_buffer[i]);
-    //    //printf("\n");
-    //    _tx_idx = 0;
-    //    if (err == ESP_OK) return;
-    //    switch (err)
-    //    {
-    //        case ESP_ERR_INVALID_ARG:
-    //            printf("TwoWire::endTransmission: invalid argument\n");
-    //            return;
-    //        case ESP_FAIL:
-    //            printf("TwoWire::endTransmission: failure; no subnode ACK\n");
-    //            return;
-    //        case ESP_ERR_INVALID_STATE:
-    //            printf("TwoWire::endTransmission: invalid state; was TwoWire::begin() called successfully?\n");
-    //            return;
-    //        case ESP_ERR_TIMEOUT:
-    //            printf("TwoWire::endTransmission: i2c bus timeout\n");
-    //            return;
-    //    }
-    //}
-    //else
-    //{
-    //    _repeated_start = true;
-    //    return;
-    //}
+    printf("debug endTransmission %d\n", sendStop);
+    int bytes_written = i2c_write_timeout_us(&i2c0_inst, _tx_address, _tx_buffer, _tx_idx, not sendStop, _timeout);
+    switch (bytes_written)
+    {
+    case PICO_ERROR_GENERIC:
+        printf("TwoWire::endTransmission: failure; no subnode ACK\n");
+        break;
+    case PICO_ERROR_TIMEOUT:
+        printf("TwoWire::endTransmission: failure; timeout\n");
+        break;
+    }
+    _tx_idx = 0;
 }
 
 uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
 {
-    //printf("requestFrom %x %d %d\n", address, length, _repeated_start);
-    //esp_err_t err;
-    //if (_repeated_start)
-    //{
-    //    _repeated_start = false;
-    //    err = i2c_master_write_read_device(_port, address, _tx_buffer, _tx_idx, _rx_buffer, length, _timeout);
-    //    _tx_idx = 0;
-    //}
-    //else
-    //{
-    //    err = i2c_master_read_from_device(_port, address, _rx_buffer, length, _timeout);
-    //}
-    //_rx_idx = 0;
-    //switch(err)
-    //{
-    //    case ESP_OK:
-    //        _rx_length = length;
-    //        return length;
-    //    case ESP_ERR_INVALID_ARG:
-    //        printf("TwoWire::requestFrom: invalid argument\n");
-    //        break;
-    //    case ESP_FAIL:
-    //        printf("TwoWire::requestFrom: failure; no subnode ACK\n");
-    //        break;
-    //    case ESP_ERR_INVALID_STATE:
-    //        printf("TwoWire::requestFrom: invalid state; was TwoWire::begin() called successfully?\n");
-    //        break;
-    //    case ESP_ERR_TIMEOUT:
-    //        printf("TwoWire::requestFrom: i2c bus timeout\n");
-    //        break;
-    //}
-    //return 0;
+    printf("debug requestFrom %x %d %d\n", address, length, _repeated_start);
+    int bytes_read = i2c_read_timeout_us(&i2c0_inst, address, _rx_buffer, length, true,_timeout);
+    switch(bytes_read)
+    {
+    case PICO_ERROR_GENERIC:
+        printf("TwoWire::requestFrom: failure; no subnode ACK\n");
+        return 0;
+    case PICO_ERROR_TIMEOUT:
+        printf("TwoWire::requestFrom: i2c bus timeout\n");
+        return 0;
+    default:
+        _rx_idx = 0;
+        _rx_length = bytes_read;
+        return bytes_read;
+    }
 }
 
 uint8_t TwoWire::available()
 {
-    //return _rx_length - _rx_idx;
+    printf("debug available %d\n", _rx_length - _rx_idx);
+    return _rx_length - _rx_idx;
 }
 
 uint8_t TwoWire::read()
 {
-    //if (_rx_idx < _rx_length)
-    //    return _rx_buffer[_rx_idx++];
-    //else return 0;
+    if (_rx_idx < _rx_length)
+    {
+        auto ret = _rx_buffer[_rx_idx++];
+        printf("debug read %d\n", ret);
+        return ret;
+    }
+    else return 0;
 }
 
 TwoWire Wire{};

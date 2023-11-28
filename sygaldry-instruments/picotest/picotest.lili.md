@@ -17,10 +17,16 @@ SPDX-License-Identifier: MIT
 #include "sygbr-runtime.hpp"
 #include "sygbp-test_component.hpp"
 #include "sygsr-button.hpp"
+#include "sygsa-trill_craft.hpp"
+#include "sygsa-two_wire.hpp"
+
+using namespace sygaldry;
 
 struct Test {
-    sygaldry::sygbp::TestComponent tc;
-    sygaldry::sygsr::Button<15, sygaldry::sygsp::ButtonActive::High> button;
+    sygsa::TwoWire<0,1,400000> i2c;
+    sygbp::TestComponent tc;
+    sygsr::Button<26> button;
+    sygsa::TrillCraft trill;
 };
 
 sygaldry::sygbr::PicoSDKInstrument<Test> runtime{};

@@ -76,6 +76,7 @@ endif()
 
 if (PICO_SDK)
 syg_add_package_group(sygbr)
+syg_add_package_group(sygsa)
 syg_add_package_group(sygsr)
 endif()
 LISTSFILE

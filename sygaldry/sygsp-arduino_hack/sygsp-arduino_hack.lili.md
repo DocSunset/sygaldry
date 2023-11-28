@@ -24,10 +24,14 @@ This Arduino hack subsystem provides such hardware independent headers.
 Platform-dependent implementations of these supported Arduino APIs are then
 found in the related platform-specific subdirectories. For platforms based on
 Arduino and using a compatible compiler, the upstream Arduino implementation
-should be preferred. The Arduino hack is intended for platforms (such as ESP32,
-and Raspberry Pi Pico) where first party Arduino API support is not available,
-to establish the bare minimum Arduino compatible API required to make use of
-pre-existing driver libraries for various sensors, such as Bela's Trill sensors.
+should be preferred, although it remains as future work to integrate the Sygaldry
+component library with the Arduino IDE build system.
+
+The Arduino hack is intended for platforms (such as ESP32, and Raspberry Pi
+Pico) where first party Arduino API support is not available, or lacks a recent
+enough compiler to be used with Sygaldry, to establish the bare minimum Arduino
+compatible API required to make use of pre-existing driver libraries for
+various sensors, such as Bela's Trill sensors.
 
 # Arduino.h and WProgram.h
 
@@ -35,6 +39,10 @@ This Arduino header is included by `Trill-Arduino` when the `ARDUINO`
 preprocessor symbol is undefined. A cursory and incomplete investigation
 suggests that `Arduino.h` and `WProgram.h` provide identical APIs, with
 the latter being a legacy include path.
+
+A full `Arduino.h` implementation would include a number of macros and
+functions that are not currently supported by this hack. `micros` and `delay`
+are currently the only APIs that are expected to work.
 
 ```cpp
 // @#'Arduino.h'
@@ -129,7 +137,8 @@ extern TwoWire Wire;
 
 # SPI.h
 
-The `SPIClass` API provides access to the SPI bus.
+The `SPIClass` API provides access to the SPI bus. This API is not yet
+implemented for any platform and should not be used.
 
 ```cpp
 // @#'SPI.h'
@@ -207,6 +216,12 @@ extern SPIClass SPI;
 
 // @/
 ```
+
+# Building
+
+This document provides platform-independent header files exposed as a CMake
+interface library. Each platform that uses the hack should provides its own
+implementation of these APIs that makes use of these headers.
 
 ```cmake
 # @#'CMakeLists.txt'

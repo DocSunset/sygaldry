@@ -55,7 +55,6 @@ struct PicoSDKInstrument
 {
     struct Instrument {
         struct Components {
-            //sygsa::TwoWire<21,22,400000> i2c;
             InnerInstrument instrument;
             //sygbr::WiFi wifi;
             //sygbp::LibloOsc<InnerInstrument> osc;
@@ -73,6 +72,7 @@ struct PicoSDKInstrument
         const uint LED_PIN = 25;
 
         stdio_init_all();
+        sleep_ms(1000);
         puts("initializing\n");
         runtime.init();
 

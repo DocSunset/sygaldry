@@ -23,7 +23,7 @@ framework, and an implementation of the `TwoWire` API is provided.
 set(lib sygsr-arduino_hack)
 add_library(${lib} INTERFACE)
 target_link_libraries(${lib} INTERFACE sygsp-arduino_hack)
-target_link_libraries(${lib} INTERFACE hardware_timer hardware_i2c)
+target_link_libraries(${lib} INTERFACE hardware_timer hardware_i2c hardware_gpio)
 target_sources(${lib} INTERFACE Arduino.cpp Wire.cpp)
 # @/
 ```
@@ -82,7 +82,9 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
 #include "Wire.h"
+#include <stdio.h>
 #include "hardware/i2c.h"
+#include "hardware/gpio.h"
 
 namespace
 {
@@ -110,37 +112,35 @@ void TwoWire::begin()
 void TwoWire::begin(int sda_pin, int scl_pin, uint32_t frequency)
 {
     printf("Wire: begin(%d, %d, %ld)\n", sda_pin, scl_pin, frequency);
+    i2c_init(&i2c0_inst, frequency);
     gpio_set_function(sda_pin, GPIO_FUNC_I2C);
     gpio_set_function(scl_pin, GPIO_FUNC_I2C);
-    i2c_init(&i2c0_inst, frequency);
+    gpio_pull_up(sda_pin);
+    gpio_pull_up(scl_pin);
 }
 
 void TwoWire::beginTransmission(uint8_t address)
 {
-    //printf("beginTransmission %x\n", address);
+    printf("debug beginTransmission %x\n", address);
     _tx_address = address;
 }
 
 void TwoWire::write(uint8_t b)
 {
-    //printf("write %x\n", b);
+    printf("debug write %x\n", b);
     _tx_buffer[_tx_idx++] = b;
 }
 
 void TwoWire::write(uint8_t * buffer, uint8_t length)
 {
-    //printf("write "); for (int i = 0; i < length; ++i) printf("%x ", buffer[i]); printf("\n");
+    printf("debug write "); for (int i = 0; i < length; ++i) printf("%x ", buffer[i]); printf("\n");
     for (std::size_t i = 0; i < length; ++i) write(buffer[i]);
 }
 
 void TwoWire::endTransmission(bool sendStop)
 {
-    //printf("endTransmission %d\n", sendStop);
-    int bytes_written = i2C_write_timeout_us(i2c0_inst, _tx_address, _tx_buffer, _tx_idx, sendStop, _timeout);
-    //printf("justwrite: tx - ");
-    //for (int i = 0; i < _tx_idx; ++i)
-    //    printf("%d ", _tx_buffer[i]);
-    //printf("\n");
+    printf("debug endTransmission %d\n", sendStop);
+    int bytes_written = i2c_write_timeout_us(&i2c0_inst, _tx_address, _tx_buffer, _tx_idx, not sendStop, _timeout);
     switch (bytes_written)
     {
     case PICO_ERROR_GENERIC:
@@ -155,8 +155,8 @@ void TwoWire::endTransmission(bool sendStop)
 
 uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
 {
-    //printf("requestFrom %x %d %d\n", address, length, _repeated_start);
-    int bytes_read = i2c_read_timeout_us(_port, address, _rx_buffer, length, true,_timeout);
+    printf("debug requestFrom %x %d %d\n", address, length, _repeated_start);
+    int bytes_read = i2c_read_timeout_us(&i2c0_inst, address, _rx_buffer, length, true,_timeout);
     switch(bytes_read)
     {
     case PICO_ERROR_GENERIC:
@@ -174,13 +174,18 @@ uint8_t TwoWire::requestFrom(uint8_t address, uint8_t length)
 
 uint8_t TwoWire::available()
 {
+    printf("debug available %d\n", _rx_length - _rx_idx);
     return _rx_length - _rx_idx;
 }
 
 uint8_t TwoWire::read()
 {
     if (_rx_idx < _rx_length)
-        return _rx_buffer[_rx_idx++];
+    {
+        auto ret = _rx_buffer[_rx_idx++];
+        printf("debug read %d\n", ret);
+        return ret;
+    }
     else return 0;
 }
 
