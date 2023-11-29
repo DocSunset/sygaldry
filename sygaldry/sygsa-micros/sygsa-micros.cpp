@@ -6,18 +6,19 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 */
-
 #include "Arduino.h"
 
 namespace sygaldry { namespace sygsp {
-///\addtogroup sygse
+///\addtogroup sygsa
 ///\{
-///\defgroup sygse-delay sygse-delay: Sygaldry Delay for ESP32
+///\defgroup sygsa-micros sygsa-micros: Sygaldry Micros for Arduino
+/// Literate source code: \ref page-sygsa-micros
 ///\{
 
-void delay(unsigned long ms)
+/// Get the number of microseconds elapsed since boot.
+unsigned long micros()
 {
-    ::delay(ms);
+    return ::micros();
 }
 
 ///\}

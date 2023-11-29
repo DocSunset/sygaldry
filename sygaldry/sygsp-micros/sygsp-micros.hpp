@@ -26,17 +26,17 @@ This function should return a generally increasing timestamp in microseconds,
 such as a count of microseconds since platform boot. The timestamp is not required
 to refer to any particular epoch. The timestamp is expected to overflow periodically.
 
-The only safe operation on the timestamps returned by this function is to
-subtract an older timestamp from a newer one to get the time elapsed. This is
-only safe if the time elapsed is known to be less than the platform specific
-overflow period.
+As with all integer timestamps, the only safe operation on the timestamps
+returned by this function is to subtract an older timestamp from a newer one to
+get the time elapsed. This is only safe if the time elapsed is known to be less
+than the platform specific overflow period.
 
 This function should be defined by each platform. Clients of the API will
 need to link the platform-specific library as well as including the header
 in which this function is declared.
 
-This API is currently implemented for [ESP-IDF](\ref page-sygse-delay) via
-the [Arduino hack subsystem](\ref page-sygse-arduino_hack).
+This API is currently implemented for ESP-IDF and Raspberry Pi Pico SDK via
+the [Arduino hack subsystem](\ref page-sygsa-micros).
 */
 unsigned long micros();
 
