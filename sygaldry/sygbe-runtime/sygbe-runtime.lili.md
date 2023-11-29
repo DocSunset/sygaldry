@@ -72,6 +72,8 @@ struct ESP32Instrument
         sygbp::CstdioCli<Components> cli;
     };
 
+    static_assert(Assembly<Instrument>);
+
     static inline Instrument instrument{};
 
     void app_main()

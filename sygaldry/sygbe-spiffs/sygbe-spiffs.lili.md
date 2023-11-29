@@ -99,7 +99,7 @@ if (fp == nullptr) {
 // @+'init'
 char buffer[buffer_size];
 rapidjson::FileReadStream istream{fp, buffer, buffer_size};
-Storage<Components>::init(istream, components);
+storage->init(istream, components);
 std::fclose(fp);
 // @/
 ```
@@ -181,20 +181,22 @@ using Storage = sygbp::RapidJsonSessionStorage<rapidjson::FileReadStream, Spiffs
 
 template<typename Components>
 struct SpiffsSessionStorage
-: Storage<Components>, name_<"SPIFFS Session Storage">
+: name_<"SPIFFS Session Storage">
 {
+    Storage<Components> * storage;
     static constexpr const char * spiffs_base_path = "/spiffs";
     static constexpr const char * file_path = SpiffsJsonOStream::file_path;
     static constexpr std::size_t buffer_size = SpiffsJsonOStream::buffer_size;
 
     void init(Components& components)
     {
+        storage = new Storage<Components>();
         @{init}
     }
 
     void external_destinations(Components& components)
     {
-        Storage<Components>::external_destinations(components);
+        storage->external_destinations(components);
     }
 };
 

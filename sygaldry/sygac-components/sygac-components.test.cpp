@@ -37,11 +37,18 @@ struct container_component_t
     regular_component_t component1;
 } container_component;
 
+struct deep_container_t
+{
+    regular_component_t c1;
+    container_component_t container;
+    regular_component_t c2;
+} deep_container;
+
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(Assembly<container_component_t>);
 static_assert(not Component<container_component_t>);
-
 static_assert(not Assembly<regular_component_t>);
+static_assert(Assembly<deep_container_t>);
 // boost::pfr docs say: aggregates may not have base classes
 struct not_simple_aggregate1 : name_<"foo"> { };
 static_assert(std::is_aggregate_v<not_simple_aggregate1>); // passes

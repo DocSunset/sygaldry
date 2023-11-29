@@ -66,11 +66,18 @@ struct container_component_t
     regular_component_t component1;
 } container_component;
 
+struct deep_container_t
+{
+    regular_component_t c1;
+    container_component_t container;
+    regular_component_t c2;
+} deep_container;
+
 static_assert(SimpleAggregate<container_component_t>);
 static_assert(Assembly<container_component_t>);
 static_assert(not Component<container_component_t>);
-
 static_assert(not Assembly<regular_component_t>);
+static_assert(Assembly<deep_container_t>);
 // @/
 ```
 
@@ -373,12 +380,12 @@ struct assembly_predicate<T>
 // @/
 ```
 
-This is somewhat complicated by the fact that the check is necessarily recursive.
-The predicate needs to be true for both components and assemblies, and the
-predicate needs to be used in its own definition. But we don't want our `is_assembly`
-metafunction to return true for components (which are not assemblies). We
-therefore need a seperate more generate predicate that does the recursive check,
-allowing the final actual concept to weed out components.
+This is somewhat complicated by the fact that the check is necessarily
+recursive. The predicate needs to be true for both components and assemblies,
+and the predicate needs to be used in its own definition. But we don't want our
+`Assembly` concept to return true for components (which are not assemblies). We
+therefore need a seperate more generate predicate that does the recursive
+check, allowing the final actual concept to weed out components.
 
 ```cpp
 // @+'tests'
