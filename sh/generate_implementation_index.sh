@@ -36,6 +36,9 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 
 ## Instruments
 - \subpage page-sygin-t_stick
+- \subpage page-sygin-t_stick_esp32s3
+- \subpage page-sygin-t_stick_pico
+- \subpage page-sygin-mubone_orientor_esp32s3
 
 ## Hardware Abstraction
 

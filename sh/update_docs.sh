@@ -11,6 +11,7 @@
 
 cd "$SYGALDRY_ROOT"
 lili.sh || exit 1
+generate_implementation_index.sh
 doxygen
 docs="_build_doxygen/html"
 [ -d "$1" ] && repo="$1" || repo="../sygaldry-docs"

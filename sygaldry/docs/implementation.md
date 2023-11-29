@@ -21,6 +21,14 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 
 ## Instruments
 - \subpage page-sygin-t_stick
+- \subpage page-sygin-t_stick_esp32s3
+- \subpage page-sygin-t_stick_pico
+- \subpage page-sygin-mubone_orientor_esp32s3
+
+## Hardware Abstraction
+
+### ESP-IDF (syghe)
+- \subpage page-syghe-pins
 
 ## Sensors
 
@@ -32,23 +40,27 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 - \subpage page-sygsp-micros
 - \subpage page-sygsp-icm20948
 - \subpage page-sygsp-complementary_mimu_fusion
+- \subpage page-sygsp-byte_serif
 
 ### Arduino (sygsa)
+- \subpage page-sygsa-micros
 - \subpage page-sygsa-trill_craft
+- \subpage page-sygsa-two_wire_serif
+- \subpage page-sygsa-max17055
+- \subpage page-sygsa-delay
 - \subpage page-sygsa-two_wire
 
 ### ESP-IDF (sygse)
 - \subpage page-sygse-button
+- \subpage page-sygse-max17055
 - \subpage page-sygse-adc
-- \subpage page-sygse-trill
-- \subpage page-sygse-delay
 - \subpage page-sygse-arduino_hack
 - \subpage page-sygse-gpio
-- \subpage page-sygse-micros
 
 ### Raspberry Pi Pico SDK (sygsr)
 - \subpage page-sygsr-adc
 - \subpage page-sygsr-button
+- \subpage page-sygsr-arduino_hack
 
 ## Utility Components (sygup)
 - \subpage page-sygup-basic_logger
@@ -91,6 +103,7 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 
 ## Concepts (sygac)
 - \subpage page-sygac-runtime
+- \subpage page-sygac-tuple
 - \subpage page-sygac-components
 - \subpage page-sygac-endpoints
 - \subpage page-sygac-mimu

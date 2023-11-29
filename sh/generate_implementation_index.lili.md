@@ -13,8 +13,9 @@ This script automatically generates a documentation file that lists all
 subcomponents as subpages.
 
 The script is expected to be called appropriately by the convenience scripts;
-it is currently hooked into [the `lili` script](\ref page-sh-lili), so that it
-is run regularly and without having to remember to.
+it is currently hooked into [the `update_docs.sh` script](\ref
+page-sh-update_docs), so that it is run regularly and without having to
+remember to.
 
 The procedure is as follows:
 
@@ -63,6 +64,9 @@ This document is partially automatically generated. See \ref page-sh-generate_im
 
 ## Instruments
 - \subpage page-sygin-t_stick
+- \subpage page-sygin-t_stick_esp32s3
+- \subpage page-sygin-t_stick_pico
+- \subpage page-sygin-mubone_orientor_esp32s3
 
 ## Hardware Abstraction
 
