@@ -701,6 +701,11 @@ Some endpoints may require initialization. The logic for performing this is
 implemented in \ref page-sygac-endpoint-ranges, and here we can simply iterate
 over all endpoints and delegate to the appropriate function.
 
+This initialization takes place *before* components' `init` subroutines. This
+way the `init` subroutines can rely on having initialized endpoints, and the
+`init` subroutine of session management components can restore saved endpoint
+values without them being clobbered by this initialization step.
+
 ```cpp
 // @+'set initial values'
 for_each_endpoint(container, []<typename T>(T& ep)
