@@ -1,4 +1,4 @@
-\page page-sygin-picotest Raspberry Pi Pico Test
+\page page-sygin-t_stick_pico T-Stick for Raspberry Pi Pico
 
 Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
 Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
@@ -12,24 +12,29 @@ SPDX-License-Identifier: MIT
 # Implementation
 
 ```cpp
-// @#'test.cpp'
+// @#'tstick.cpp'
 #include<cmath>
 #include "sygbr-runtime.hpp"
-#include "sygbp-test_component.hpp"
 #include "sygsr-button.hpp"
 #include "sygsa-trill_craft.hpp"
 #include "sygsa-two_wire.hpp"
+#include "sygsp-icm20948.hpp"
+#include "sygsp-complementary_mimu_fusion.hpp"
+#include "sygsa-two_wire_serif.hpp"
 
 using namespace sygaldry;
 
-struct Test {
+struct TStick {
     sygsa::TwoWire<0,1,400000> i2c;
-    sygbp::TestComponent tc;
     sygsr::Button<26> button;
     sygsa::TrillCraft trill;
+    sygsp::ICM20948< sygsa::TwoWireByteSerif<sygsp::ICM20948_I2C_ADDRESS_1>
+                   , sygsa::TwoWireByteSerif<sygsp::AK09916_I2C_ADDRESS>
+                   > mimu;
+    sygsp::ComplementaryMimuFusion<decltype(mimu)> mimu_fusion;
 };
 
-sygaldry::sygbr::PicoSDKInstrument<Test> runtime{};
+sygaldry::sygbr::PicoSDKInstrument<TStick> runtime{};
 int main(){runtime.main();}
 // @/
 ```
@@ -42,21 +47,21 @@ cmake_minimum_required(VERSION 3.13)
 
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-project(test_project C CXX ASM)
+project(sygin-t_stick_pico C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 pico_sdk_init()
 
 add_subdirectory($ENV{SYGALDRY_ROOT} sygbuild)
 
-add_executable(test
-    test.cpp
+add_executable(tstick
+    tstick.cpp
 )
 
-pico_enable_stdio_usb(test 1)
+pico_enable_stdio_usb(tstick 1)
 
-pico_add_extra_outputs(test)
+pico_add_extra_outputs(tstick)
 
-target_link_libraries(test pico_stdlib sygaldry)
+target_link_libraries(tstick pico_stdlib sygaldry)
 # @/
 ```

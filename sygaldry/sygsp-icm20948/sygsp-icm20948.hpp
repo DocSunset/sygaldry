@@ -7,8 +7,6 @@ Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 SPDX-License-Identifier: MIT
 */
 #pragma once
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "sygah-mimu.hpp"
 #include "sygah-metadata.hpp"
 #include "sygsp-icm20948_registers.hpp"
