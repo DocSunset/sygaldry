@@ -50,13 +50,13 @@ struct TrillCraft
                       , "0 - ultra fast (57 to 2800 us per sensor), "
                         "3 - slow (205 to 22000 us per sensor). "
                         "Broad sampling rate adjustment; see also resolution"
-                      , uint8_t, 0, 3, 1
+                      , uint8_t, 0, 3, 0
                       , tag_session_data
                       > speed;
         slider_message<"resolution"
                       , "measurement resolution in bits; "
                         "higher resolutions reduce effective sampling rate"
-                      , uint8_t, 1, 8, 1
+                      , uint8_t, 9, 16, 9
                       , tag_session_data
                       > resolution;
         bng<"update baseline"
