@@ -399,7 +399,7 @@ this is important, since the `UpdatedFlag` concept is not mutually exclusive
 with the `BoolishFlag` concept (an `UpdatedFlag` may also be a `BoolishFlag`
 e.g. if the type has value semantics with an underlying value type that can be
 converted to bool), but has a very different API for being cleared. Similarly
-for checking the state of the flag.
+for checking the state of the flag, and for setting it.
 
 ```cpp
 // @+'concepts'
@@ -419,6 +419,14 @@ constexpr bool flag_state_of(T& t)
     if constexpr (UpdatedFlag<T>) return t.updated;
     else if constexpr (BoolishFlag<T>) return bool(t);
 }
+
+template<ClearableFlag T>
+constexpr void set_flag(T& t)
+{
+    if constexpr (UpdatedFlag<T>) t.updated = true;
+    else if constexpr (BoolishFlag<T>) t = true;
+}
+
 // @/
 
 // @+'tests'
@@ -540,6 +548,22 @@ TEST_CASE("sygaldry Value Access", "[components][concepts][value_of][clear_flag]
             REQUIRE(flag_state_of(v));
             REQUIRE(value_of(v) == 200.0f);
         }
+        SECTION("array_like value (set from array value)")
+        {
+            occasional<std::array<float,3>> v = {};
+            REQUIRE(not flag_state_of(v));
+            set_value(v, std::array<float,3>{5.0f,6.0f,7.0f});
+            REQUIRE(flag_state_of(v));
+            REQUIRE(value_of(v)[0] == 5);
+        }
+        SECTION("array_like value (set from element value)")
+        {
+            occasional<std::array<float,3>> v = {};
+            REQUIRE(not flag_state_of(v));
+            set_value(v, 5.0f);
+            REQUIRE(flag_state_of(v));
+            REQUIRE(value_of(v)[0] == 5);
+        }
     }
 }
 // @/
@@ -553,6 +577,12 @@ This is considered a reasonable and idiomatic way of avoiding repeating
 ourselves, but we should remain suspicious of this function in case our
 assumptions about const-correctness ever seem to be violated. This is unlikely
 to ever be an issue though.
+
+The `set_value` function requires a special case to handle setting an array
+from a single value; this is required e.g. to be able to initialize an array
+uniformly from a single initial value. The means of catching this case relies
+on the assumption that array values have a `fill` function such as is provided
+by `std::array`.
 
 ```cpp
 // @+'concepts'
@@ -586,7 +616,12 @@ const auto& value_of(const T& v)
 template <has_value T>
 auto& set_value(T& v, const auto& arg)
 {
-    v = arg;
+    if constexpr (requires {value_of(v).fill(arg);})
+    {
+        value_of(v).fill(arg);
+        if constexpr (ClearableFlag<T>) set_flag(v);
+    }
+    else v = arg;
     return v;
 }
 // @/
@@ -660,6 +695,23 @@ if a symbol with a known meaning is defined in a class's scope.
 tagged(write_only); // don't display or output this endpoint's value
 tagged(session_data); // store this endpoint's value across sessions, e.g. across power cycles on an embedded system
 #undef tagged
+// @/
+```
+
+# Initial Values
+
+As seen above, some endopints have a range that includes their minimum,
+maximum, and initial values. The following function provides a generic
+way to set an endpoint to its initial value.
+
+```cpp
+// @+'concepts'
+template<typename T>
+void initialize_endpoint(T& ep)
+{
+    if constexpr (not has_range<T>) return;
+    else set_value(ep, get_range(ep).init);
+}
 // @/
 ```
 

@@ -109,6 +109,14 @@ constexpr bool flag_state_of(T& t)
     if constexpr (UpdatedFlag<T>) return t.updated;
     else if constexpr (BoolishFlag<T>) return bool(t);
 }
+
+template<ClearableFlag T>
+constexpr void set_flag(T& t)
+{
+    if constexpr (UpdatedFlag<T>) t.updated = true;
+    else if constexpr (BoolishFlag<T>) t = true;
+}
+
 template <typename T>
 concept has_value = OccasionalValue<T> || PersistentValue<T>;
 
@@ -139,7 +147,12 @@ const auto& value_of(const T& v)
 template <has_value T>
 auto& set_value(T& v, const auto& arg)
 {
-    v = arg;
+    if constexpr (requires {value_of(v).fill(arg);})
+    {
+        value_of(v).fill(arg);
+        if constexpr (ClearableFlag<T>) set_flag(v);
+    }
+    else v = arg;
     return v;
 }
 template<has_value T>
@@ -177,6 +190,12 @@ template<has_value T> using element_t = typename _element_type<T>::type;
 tagged(write_only); // don't display or output this endpoint's value
 tagged(session_data); // store this endpoint's value across sessions, e.g. across power cycles on an embedded system
 #undef tagged
+template<typename T>
+void initialize_endpoint(T& ep)
+{
+    if constexpr (not has_range<T>) return;
+    else set_value(ep, get_range(ep).init);
+}
 
 /// \}
 /// \}

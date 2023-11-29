@@ -223,6 +223,22 @@ TEST_CASE("sygaldry Value Access", "[components][concepts][value_of][clear_flag]
             REQUIRE(flag_state_of(v));
             REQUIRE(value_of(v) == 200.0f);
         }
+        SECTION("array_like value (set from array value)")
+        {
+            occasional<std::array<float,3>> v = {};
+            REQUIRE(not flag_state_of(v));
+            set_value(v, std::array<float,3>{5.0f,6.0f,7.0f});
+            REQUIRE(flag_state_of(v));
+            REQUIRE(value_of(v)[0] == 5);
+        }
+        SECTION("array_like value (set from element value)")
+        {
+            occasional<std::array<float,3>> v = {};
+            REQUIRE(not flag_state_of(v));
+            set_value(v, 5.0f);
+            REQUIRE(flag_state_of(v));
+            REQUIRE(value_of(v)[0] == 5);
+        }
     }
 }
 static_assert(string_like<value_t<text<"a text">>>);

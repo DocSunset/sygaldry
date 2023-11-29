@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 #include <boost/mp11.hpp>
 #include "sygac-functions.hpp"
 #include "sygac-components.hpp"
+#include "sygac-endpoints.hpp"
 
 namespace sygaldry {
 
@@ -180,7 +181,14 @@ struct Runtime
     constexpr Runtime(ComponentContainer& c) : container{c}, component_runtimes{component_to_runtime_tuple(c)} {};
 
     /// Initialize all components in the container.
-    void init() const { tuple_for_each(component_runtimes, [](auto& r){r.init();}); }
+    void init() const
+    {
+        for_each_endpoint(container, []<typename T>(T& ep)
+        {
+            initialize_endpoint(ep);
+        });
+        tuple_for_each(component_runtimes, [](auto& r){r.init();});
+    }
 
     /// Clear input flags, then run the external sources subroutine of all components in the container that have one.
     void external_sources() const
