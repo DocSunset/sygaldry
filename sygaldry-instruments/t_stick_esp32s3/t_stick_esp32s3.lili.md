@@ -93,8 +93,8 @@ to provide a custom partition table that declares a data partition with
 # name,   type, subtype,   offset,     size,   flags
 nvs,      data, nvs,       0x9000,   0x6000,
 phy_init, data, phy,       0xf000,   0x1000,
-main,     app,  factory,  0x10000, 0x290000,
-storage,  data, spiffs,  0x300000,       1M,
+main,     app,  factory,  0x10000, 0x1ef000,
+storage,  data, spiffs,  0x1ff000,   0x5000,
 # @/
 ```
 
