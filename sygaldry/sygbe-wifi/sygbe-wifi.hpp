@@ -98,13 +98,23 @@ struct WiFi
 
     void set_wifi_mode(wifi_mode_t mode)
     {
-        esp_wifi_set_mode(mode);
+        log.print("wifi: setting WiFi mode to ");
+        switch(mode)
+        {
+        case WIFI_MODE_STA: log.println("station"); break;
+        case WIFI_MODE_AP: log.println("access point"); break;
+        case WIFI_MODE_APSTA: log.println("access point / station"); break;
+        default: log.println("unsupported mode..?"); break;
+        }
+
+        ESP_ERROR_CHECK(esp_wifi_set_mode(mode));
 
         if (mode == WIFI_MODE_STA || mode == WIFI_MODE_APSTA)
         {
             wifi_config_t sta_config{};
             std::memcpy(sta_config.sta.ssid, inputs.wifi_ssid.value.c_str(), inputs.wifi_ssid.value.length()+1);
             std::memcpy(sta_config.sta.password, inputs.wifi_password.value.c_str(), inputs.wifi_password.value.length()+1);
+            log.println("wifi: Enabling station");
             ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
         }
 
@@ -119,6 +129,7 @@ struct WiFi
             ap_config.ap.ssid_hidden = 0;
             ap_config.ap.max_connection = 5;
             // TODO: add channel, authmode, hidden, and max connections as inputs
+            log.println("wifi: Enabling access point");
             ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
         }
     }
@@ -130,32 +141,32 @@ struct WiFi
          if (inputs.hostname.value.empty() || inputs.hostname.value.length() > 31)
          {
             inputs.hostname = "sygaldry_instrument";
-            log.println("Warning: initialized hostname................ '", inputs.hostname.value, "'");
+            log.println("wifi warning: initialized hostname................ '", inputs.hostname.value, "'");
          }
 
          if (inputs.ap_ssid.value.empty() || inputs.ap_ssid.value.length() > 31)
          {
             inputs.ap_ssid = "sygaldry_admin";
-            log.println("Warning: initialized access point SSID....... '", inputs.ap_ssid.value, "'");
+            log.println("wifi warning: initialized access point SSID....... '", inputs.ap_ssid.value, "'");
          }
 
          if ( inputs.ap_password.value.empty() || inputs.ap_password.value.length() < 8 || inputs.ap_password.value.length() > 63)
          {
              inputs.ap_password = "sygaldry_admin";
-            log.println("Warning: initialized access point password... '", inputs.ap_password.value, "'");
+            log.println("wifi warning: initialized access point password... '", inputs.ap_password.value, "'");
          }
 
          // TODO: just don't bother trying to connect to wifi in this case
          if ( inputs.wifi_ssid.value.empty() || inputs.wifi_ssid.value.length() > 31)
          {
              inputs.wifi_ssid = "sygaldry_wifi";
-            log.println("Warning: initialized WiFi SSID............... '", inputs.wifi_ssid.value, "'");
+            log.println("wifi warning: initialized WiFi SSID............... '", inputs.wifi_ssid.value, "'");
          }
 
          if ( inputs.wifi_password.value.empty() || inputs.wifi_password.value.length() < 8 || inputs.wifi_password.value.length() > 63)
          {
              inputs.wifi_password = "sygaldry_admin";
-            log.println("Warning: initialized WiFi password........... '", inputs.wifi_password.value, "'");
+            log.println("wifi warning: initialized WiFi password........... '", inputs.wifi_password.value, "'");
          }
          esp_err_t ret = nvs_flash_init();
          if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -163,13 +174,13 @@ struct WiFi
            ret = nvs_flash_init();
          }
          ESP_ERROR_CHECK(ret);
-         log.println("Initialized NVS");
+         log.println("wifi: Initialized NVS");
 
          ESP_ERROR_CHECK(esp_netif_init());
-         log.println("Initialized network interface");
+         log.println("wifi: Initialized network interface");
 
          ESP_ERROR_CHECK(esp_event_loop_create_default());
-         log.println("Created default event loop");
+         log.println("wifi: Created default event loop");
 
          // TODO: do we need to store these handles?
          esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
@@ -182,11 +193,11 @@ struct WiFi
                                                , inputs.hostname.value.c_str()
                                                )
                         );
-         log.println("Set hostnames");
+         log.println("wifi: Set hostnames");
 
          wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
          ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-         log.println("Initialized WiFi with default configuration");
+         log.println("wifi: Initialized WiFi with default configuration");
          if (inputs.enable_ap) set_wifi_mode(WIFI_MODE_APSTA);
          else set_wifi_mode(WIFI_MODE_STA);
          auto sta_event_handler = +[](void * arg, esp_event_base_t event_base, long int event_id, void * event_data)
@@ -195,13 +206,13 @@ struct WiFi
              auto& log = *handler_state.log;
              if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
              {
-                 log.println("WiFi station started. Connecting to network...");
+                 log.println("wifi: WiFi station started. Connecting to network...");
                  esp_wifi_connect();
              }
              else if (event_base == WIFI_EVENT && 
                         event_id == WIFI_EVENT_STA_DISCONNECTED)
              {
-                 log.print("WiFi station disconnected. ");
+                 log.print("wifi: Station disconnected. ");
                  if (handler_state.connection_attempts < handler_state.maximum_connection_attempts)
                  {
                      log.println("Attempting to reconnect...");
@@ -236,23 +247,22 @@ struct WiFi
                                                              (void*)&handler_state,
                                                              &instance_got_ip)
                         );
-         log.println("Registered WiFi station event handler");
+         log.println("wifi: Registered WiFi station event handler");
 
-         log.println("Starting WiFi...");
+         log.println("wifi: Starting WiFi...");
          ESP_ERROR_CHECK(esp_wifi_start());
-         log.println("Waiting for connection...");
 
          EventBits_t bits = xEventGroupWaitBits( handler_state.event_group
                                                , handler_state.connected_bit | handler_state.fail_bit
                                                , pdFALSE, pdFALSE, portMAX_DELAY
                                                );
-         log.println("Finished waiting...");
+         log.println("wifi: Finished waiting...");
          if (bits & handler_state.connected_bit)
          {
              outputs.wifi_connected = 1;
              outputs.ap_running = inputs.enable_ap;
          }
-         else // fail_bit
+         else // fail_bit; TODO: shouldn't we only enable AP if it isn't already?
          {
              set_wifi_mode(WIFI_MODE_AP);
              outputs.ap_running = 1;
