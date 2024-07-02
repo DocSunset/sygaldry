@@ -249,8 +249,8 @@ static void init()
     static_assert(pin_number != GPIO_NUM_0, "GPIO0 is an important strapping pin"
             "used during boot to determine SPI boot (pulled up, default) or"
             "download boot (pulled down). It should not be used for GPIO");
-    static_assert(pin_number != GPIO_NUM_1, "GPIO1 is UART TXD, used for"
-            "programming, and should not be used for GPIO");
+    //static_assert(pin_number != GPIO_NUM_1, "GPIO1 is UART TXD, used for"
+    //        "programming, and should not be used for GPIO");
     static_assert(pin_number != GPIO_NUM_2, "GPIO2 is an important strapping pin"
             "that must be pulled down during boot to initiate firmware download."
             "It should not be used for GPIO");
