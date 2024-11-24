@@ -69,25 +69,16 @@ struct PicoSDKInstrument
     void main()
     {
         constexpr auto runtime = Runtime{instrument};
-        const uint LED_PIN = 25;
 
         stdio_init_all();
         sleep_ms(1000);
         puts("initializing\n");
         runtime.init();
 
-            gpio_init(LED_PIN);
-            gpio_set_dir(LED_PIN, GPIO_OUT);
-
         puts("looping\n");
         while (true)
         {
             runtime.tick();
-
-                gpio_put(LED_PIN, 0);
-                sleep_ms(250);
-                gpio_put(LED_PIN, 1);
-                sleep_ms(250);
         }
     }
 };

@@ -17,7 +17,7 @@ echo "pico_sdk.sh -- PICO_SDK_PATH: $PICO_SDK_PATH"
     git clone https://github.com/raspberrypi/pico-sdk.git "$PICO_SDK_PATH"
     pushd "$PICO_SDK_PATH"
         git fetch -a
-        git checkout 1.5.1
+        git checkout 2.0.0
         git submodule update --init
     popd
 }
