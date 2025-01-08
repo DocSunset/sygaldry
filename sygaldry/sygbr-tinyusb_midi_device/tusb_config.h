@@ -98,8 +98,11 @@
 #define CFG_TUD_VENDOR            0
 
 // MIDI FIFO size of TX and RX
-#define CFG_TUD_MIDI_RX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_MIDI_TX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
+// these were originally "(TUD_OPT_HIGH_SPEED ? 512 : 64)", but are now set to 512 always
+// as we encountered issues where sent messages were dropped due to lack of tx buffer memory
+#define CFG_TUD_MIDI_RX_BUFSIZE 512
+#define CFG_TUD_MIDI_TX_BUFSIZE 512
+//(TUD_OPT_HIGH_SPEED ? 512 : 64)
 
 #ifdef __cplusplus
  }

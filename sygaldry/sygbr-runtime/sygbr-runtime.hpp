@@ -60,6 +60,7 @@ struct PicoSDKInstrument
         while (true)
         {
             runtime.tick();
+            sleep_ms(1); // sometimes handy while testing
         }
     }
 };

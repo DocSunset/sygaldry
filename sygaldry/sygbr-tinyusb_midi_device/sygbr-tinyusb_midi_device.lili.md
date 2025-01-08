@@ -203,8 +203,8 @@ void MidiDeviceDriver::init() {
 
 void MidiDeviceDriver::main() {
   tud_task(); // tinyusb device task
-  led_blinking_task();
-  midi_task();
+  //led_blinking_task();
+  //midi_task();
 }
 } }
 // @/
@@ -376,8 +376,8 @@ enum {
 char const *string_desc_arr[] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-  "TinyUSB",                     // 1: Manufacturer
-  "TinyUSB Device",              // 2: Product
+  "Sygaldry",                    // 1: Manufacturer
+  "Sygaldry Device",             // 2: Product
   NULL,                          // 3: Serials will use unique ID if possible
 };
 
@@ -537,8 +537,11 @@ everything does / means.
 #define CFG_TUD_VENDOR            0
 
 // MIDI FIFO size of TX and RX
-#define CFG_TUD_MIDI_RX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_MIDI_TX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
+// these were originally "(TUD_OPT_HIGH_SPEED ? 512 : 64)", but are now set to 512 always
+// as we encountered issues where sent messages were dropped due to lack of tx buffer memory
+#define CFG_TUD_MIDI_RX_BUFSIZE 512
+#define CFG_TUD_MIDI_TX_BUFSIZE 512
+//(TUD_OPT_HIGH_SPEED ? 512 : 64)
 
 #ifdef __cplusplus
  }

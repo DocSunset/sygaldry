@@ -141,7 +141,7 @@ void MidiDeviceDriver::init() {
 
 void MidiDeviceDriver::main() {
   tud_task(); // tinyusb device task
-  led_blinking_task();
-  midi_task();
+  //led_blinking_task();
+  //midi_task();
 }
 } }
