@@ -3,7 +3,7 @@
 #include "sygac-endpoints.hpp"
 #include "sygah-metadata.hpp"
 #include "sygbr-runtime.hpp"
-#include "sygsr-adc.hpp"
+#include "sygsr-oadc.hpp"
 #include "sygsp-continuous-key-scanner.hpp"
 #include "sygsr-led_matrix_scanner.hpp"
 #include "sygbr-tinyusb_midi_device.hpp"
@@ -44,12 +44,13 @@ struct MidiMapping
         for (uint8_t i = 0; i < keys.size(); ++i)
         {
             //if (keys[i] == last_out[i] && keys[i] <= 0) continue;
-            uint8_t message[3] = {status, i, static_cast<uint8_t>((int(keys[i])>>5)&0x7f)};
+            //uint8_t message[3] = {status, i, static_cast<uint8_t>((int(keys[i])>>5)&0x7f)};
+            uint8_t message[3] = {status, i, static_cast<uint8_t>(keys[i]*127)};
             tud_midi_stream_write(cable, message, 3);
 
-            uint8_t message2[3] = {polyaftertouch | 1, i, static_cast<uint8_t>((raws[i]>>5)&0x7f)};
+            uint8_t message2[3] = {polyaftertouch | 1, i, static_cast<uint8_t>((int(raws[i])>>5)&0x7f)};
             tud_midi_stream_write(cable, message2, 3);
-            uint8_t message3[3] = {polyaftertouch | 2, i, static_cast<uint8_t>(raws[i]&0x7f)};
+            uint8_t message3[3] = {polyaftertouch | 2, i, static_cast<uint8_t>(int(raws[i])&0x7f)};
             tud_midi_stream_write(cable, message3, 3);
         }
 
@@ -62,7 +63,7 @@ unsigned int col_pins[] = {8, 7, 6, 11, 10, 9};
 
 struct Continulodica {
     sygbr::MidiDeviceDriver midi_driver;
-    sygsr::OneshotAdc<sygsr::ADC_CHANNEL_0> adc; // gpio 26
+    sygsr::OversamplingAdc<sygsr::OADC_CHANNEL_0, 100, 0> adc; // gpio 26
     sygsp::KeyScanner<decltype(adc.outputs.raw), 4096, std::size(row_pins), std::size(col_pins)> scanner;
     sygsr::LedMatrixScanner<decltype(scanner.outputs.leds), std::size(row_pins), std::size(col_pins), row_pins, col_pins> pin_driver;
     MidiMapping<decltype(scanner.outputs.keys), decltype(scanner.outputs.raw)> mapping;

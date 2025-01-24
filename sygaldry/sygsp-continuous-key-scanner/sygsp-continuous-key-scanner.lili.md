@@ -63,13 +63,16 @@ struct KeyScanner
     struct outputs_t {
         array_message<"keys", ROWS*COLUMNS, "sensor output state", float> keys;
         array_message<"velocity", ROWS*COLUMNS, "rate of key movement", float> velo;
-        array_message<"raw", ROWS*COLUMNS, "raw sensor output state", int> raw;
+        array_message<"max", ROWS*COLUMNS, "maximum detected raw value", float> max;
+        array_message<"min", ROWS*COLUMNS, "minimum detected raw value", float> min;
+        array_message<"raw", ROWS*COLUMNS, "raw sensor output state", float> raw;
         array_message<"last raw", ROWS*COLUMNS, "previous raw sensor output state", int> lastraw;
         /// Connect this to an appropriate component to drive the LEDs of the infrared sensors
         array_message<"LED coordinate", 2, "coordinate of the lit LED in the matrix", char> leds;
     } outputs;
 
     std::size_t current_key{};
+    std::size_t delay = 0;
 
     void set_led() { outputs.leds = {static_cast<char>(current_key % COLUMNS), static_cast<char>(current_key / COLUMNS)}; }
 
@@ -77,6 +80,12 @@ struct KeyScanner
     {
         current_key = 0;
         set_led();
+        for (std::size_t i = 0; i < ROWS*COLUMNS; ++i)
+        {
+            outputs.min[i] = adc_max;
+            outputs.max[i] = 0;
+        }
+        delay = 0;
     }
 
     void main(const adc_reading_t& adc_reading)
@@ -85,20 +94,25 @@ struct KeyScanner
         if (++current_key >= ROWS*COLUMNS)
         {
             current_key = 0;
+            if (delay > 1000)
             for (std::size_t i = 0; i < ROWS*COLUMNS; ++i)
             {
-                // impromptu 1euro-ish filter implementation
-                constexpr float dt = 1/20.0f; // this needs to be measured rather than set
-                constexpr float dalpha = 0.1;
-                constexpr float beta = 2.5f;
-                const float delta = outputs.raw[i] - outputs.lastraw[i];
-                outputs.velo[i] = dalpha * outputs.raw[i] + (1.0f-dalpha) * outputs.velo[i];
-                const float cut = 0.1f + beta * std::abs(outputs.velo[i] / 4096.0f);
-                const float tau = 1.0f/(6.2831853f*cut);
-                const float te = dt;
-                const float xalpha = 1.0f / (1.0f + tau/te);
-                outputs.keys[i] = xalpha * outputs.raw[i] + (1.0f-xalpha) * outputs.keys[i];
+            //    // impromptu 1euro-ish filter implementation
+            //    constexpr float dt = 1/20.0f; // this needs to be measured rather than set
+            //    constexpr float dalpha = 0.1;
+            //    constexpr float beta = 2.5f;
+            //    const float delta = outputs.raw[i] - outputs.lastraw[i];
+            //    outputs.velo[i] = dalpha * outputs.raw[i] + (1.0f-dalpha) * outputs.velo[i];
+            //    const float cut = 0.1f + beta * std::abs(outputs.velo[i] / 4096.0f);
+            //    const float tau = 1.0f/(6.2831853f*cut);
+            //    const float te = dt;
+            //    const float xalpha = 1.0f / (1.0f + tau/te);
+            //    outputs.keys[i] = xalpha * outputs.raw[i] + (1.0f-xalpha) * outputs.keys[i];
+                if (outputs.raw[i] > outputs.max[i]) outputs.max[i] = outputs.raw[i];
+                if (outputs.raw[i] < outputs.min[i]) outputs.min[i] = outputs.raw[i];
+                outputs.keys[i] = (outputs.raw[i] - outputs.min[i]) / (outputs.max[i] - outputs.min[i]);
             }
+            else ++delay;
             outputs.raw.set_updated();
             outputs.keys.set_updated();
             outputs.velo.set_updated();
