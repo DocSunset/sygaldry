@@ -21,7 +21,7 @@ NSlots = 33/3;
 PcbHeight = 20;
 PcbStopThickness = 2;
 HookHeight = MaxKeyHeight + MinSensorDistance + SensorHeight;
-HookLength = 23;
+HookLength = 21;
 HookDrop = 20;
 HookArm = 2;
 HookThickness = SlotWidth-0.1;
@@ -74,9 +74,13 @@ module hook()
                 cube([SensorLength, HookHeight, HookThickness]);
             // PCB stops
             translate([-PcbStopThickness,0,0])
-                cube([PcbStopThickness, HookHeight+2, HookThickness]);
+                cube([PcbStopThickness, HookHeight+1.6, HookThickness]);
+            translate([-PcbStopThickness,HookHeight+1.6,0])
+                cube([PcbStopThickness+.8, 1.6, HookThickness]);
             translate([PcbHeight,0,0])
-                cube([PcbStopThickness, HookHeight+2, HookThickness]); 
+                cube([PcbStopThickness, HookHeight+1.6, HookThickness]); 
+            translate([PcbHeight-0.8,HookHeight+1.6,0])
+                cube([PcbStopThickness+.8, 1.6, HookThickness]);
             // slot joint
             translate([HookLength,0,0])
                 cube([RailArea, SlotHeight-0.1, HookThickness]);
@@ -115,10 +119,68 @@ module aligner()
     }
 }
 
-module shelf()
+
+module frame()
 {
+    keyboard_x = 402;
+    left_cheek_x  = 26;
+    right_cheek_x = 23;
+    full_x = left_cheek_x + keyboard_x + right_cheek_x; // == 451
+    cheek_z = 9;
+    key_z = 4;
+    frame_y = 24;
+    frame_z = 24;
+    
+    module keyboard_space()
+    {
+        full_cheek_z = 19;
+        full_cheek_y = 165;
+        key_y = 84;
+        translate([0,-key_y,-cheek_z]) union()
+        {
+        cube([left_cheek_x,full_cheek_y,full_cheek_z]);
+        translate([left_cheek_x,0,0]) cube([keyboard_x,key_y,17]);
+        translate([left_cheek_x,0,0]) cube([keyboard_x,107,12]);
+        translate([left_cheek_x + keyboard_x,0,0]) 
+            cube([right_cheek_x,full_cheek_y,full_cheek_z]);
+        }
+    }
+    
+    //keyboard_space();
+
+    module _frame()
+    {
+    ang = 60;
+    //hyp = sqrt(frame_y*frame_y + 100);
+    difference()
+    {
+        // main bar
+        cube([full_x,frame_y,frame_z]);
+        // cut for left cheek
+        cube([left_cheek_x,999,cheek_z]);
+        // left screw hole
+        translate([left_cheek_x/2,frame_y-7,cheek_z]) cylinder(h=999,d=3);
+        translate([left_cheek_x/2,frame_y-7,cheek_z+3]) cylinder(h=999,d=6);
+        
+        // cut for right cheek
+        translate([left_cheek_x + keyboard_x,0,0]) cube([right_cheek_x,999,cheek_z]);
+        // cut for cable on right
+        translate([full_x-5,0,cheek_z]) cube([5,999,5]);
+        // right screw hole
+        translate([full_x-right_cheek_x/2,frame_y-7,cheek_z]) cylinder(h=999,d=3);
+        translate([full_x-right_cheek_x/2,frame_y-7,cheek_z+3]) cylinder(h=999,d=6);
+        
+        translate([0,0,key_z]) rotate([ang,0,0]) cube([999,999,999]);
+        translate([left_cheek_x,10,0]) cube([keyboard_x,5,RailHeight]);
+        translate([left_cheek_x,9,0])  cube([keyboard_x,1,9]);
+        translate([left_cheek_x,10,0]) cube([keyboard_x,999,RailHeight-3]);
+        translate([left_cheek_x,18,0]) cube([keyboard_x,999,frame_z-1]);
+    }
+    }
+    _frame();
 }
 
-//rail();
-hook();
+rail();
+//hook();
 //aligner();
+//frame();

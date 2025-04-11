@@ -45,12 +45,14 @@ struct MidiMapping
         {
             //if (keys[i] == last_out[i] && keys[i] <= 0) continue;
             //uint8_t message[3] = {status, i, static_cast<uint8_t>((int(keys[i])>>5)&0x7f)};
-            uint8_t message[3] = {status, i, static_cast<uint8_t>(keys[i]*127)};
+            auto k = keys[i];
+            k = k > 1.0f ? 1.0f : k < 0.0f? 0.0f : k;
+            uint8_t message[3] = {status, i, static_cast<uint8_t>(k*127)};
             tud_midi_stream_write(cable, message, 3);
 
-            uint8_t message2[3] = {polyaftertouch | 1, i, static_cast<uint8_t>((int(raws[i])>>5)&0x7f)};
+            uint8_t message2[3] = {polyaftertouch | 1, i, static_cast<uint8_t>((int(raws[i]*4.0f)>>7)&0x7f)};
             tud_midi_stream_write(cable, message2, 3);
-            uint8_t message3[3] = {polyaftertouch | 2, i, static_cast<uint8_t>(int(raws[i])&0x7f)};
+            uint8_t message3[3] = {polyaftertouch | 2, i, static_cast<uint8_t>(int(raws[i]*4.0f)&0x7f)};
             tud_midi_stream_write(cable, message3, 3);
         }
 
