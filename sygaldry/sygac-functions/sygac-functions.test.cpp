@@ -17,7 +17,7 @@ float not_func;
 // the rest should
 void free_func(int) {}
 
-// we should know that the rest are members, but void_free_func isn't
+// we should know that the rest are members, but void free_func isn't
 struct void_operator { void operator()() {} };
 
 // we should know that this is const, volatile, and noexcept, but void_operator isn't

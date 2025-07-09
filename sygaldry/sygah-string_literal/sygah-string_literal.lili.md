@@ -7,11 +7,27 @@ Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
 
 SPDX-License-Identifier: MIT
 
-All components and endpoints are required to have a name. To facilitate setting
-this conveniently, one approach is to define a thin wrapper around a string
-literal that allows us to pass string literals as template parameters. Then we
-define a base class that takes a string template parameter and synthesizes a
-compile-time evaluated name method.
+It's common for components and endpoints to have textual metadata. Endpoints
+generally have a name and description, and may have a unit. Components generally
+have a name and description, and may have additional metadata such as an author,
+version, copyright notice, and other information that may be useful to have at
+runtime for support and informational purposes. To facilitate exposing this
+metadata will minimum runtime cost and with a minimum of code to maintain, it
+may be convenient to supply such textual metadata as template parameters to
+a helper class.
+
+As of C++20 it's not possible to pass a string literal as a non-type template
+parameter, but it is possible to use certain user defined types. The class
+below provides a compile-time constructor that takes a string literal as
+argument and copies it into an array of characters that can be treated as a
+string literal and accepted anywhere a string literal is expected. When a
+non-type template parameter expects a `string_literal`, an actual string
+literal can be supplied to the template in that position and the compiler
+accepts it because of the availability of the compile-time constructor.
+
+This helper is mainly used in \ref page-sygah-metadata, but is kept seperate so
+that it can be drawn on any time string literals are needed as template
+parameters.
 
 ```cpp
 // @#'sygah-string_literal.hpp'

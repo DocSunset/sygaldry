@@ -11,6 +11,11 @@ SPDX-License-Identifier: MIT
 
 ## Implementation
 
+This implementation was partitioned into numerous translation units to see if
+this would reduce compile times. In the end, switching to a more performance
+tuple implementation than `std::tuple` turned out to be more impactful. This
+partitioning should be reversed at some point.
+
 ```cpp
 // @#'main/button.cpp'
 #include "sygse-button.hpp"

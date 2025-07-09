@@ -1,123 +1,23 @@
 \page page-docs-build_system The Build System
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023-2024 Travis J. West, https://traviswest.ca, Input Devices and
+Music Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in
+Music Media and Technology (CIRMMT), McGill University, Montréal, Canada, and
+Univ. Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille,
+France
 
 SPDX-License-Identifier: MIT
 
 [TOC]
 
-This document describes the Sygaldry build system.
+This document describes the Sygaldry CMake build system. CMake is currently used
+on all platforms supported by Sygaldry.
 
-The build environment setup is automated using the Nix package manager. See
-\subpage page-docs-nix_shell for a detailed description.
-
-# Sygaldry root
-
-We set a variable allowing components to reach the root of the repository. This
-is mainly done so that components can reach the `dependencies` directory
-unambiguously as `${SYGALDRY_ROOT}/dependencies`, rather than using a relative
-path that might break if the component is physically moved.
-
-```cmake
-# @='set SYGALDRY_ROOT'
-set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
-# @/
-```
-
-## Language Standard
-
-We require C++20 without extensions.
-
-```cmake
-# @='set language standard'
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED On)
-set(CMAKE_CXX_EXTENSIONS Off)
-# @/
-```
-
-## Testing Framework
-
-Catch2 is used for unit testing on platforms where it can run. Other platforms
-may use a different testing methodology.
-
-```cmake
-# @='include FetchContent'
-Include(FetchContent)
-# @/
-
-# @='Fetch Catch2'
-find_package(Catch2 3 REQUIRED)
-# @/
-
-# @='Include automatic test registration'
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-include(CTest)
-include(Catch)
-# @/
-```
-
-Catch2 is not a good testing framework for ESP-IDF and Pico SDK, so the code to
-enable it is disabled for those platforms.
-
-```cmake
-# @='prepare for tests'
-if (NOT ESP_PLATFORM AND NOT PICO_SDK)
-    @{Fetch Catch2}
-    @{Include automatic test registration}
-    set(SYGALDRY_BUILD_TESTS 1)
-endif()
-# @/
-```
-
-See [the Catch2 CMake integration documentation](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#top) for more detail.
-
-## Avendish
-
-Avendish is used to build Pd externals, and eventually perhaps for other
-bindings. It is currently incompatible with ESP-IDF and Pico SDK.
-
-```cmake
-# @='fetch Avendish'
-if (NOT ESP_PLATFORM AND NOT PICO_SDK)
-    FetchContent_Declare(
-      avendish
-      GIT_REPOSITORY "https://github.com/celtera/avendish"
-      GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
-      GIT_PROGRESS true
-    )
-    FetchContent_Populate(avendish)
-
-    set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
-    find_package(Avendish REQUIRED)
-    set(SYGALDRY_BUILD_AVENDISH 1)
-endif()
-# @/
-```
-
-## CMake Enabled Libraries
-
-Boost PFR and Boost MP11 are required by the concepts library, and consequently
-by any bindings or components that make use of it. Several other components
-make use of specific libraries, such as liblo and `Trill-Arduino`; some of
-these are also included as submodules, and some may be required to build the
-default test suite. Since many of these dependencies do not provide cmake
-support, they are handled on a case by case basis in the `CMakeLists.txt` files
-of the components that use them. Those that can be included via CMake are made
-available here, when appropriate depending on the platform.
-
-```cmake
-# @='include cmake libraries'
-add_subdirectory(dependencies/pfr)
-add_subdirectory(dependencies/mp11)
-add_library (eigen INTERFACE)
-add_library (Eigen3::Eigen ALIAS eigen)
-target_include_directories (eigen INTERFACE dependencies/eigen)
-# @/
-```
+To facilitate quickly getting started, the development environment setup is
+automated using the Nix package manager. See \subpage page-docs-nix_shell for
+more information on how the development environment is configured, or consult
+[the getting started documentation](page-docs-developer_setup) for information
+on how to install the development environment on your workstation.
 
 ## Software Components
 
@@ -167,7 +67,7 @@ Components were correspondingly named e.g. `sygaldry-sensors-esp32-adc`.
 
 As well as being troublingly verbose when editing, this proved problematic when
 building on Windows, which at the time in the year 2023 enforced a limit of 260
-characters on the length of a path when making a directory. Some instrument
+characters on the length of a path name when making a directory. Some instrument
 firmwares being built at the time would include the main repository root as a
 library, resulting in very long build artefact paths such as
 `C:\Users\user\Github\sygaldry\sygaldry\instruments\instrument_name\instrument_name_platform\instrument\build\main\sygbuild\C_Users\user\Github\sygaldry\sensors\arduino\trill_craft\sygaldry-sensors-arduino-trill_craft.obj.d`
@@ -197,6 +97,132 @@ the test suite.
 # @='add subdirectories'
 add_subdirectory(sygaldry)
 add_subdirectory(sygaldry-instruments/test)
+# @/
+```
+
+# Language Standard
+
+We require C++20 without extensions.
+
+```cmake
+# @='set language standard'
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+set(CMAKE_CXX_EXTENSIONS Off)
+# @/
+```
+
+# Dependencies
+
+Dependencies are made available in one of a few ways:
+
+- via Nix packages
+- via CMake `FetchContent`
+- via git submodules
+
+The exact way in which a given dependency is made available varies from
+component to component, which is a known limitation of the library's
+development. It remains as future work to enforce a more principled approach to
+making dependencies available. Until then, a few particularly widespread
+dependencies are made available directly in the top level `CMakeLists.txt`, by
+means described below, and others may be made available by means that vary from
+component to component. It is usually possible to determine how a dependency is
+made available by inspecting the `CMakeLists.txt` of the component with the
+dependency, cross-referencing with the structure of the repository; this work
+is left to the reader as an exercise until such time as a better approach is
+put in place.
+
+## Sygaldry root
+
+We set a variable allowing components to more easily reach the root of the
+repository. This is mainly done so that components can reach the `dependencies`
+directory unambiguously as `${SYGALDRY_ROOT}/dependencies`, rather than using a
+relative path that might break if the component is physically moved.
+
+```cmake
+# @='set SYGALDRY_ROOT'
+set(SYGALDRY_ROOT ${CMAKE_CURRENT_LIST_DIR})
+# @/
+```
+
+## Testing Framework
+
+Catch2 is used for unit testing on platforms where it can run. Other platforms
+may use a different testing methodology, or simply lack unit tests for the time
+being.
+
+```cmake
+# @='include FetchContent'
+Include(FetchContent)
+# @/
+
+# @='Fetch Catch2'
+find_package(Catch2 3 REQUIRED)
+# @/
+
+# @='Include automatic test registration'
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+include(CTest)
+include(Catch)
+# @/
+```
+
+Catch2 is not a good testing framework for ESP-IDF and Pico SDK, so the code to
+enable it is disabled for those platforms.
+
+```cmake
+# @='prepare for tests'
+if (NOT ESP_PLATFORM AND NOT PICO_SDK)
+    @{Fetch Catch2}
+    @{Include automatic test registration}
+    set(SYGALDRY_BUILD_TESTS 1)
+endif()
+# @/
+```
+
+See [the Catch2 CMake integration documentation](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#top) for more detail.
+
+## Avendish
+
+Avendish will be used to build Pd externals, and eventually perhaps for other
+bindings. It is currently incompatible with ESP-IDF and Pico SDK.
+
+```cmake
+# @='fetch Avendish'
+if (NOT ESP_PLATFORM AND NOT PICO_SDK)
+    FetchContent_Declare(
+      avendish
+      GIT_REPOSITORY "https://github.com/celtera/avendish"
+      GIT_TAG  3b3bd7b2ecf2061900726100e664b69c51b8e402
+      GIT_PROGRESS true
+    )
+    FetchContent_Populate(avendish)
+
+    set(CMAKE_PREFIX_PATH "${avendish_SOURCE_DIR};${CMAKE_PREFIX_PATH}")
+    find_package(Avendish REQUIRED)
+    set(SYGALDRY_BUILD_AVENDISH 1)
+endif()
+# @/
+```
+
+## CMake Enabled Libraries
+
+Boost PFR and Boost MP11 are required by the concepts library, and consequently
+by any bindings or components that make use of it. Several other components
+make use of specific libraries, such as liblo and `Trill-Arduino`; some of
+these are also included as submodules, and some may be required to build the
+default test suite. Since many of these dependencies do not provide cmake
+support, they are handled on a case by case basis in the `CMakeLists.txt` files
+of the components that use them. Those that can be included via CMake are made
+available here, when appropriate depending on the platform.
+
+```cmake
+# @='include cmake libraries'
+add_subdirectory(dependencies/pfr)
+add_subdirectory(dependencies/mp11)
+add_library (eigen INTERFACE)
+add_library (Eigen3::Eigen ALIAS eigen)
+target_include_directories (eigen INTERFACE dependencies/eigen)
 # @/
 ```
 

@@ -13,6 +13,21 @@ This component performs runtime calibration and sensor fusion of magnetic
 and inertial measurements from a MIMU device such as
 [the ICM20948](\ref page-sygsp-icm20948).
 
+# Structural organization note
+
+The layout of this component is a little unusual. This is a concession to the
+runtime dataflow mechanism. In order to enable the raw MIMU data to be passed
+to the fusion filter by the runtime, it's necessary to get the type signature
+of the MIMU data as a template parameter to the fusion filter. However, most
+of the fusion filter implementation doesn't change depending on the type
+signature of the raw data. For this reason, the bulk of the filter is implemented
+in a more C-like style, with the endpoints structures and component subroutines
+defined outside of the component template class. This way the fusion filter
+implementation can be compiled once in a seperate translation unit, and doesn't
+need to be considered by the compiler every time the template is instantiated.
+
+# Endpoints
+
 ```cpp
 // @#'sygsp-complementary_mimu_fusion_endpoints.hpp'
 #pragma once
@@ -162,6 +177,8 @@ struct ComplementaryMimuFusionOutputs {
 // @/
 ```
 
+# Component and Subroutine forward declarations
+
 ```cpp
 // @#'sygsp-complementary_mimu_fusion.hpp'
 #pragma once
@@ -259,6 +276,11 @@ struct ComplementaryMimuFusion
 } }
 // @/
 ```
+
+# Implementation
+
+This fusion filter, roughly, implements the algorithm described by
+\cite Madgwick2014.
 
 ```cpp
 // @#'sygsp-complementary_mimu_fusion.cpp'

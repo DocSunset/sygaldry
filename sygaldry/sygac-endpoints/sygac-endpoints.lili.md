@@ -1,9 +1,10 @@
 \page page-sygac-endpoints sygac-endpoints: Endpoint Concepts
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023-2024 Travis J. West, https://traviswest.ca, Input Devices and
+Music Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in
+Music Media and Technology (CIRMMT), McGill University, Montréal, Canada, and
+Univ. Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille,
+France
 
 SPDX-License-Identifier: MIT
 
@@ -11,7 +12,7 @@ SPDX-License-Identifier: MIT
 
 Although many components of digital musical instruments are commonly employed
 across different designs, their implementation and representation in computer
-programs tends to vary in incompatible ways. In `helpers/endpoints.lili`
+programs tends to vary in incompatible ways. In \ref page-sygah-endpoints
 we have defined a particular set of helper classes that allow components and
 endpoints to be conveniently annotated with useful metadata that can guide
 binding authors in how to interpret these entities. This document describes
@@ -19,7 +20,7 @@ a set of abstract concepts that components and endpoints are expected to
 adhere to, as well as providing generic subroutines that allow the signals
 and metadata from these entities to be accessed, even when the underlying
 representation of this information may vary. It is recommended to read
-this document second, after `helpers/endpoints.lili`.
+this document second, after \ref page-sygah-endpoints.
 
 In the interminable future, we can imagine that the whole music technology
 community might band together to define a set of standard concepts that are
@@ -37,23 +38,23 @@ generic component-oriented development model.
 
 # Information Representations
 
-As discussed in `endpoints.lili`, there are three main methods of associating
-information with an endpoint or component: through its member functions,
-through its member variables, and through its member types (including
-enumerations). In all three cases, the format of the information is as
-boundless as what can be represented by a C++ structure with its own methods,
-data, and types. However, in most practical cases, it is sufficient to use
-methods and enumerators, and their the names of these things within a class.
-Further, of all the built in types available, in most cases it suffices to use
-only string literals, signed and unsigned integers of 32 or 64 bits, floats,
-doubles, and booleans, returned from methods. For a few common special cases,
-it makes sense to use structures of the above types, and it is also helpful to
-make use of `std::optional` as described in `endpoints.lili`. For our
-purposes, we focus on these resources. Eventually, it will be useful to augment
-the above with complex numbers, vectors, and even matrices and tensors as
-primitive types, as well as function objects and other means of passing around
-subroutines and the thread of execution. But as a starting point, the basic
-representations described are enough to achieve a great deal of useful work.
+As discussed in \ref page-sygah-endpoints, there are three main methods of
+associating information with an endpoint or component: through its member
+functions, through its member variables, and through its member types
+(including enumerations). In all three cases, the format of the information is
+as boundless as what can be represented by a C++ structure with its own
+methods, data, and types. However, in most practical cases, it is sufficient to
+use methods and enumerators, and their the names of these things within a
+class. Further, of all the built in types available, in most cases it suffices
+to use only string literals, signed and unsigned integers of 32 or 64 bits,
+floats, doubles, and booleans, returned from methods. For a few common special
+cases, it makes sense to use structures of the above types, such as for ranges.
+For our purposes, we focus on these resources. Eventually, it will be useful to
+augment the above with complex numbers, vectors, and even matrices and tensors
+as primitive types, as well as function objects and other means of passing
+around subroutines and the thread of execution. But as a starting point, the
+basic representations described are enough to achieve a great deal of useful
+work.
 
 # Spelling Convention
 
@@ -79,15 +80,15 @@ Recap:
 # Name and Other Text
 
 Accessors for names and other textual metadata are defined in
-`concepts/metadata.lili`
+\ref page-sygac-metadata.
 
 # Range
 
 A range is represented by a structure with min, max, and init member variables
 of the same underlying type. An entity is considered to have a range if it
-possesses a static member function that returns such a structure. The use
-of `std::decay_t` and the accessor subroutines follow the logic seen in the
-previous section.
+possesses a static member function that returns such a structure. The use of
+`std::decay_t` and the accessor subroutines follow the logic seen in \ref
+page-sygac-metadata, being necessary so that `T` may be a reference type.
 
 ```cpp
 // @+'concepts'
@@ -172,7 +173,7 @@ We could just as well have used the standard concepts `convertible_to`,
 assertions that don't necessarily align with every hack and workaround that
 component authors may use to meet the described requirements. For instance, the
 fact that assignment operators are inherited from the `persistent<T>` base
-class helper in the endpoint helpers defined in `endpoints.lili` is in
+class helper in the endpoint helpers defined in \ref page-sygah-endpoints is in
 violation of the requirements of `assignable_from`, which requires the
 assignment to `T` to return a reference to `T` (and not one of its bases).
 
@@ -467,7 +468,7 @@ TEST_CASE("sygaldry sygac-endpoints ClearableFlag")
 
 # Value Access
 
-In case the accepted implementations of the above value types even changes, we
+In case the accepted implementations of the above value types ever changes, we
 encourage binding authors to access values using the following generic
 subroutines. `value_of` returns an appropriately `const` qualified reference to
 the value of an endpoint, allowing the binding author to read and write the

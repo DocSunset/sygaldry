@@ -2,10 +2,11 @@
 
 [TOC]
 
-Copyright 2023 Travis J. West, https://traviswest.ca, Input Devices and Music
-Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in Music
-Media and Technology (CIRMMT), McGill University, Montréal, Canada, and Univ.
-Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille, France
+Copyright 2023-2024 Travis J. West, https://traviswest.ca, Input Devices and
+Music Interaction Laboratory (IDMIL), Centre for Interdisciplinary Research in
+Music Media and Technology (CIRMMT), McGill University, Montréal, Canada, and
+Univ. Lille, Inria, CNRS, Centrale Lille, UMR 9189 CRIStAL, F-59000 Lille,
+France
 
 SPDX-License-Identifier: MIT
 
@@ -31,9 +32,9 @@ _consteval auto name_of() { return std::decay_t<T>::name(); }
 ```
 
 In the same way that all textual metadata can be defined using the same
-pattern, so too can it be detected and accessed. So just as we use a
-macro in \ref page-sygah-metadata to generate metadata helpers, here we
-use one to generate their generic accessors.
+patterns, so too can it be detected and accessed according to one basic
+pattern. So just as we use a macro in \ref page-sygah-metadata to generate
+metadata helpers, here we use one to generate their generic accessors.
 
 ```cpp
 // @#'sygac-metadata.hpp'

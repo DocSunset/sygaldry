@@ -96,7 +96,11 @@ consequence. This is also the macro method's main advantage: there's no need
 for the helper library author to specify in advance all of the possible
 metadata types. It seems likely both methods have similar if not identical
 runtime performance. For now, we opt for the base-class approach in keeping
-with our overall strategy.
+with our overall strategy, as seen in \ref page-sygah-endpoints, where we
+associate metadata with things by deriving from base classes. It is thought
+that this should make it easier for users to define novel sorts of endpoints
+without breaking the API assumptions of bindings, by making endpoint metadata
+more easily composed from sub-types.
 
 ```cpp
 // @#'sygah-metadata.test.cpp'

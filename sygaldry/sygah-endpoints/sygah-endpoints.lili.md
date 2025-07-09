@@ -52,8 +52,7 @@ metadata with such an endpoint.
 
 ## Name and Other Text
 
-Names and other textual metadata are addressed in
-[the metadata helpers document](helpers/metadata.lili.md).
+Names and other textual metadata are addressed in \ref page-sygah-metadata.
 
 ## Range and Initial Value
 
@@ -79,7 +78,7 @@ struct myendpoint : with<range{0.0f, 1.0f} {}; // not bad, but we can do better
 ```
 
 --it occurred to me while proofreading
-[the metadata helpers](helpers/metadata.lili.md) that the same strategy could
+[the metadata helpers](\ref page-sygah-metadata) that the same strategy could
 likely be employed with numbers as well as strings. Although this is redundant
 for integral types, which are allowed in template parameters, it's a minor
 tradeoff to accept both floats and integers in order to have a single way of
@@ -444,8 +443,7 @@ can then be designed to look for such symbols, e.g. `if constexpr (requires
 {endpoint::bang;}) { ... }` and behave depending on their presence or absence.
 Although it's easy enough to add such a tag when defining a custom endpoint,
 the following helpers are provided which attach tags with recognized value
-within this project. The interpretation is given in
-[the endpoints concepts document](concepts/endpoints.lili.md);
+within this project. The interpretation is given in \ref page-sygac-endpoints.
 
 First we define structures that each have one recognized tag.
 

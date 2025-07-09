@@ -9,7 +9,12 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-This document describes how the nix shell build environment is prepared.
+This document describes how the nix shell build environment is prepared. This
+environment is used to enable the development environment to be installed very
+rapidly, and to ensure that the development environment is consistent across
+workstations. As nix is not supported on Windows, developers using Windows
+machines may inspect this document for hints on what packages they may need to
+manually install.
 
 # Nix shell implementation details
 
@@ -104,3 +109,12 @@ in pkgs.stdenvNoCC.mkDerivation {
 Notice that the shell hook is used to create the directory `nixenv` and export
 the environment variable `SYGALDRY_ROOT`. These are used extensively by
 convenience scripts, as well as the CMake build automation.
+
+# Individual Platforms
+
+The build environment installed using Nix notably does not include build tools
+for any of the embedded platforms supported by Sygaldry. Instead, using the
+environment prepared with Nix, the standard build tools for each platform can
+be installed automatically when invoking the convenience script for that
+platform. While this may not be the most principled approach, it has proven
+adequate for the time being.

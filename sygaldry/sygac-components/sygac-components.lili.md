@@ -384,7 +384,7 @@ This is somewhat complicated by the fact that the check is necessarily
 recursive. The predicate needs to be true for both components and assemblies,
 and the predicate needs to be used in its own definition. But we don't want our
 `Assembly` concept to return true for components (which are not assemblies). We
-therefore need a seperate more generate predicate that does the recursive
+therefore need a seperate more general predicate that does the recursive
 check, allowing the final actual concept to weed out components.
 
 ```cpp
@@ -468,7 +468,7 @@ static_assert(Assembly<accessor_test_container_t>);
 The container can be seen as the root of a tree-like structure.
 
 ```
-( container // a component container
+( test_container // an assembly
 , ( c1 // a component
   , ( inputs // an input endpoint container
     , ( in1 // an input endpoint

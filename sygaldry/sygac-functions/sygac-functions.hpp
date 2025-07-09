@@ -36,7 +36,7 @@ struct function_type_reflection<Ret(Args...)> {
     using arguments = function_arg_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
-    using parent_class = std::false_type;
+    using parent_class = std::false_type; // should we even define this?
     using is_const = std::false_type;
     using is_volatile = std::false_type;
     using is_noexcept = std::false_type;

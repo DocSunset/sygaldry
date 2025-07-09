@@ -9,54 +9,11 @@ SPDX-License-Identifier: MIT
 
 [TOC]
 
-At the time of writing we detect a main subroutine of a component as a static
-method `main` or a function call operator that takes as arguments the
-components inputs, outputs, and/or parts, if any exist, as well as possibly
-additional throughpoints and/or plugins, and returns `void`. This turns out to
-be a bit involved to determine based only on the component's type. We need to
-check that the component has a `main` method or an `operator()`, and if so whether
-it accepts and returns the expected arguments.
-
-```cpp
-// these should both count as components, for now
-struct struct_with_void_main_method { void main() {}; };
-struct struct_with_void_operator_call { void operator()() {}; };
-
-// and these should not
-struct struct_with_int_main_method { int main(int i) { return i + 1; }; };
-struct struct_with_int_operator_call { int operator()(int i) { return i + 1; }; };
-```
-
-It's easy to check whether the given type has a function call operator; we can
-simply check if it's possible to take its address. But this doesn't allow us
-to check the return type is `void`:
-
-```cpp
-template<typename T>
-concept has_call_operator
-    = requires (T t) { &T::operator(); };
-static_assert(has_call_operator<void_operator>); // true
-static_assert(has_call_operator<decltype([](){return true;})>); // true
-```
-
-A similar check for the `main` method doesn't prove anything; `main` could just
-as well be a static variable, and even if it is a method, we still don't know
-if it returns void.
-
-```cpp
-template<typename T>
-concept has_static_main_member = requires (T t) { &T::main; }; // proves nothing!
-
-struct struct_with_main_method { static void main() {}; };
-struct struct_with_main_variable { static int main; };
-static_assert(has_static_main_member<struct_with_main_method>); // true
-static_assert(has_static_main_member<struct_with_main_variable>); // also true...
-```
-
-More generally, we would like to be able to reflect over any function (whether
-free or member), access its return and argument types, and tell whether member
-functions are const, volatile, and/or noexcept qualified. We require
-more robust function reflection.
+We would like to be able to reflect over any function (whether free or member),
+access its return and argument types, and tell whether member functions are
+const, volatile, and/or noexcept qualified. This document describes the
+implementation of function reflection metaprogramming facilities to provide
+this useful functionality.
 
 ```cpp
 // @+'tests'
@@ -66,7 +23,7 @@ float not_func;
 // the rest should
 void free_func(int) {}
 
-// we should know that the rest are members, but void_free_func isn't
+// we should know that the rest are members, but void free_func isn't
 struct void_operator { void operator()() {} };
 
 // we should know that this is const, volatile, and noexcept, but void_operator isn't
@@ -100,7 +57,9 @@ struct function_type_reflection
 We then specialize the struct for the case where the argument *is* a function,
 making the return type and list of arguments seperately available as types in
 the scope of the template, as well as several flags describing the context and
-qualification of the function type. We define a trivial type list template to
+qualification of the function type.
+
+We define a trivial type list template to
 carry around the list of argument types.
 
 ```cpp
@@ -108,7 +67,16 @@ carry around the list of argument types.
 /// A trivial type list struct for carrying function argument type lists
 template<typename ... Ts> struct function_arg_list {};
 // @/
+```
 
+Then we define a based case for when the metafunction is given a free function
+as an argument. As well as indicating that function type reflection exists,
+this also makes the return type and arguments type list readily available, and
+indicates that the function is free, not a member function, and therefore that
+it is not const, volatile, or noexcept qualified, since these qualifiers only
+apply to class member functions.
+
+```cpp
 // @='function type reflection function case'
 template<typename Ret, typename... Args>
 struct function_type_reflection<Ret(Args...)> {
@@ -117,7 +85,7 @@ struct function_type_reflection<Ret(Args...)> {
     using arguments = function_arg_list<Args...>;
     using is_free = std::true_type;
     using is_member = std::false_type;
-    using parent_class = std::false_type;
+    using parent_class = std::false_type; // should we even define this?
     using is_const = std::false_type;
     using is_volatile = std::false_type;
     using is_noexcept = std::false_type;
@@ -237,12 +205,13 @@ static_assert(function_type_reflectable<decltype(&int_main::main)>);
 ```
 
 We would also like to be able to reflect on function values, such as pointers
-to functions, pointer to members, and eventually pointers to function objects.
-This leads to the following metafunction, with use of `std::decay` to avoid
-having to make specializations for every combination of possibly const value,
-lvalue reference, and rvalue reference. Because this metafunction is defined in
-terms of the previous `function_type_reflection` facility, we can also more
-strictly constrain its inputs to those for which reflection is possible.
+to functions, pointer to members, and eventually pointers to function objects,
+rather than only on function types. This leads to the following metafunction,
+with use of `std::decay` to avoid having to make specializations for every
+combination of possibly const value, lvalue reference, and rvalue reference.
+Because this metafunction is defined in terms of the previous
+`function_type_reflection` facility, we can also more strictly constrain its
+inputs to those for which reflection is possible.
 
 ```cpp
 // @='function reflection'
